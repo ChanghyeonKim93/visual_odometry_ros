@@ -1,0 +1,1 @@
+# scale_mono_vo_ros
