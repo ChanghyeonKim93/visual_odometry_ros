@@ -1,0 +1,27 @@
+<launch>
+    <node pkg="scale_mono_vo_ros" name="vo_node"  
+          type="vo_node" output="screen">
+
+        <!-- ORB parameters -->
+        <param name="/ORBextractor/nFeatures"   type="int"    value="2000" />
+        <param name="/ORBextractor/scaleFactor" type="double" value="1.2" />
+        <param name="/ORBextractor/nLevels"     type="int"    value="8" />
+        <param name="/ORBextractor/iniThFAST"   type="int"    value="20" />
+        <param name="/ORBextractor/minThFAST"   type="int"    value="7" />
+
+
+        <!-- Camera calibration and distortion parameters (OpenCV) -->
+        <param name="camera_fx" type="double" value="615.6707153320312" />
+        <param name="camera_fy" type="double" value="615.962158203125" />
+        <param name="camera_cx" type="double" value="328.0010681152344" />
+        <param name="camera_cy" type="double" value="241.31031799316406" />
+
+        <!-- Camera calibration and distortion parameters (OpenCV) -->
+        <param name="camera_k1" type="double" value="0.0" />
+        <param name="camera_k2" type="double" value="0.0" />
+        <param name="camera_p1" type="double" value="0.0" />
+        <param name="camera_p2" type="double" value="0.0" />
+        <param name="camera_k3" type="double" value="0.0" />
+
+        </node>
+</launch>

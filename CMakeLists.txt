@@ -26,12 +26,15 @@ catkin_package(
 )
 
 set(SRC ${SRC} 
+  src/node.cpp
+
   src/scale_mono_vo.cpp
   
   src/camera.cpp
   src/feature_extractor.cpp
   src/image_processing.cpp
-  
+  src/motion_tracker.cpp
+
   src/dataset_loader.cpp
 
   src/timer.cpp

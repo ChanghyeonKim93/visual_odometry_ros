@@ -9,7 +9,7 @@
 #include "timer.h"
 #include "signal_handler_linux.h"
 
-#include "scale_mono_vo.h"
+#include "node.h"
 
 int main(int argc, char **argv) {
     ros::init(argc, argv, "vo_node", ros::init_options::NoSigintHandler);
@@ -18,9 +18,9 @@ int main(int argc, char **argv) {
     ros::NodeHandle nh("~");
     ROS_INFO_STREAM("vo_node - starts.");
    
-    try {
-        std::unique_ptr<ScaleMonoVO> vo;
-        vo = std::make_unique<ScaleMonoVO>();        
+    try {  
+        std::unique_ptr<MonoNode> node;
+        node = std::make_unique<MonoNode>(nh);
     }
     catch (std::exception& e) {
         ROS_ERROR(e.what());

@@ -48,17 +48,20 @@ private:
 	std::shared_ptr<FeatureExtractor> extractor_;
 	//std::shared_ptr<FeatureTracker>   tracker_;
 	//std::shared_ptr<DataBase>         database_;
+	//std::shared_ptr<MotionTracker>    motion_tracker_;
 
 // dataset related.
 private:
 	dataset_loader::DatasetStruct dataset;
 
 public:
-	ScaleMonoVO();
+	ScaleMonoVO(std::string mode);
 	~ScaleMonoVO();
 
+	void trackMonocular(const cv::Mat& img, const double& timestamp);
+
 private:
-	void run(); // run algorithm
+	void runDataset(); // run algorithm
 
 private:
 	void loadCameraIntrinsic_KITTI_IMAGE0(const std::string& dir); // functions for loading yaml files.
