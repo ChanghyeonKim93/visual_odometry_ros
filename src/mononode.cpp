@@ -67,7 +67,7 @@ void MonoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
     // update camera pose.
     timer::tic();
     // current_frame_time_ = msg->header.stamp;
-    // scale_mono_vo_->TrackMonocular(cv_ptr->image, cv_ptr->header.stamp.toSec());
+    // scale_mono_vo_->trackImage(cv_ptr->image, cv_ptr->header.stamp.toSec());
     // Update();
     ROS_INFO_STREAM( "execution time: " << timer::toc(0) << " sec.");
 };

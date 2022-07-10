@@ -10,6 +10,8 @@
  */
 ScaleMonoVO::ScaleMonoVO(std::string mode) {
 	std::cout << "Scale mono VO starts\n";
+	
+	flag_vo_initialized_ = false;
 
 	if(mode == "dataset"){
 		std::cout <<"ScaleMonoVO - 'dataset' mode.\n";
@@ -21,12 +23,12 @@ ScaleMonoVO::ScaleMonoVO(std::string mode) {
 		this->loadCameraIntrinsic_KITTI_IMAGE0(dir_dataset + "/dataset/sequences/" + dataset_num + "/intrinsic.yaml");
 
 		// Get dataset filenames.
-		dataset_loader::getImageFileNames_KITTI(dir_dataset, dataset_num, dataset);
+		dataset_loader::getImageFileNames_KITTI(dir_dataset, dataset_num, dataset_);
 
 		runDataset(); // run while loop
 	}
 	else if(mode == "rosbag"){
-		std::cout <<"ScaleMonoVO - 'rosbag' mode.\n";
+		std::cout << "ScaleMonoVO - 'rosbag' mode.\n";
 		// wait callback ...
 	}
 	else 
@@ -54,7 +56,7 @@ ScaleMonoVO::~ScaleMonoVO() {
  */
 void ScaleMonoVO::runDataset() {
 	
-	cv::Mat img0 = cv::imread(dataset.image_names[0], cv::IMREAD_GRAYSCALE);
+	cv::Mat img0 = cv::imread(dataset_.image_names[0], cv::IMREAD_GRAYSCALE);
 	cv::Mat img0f;
 	img0.convertTo(img0f, CV_32FC1);
 	std::cout << "input image type: " << image_processing::type2str(img0f) << std::endl;
@@ -89,6 +91,42 @@ void ScaleMonoVO::loadCameraIntrinsic_KITTI_IMAGE0(const std::string& dir) {
  * @author Changhyeon Kim (hyun91015@gmail.com)
  * @date 10-July-2022
  */
-void ScaleMonoVO::trackMonocular(const cv::Mat& img, const double& timestamp){
-	
+void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
+	// 현재 들어온 이미지에 대한 Frame을 생성한다.
+	FramePtr frame_curr_ = std::make_shared<Frame>();
+	// 이미지를  undistort 한다. 
+	cv::Mat img_undist;
+	cam_->undistort(img, img_undist);
+	frame_curr_->setImageAndTimestamp(img_undist, timestamp);
+
+	// 생성된 frame은 저장한다.
+	all_frames_.push_back(frame_curr_);
+
+	if(!flag_vo_initialized_){ // Not initialized yet.
+		
+		// frame_prev_ 이 가지고 있는 related_landmarks_을 img
+		
+		
+		if(1){ // lms_tracked_ 의 평균 parallax가 특정 값 이상인 경우, 초기화 끝. 
+
+			// lms_tracked_를 업데이트한다. 
+			flag_vo_initialized_ = true;
+		}
+
+	}	
+	else { // VO initialized. Do track the new image.
+		double dt = timestamp - frame_prev_->getTimestamp();
+		std::cout << "dt: " << dt << std::endl;
+
+		// i-2, i-1 째 이미지를 이용해서 motion velocity를 구한다. 
+		Eigen::Matrix4f dTdt;
+		// dTdt = T(i-2)^-1*T(i-1) / (t(i-1) - t(i-2))
+		// dTdt*dt;
+		Eigen::Matrix4f Twc_prior = frame_prev_->getPose()*(dTdt*(float)dt);
+
+		// lms_tracked_ 를 가져온다.
+		// lms_tracked_ 중, depth가 있는 점에 대해서 prior 계산한다.
+
+
+	}
 };

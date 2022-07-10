@@ -5,6 +5,10 @@
 #include <exception>
 #include <string>
 
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+
 #include <ros/ros.h>
 
 #include <sensor_msgs/Image.h>
@@ -43,32 +47,40 @@ class ScaleMonoVO
 public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-private:
-	std::shared_ptr<Camera> cam_;
-
-// Feature related
-private:
-	std::shared_ptr<FeatureExtractor> extractor_;
-	//std::shared_ptr<FeatureTracker>   tracker_;
-	//std::shared_ptr<DataBase>         database_;
-	//std::shared_ptr<MotionTracker>    motion_tracker_;
-
 // dataset related.
 private:
-	dataset_loader::DatasetStruct dataset;
+	dataset_loader::DatasetStruct dataset_;
+
+private:
+	std::shared_ptr<Camera> cam_;
+	std::shared_ptr<FeatureExtractor> extractor_;
+	//std::shared_ptr<FeatureTracker>   tracker_;
+	//std::shared_ptr<MotionTracker>    motion_tracker_;
+
+// For scale recovery thread
+private:
+	std::thread thread_scale_recovery_;
+	std::mutex mut_;
+	std::condition_variable convar_dataready_;
 
 // For tracker
 private:
-	FramePtr frame_cur_;
-	std::vector<LandmarkPtr> lms_trakced_;
+	bool flag_vo_initialized_;
+
+	FramePtr frame_prev_;
+	std::vector<LandmarkPtr> lms_prev_;
 	
+// All frames and landmarks
+private:
 	std::vector<LandmarkPtr> all_landmarks_;
+	std::vector<FramePtr>    all_frames_;
+	std::vector<FramePtr>    all_keyframes_;
 	
 public:
 	ScaleMonoVO(std::string mode);
 	~ScaleMonoVO();
 
-	void trackMonocular(const cv::Mat& img, const double& timestamp);
+	void trackImage(const cv::Mat& img, const double& timestamp);
 
 private:
 	void runDataset(); // run algorithm

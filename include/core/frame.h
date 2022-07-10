@@ -48,14 +48,15 @@ public:
 
     // Set
     void setPose(const Eigen::Matrix4f& Twc);
-    void setImage(const cv::Mat& img); 
+    void setImageAndTimestamp(const cv::Mat& img, const double& timestamp); 
     void setLandmarks(const std::vector<LandmarkPtr>& landmarks);
-
+    
     // Get
     uint32_t getID() const;
     Eigen::Matrix4f getPose() const;
     cv::Mat getImage() const ; 
     std::vector<LandmarkPtr> getRelatedLandmarkPtr() const;
+    double getTimestamp() const;
 };
 
 #endif

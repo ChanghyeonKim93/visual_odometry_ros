@@ -12,8 +12,9 @@ void Frame::setPose(const Eigen::Matrix4f& Twc) {
     Tcw_ = Twc_.inverse();
 };
 
-void Frame::setImage(const cv::Mat& img) { 
+void Frame::setImageAndTimestamp(const cv::Mat& img, const double& timestamp) { 
     img.copyTo(image_); 
+    timestamp_ = timestamp;
 };
 
 void Frame::setLandmarks(const std::vector<LandmarkPtr>& landmarks){
@@ -36,4 +37,7 @@ cv::Mat Frame::getImage() const {
 
 std::vector<LandmarkPtr> Frame::getRelatedLandmarkPtr() const { 
     return related_landmarks_; 
+};
+double Frame::getTimestamp() const {
+    return timestamp_;
 };
