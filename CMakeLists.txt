@@ -26,7 +26,7 @@ catkin_package(
 )
 
 set(SRC ${SRC} 
-  src/node.cpp
+  src/mononode.cpp
 
   src/scale_mono_vo.cpp
   
@@ -37,8 +37,8 @@ set(SRC ${SRC}
 
   src/dataset_loader.cpp
 
-  src/timer.cpp
-  src/signal_handler_linux.cpp
+  src/util/timer.cpp
+  src/util/signal_handler_linux.cpp
 )
 
 set(includeDirs ${includeDirs} ${CMAKE_CURRENT_BINARY_DIR})

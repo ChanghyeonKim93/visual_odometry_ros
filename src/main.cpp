@@ -5,11 +5,9 @@
 #include <sstream>
 #include <exception>
 
-// keyboard input tool
-#include "timer.h"
-#include "signal_handler_linux.h"
+#include "util/signal_handler_linux.h"
 
-#include "node.h"
+#include "mononode.h"
 
 int main(int argc, char **argv) {
     ros::init(argc, argv, "vo_node", ros::init_options::NoSigintHandler);

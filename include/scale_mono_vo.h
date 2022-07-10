@@ -33,7 +33,7 @@
 #include "image_processing.h"
 #include "dataset_loader.h"
 
-#include "timer.h"
+#include "util/timer.h"
 
 class ScaleMonoVO
 {
@@ -54,6 +54,10 @@ private:
 private:
 	dataset_loader::DatasetStruct dataset;
 
+private:
+	cv::Mat img_cur_;
+	cv::Mat img_cur_;
+	
 public:
 	ScaleMonoVO(std::string mode);
 	~ScaleMonoVO();

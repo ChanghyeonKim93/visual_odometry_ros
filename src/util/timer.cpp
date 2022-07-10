@@ -1,5 +1,4 @@
-
-#include "timer.h"
+#include "util/timer.h"
 namespace timer{
     auto start = std::chrono::high_resolution_clock::now();
     auto finish = std::chrono::high_resolution_clock::now();

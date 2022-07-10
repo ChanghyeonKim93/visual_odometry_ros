@@ -4,7 +4,6 @@
 #include <iostream>
 #include <algorithm>
 #include <fstream>
-#include <chrono>
 
 #include <Eigen/Dense>
 
@@ -17,19 +16,18 @@
 
 #include "scale_mono_vo.h"
 
-#include "timer.h"
+#include "util/timer.h"
 
 class MonoNode{
-
 public:
     MonoNode(ros::NodeHandle& nh);
     ~MonoNode();
 
-
 private:
     void getParameters();
-    void imageCallback(const sensor_msgs::ImageConstPtr& msg);
 
+private:
+    void imageCallback(const sensor_msgs::ImageConstPtr& msg);
     void run();
 
 private:

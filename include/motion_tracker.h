@@ -5,6 +5,8 @@
 #include <exception>
 #include <string>
 
+#include <Eigen/Dense>
+
 #include <opencv2/core.hpp>
 #include <opencv2/core/eigen.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
