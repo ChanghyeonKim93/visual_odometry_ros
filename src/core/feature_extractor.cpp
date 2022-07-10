@@ -1,4 +1,4 @@
-#include "feature_extractor.h"
+#include "core/feature_extractor.h"
 #include <algorithm>
 
 FeatureExtractor::FeatureExtractor() {

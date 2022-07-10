@@ -24,14 +24,17 @@
 #include <opencv2/highgui/highgui.hpp>
 
 // Defines 
-#include "defines.h"
+#include "core/defines.h"
 
 // custom
-#include "camera.h"
-#include "feature_extractor.h"
+#include "core/camera.h"
 
-#include "image_processing.h"
-#include "dataset_loader.h"
+#include "core/frame.h"
+#include "core/landmark.h"
+
+#include "core/feature_extractor.h"
+#include "core/image_processing.h"
+#include "core/dataset_loader.h"
 
 #include "util/timer.h"
 
@@ -54,9 +57,12 @@ private:
 private:
 	dataset_loader::DatasetStruct dataset;
 
+// For tracker
 private:
-	cv::Mat img_cur_;
-	cv::Mat img_cur_;
+	FramePtr frame_cur_;
+	std::vector<LandmarkPtr> lms_trakced_;
+	
+	std::vector<LandmarkPtr> all_landmarks_;
 	
 public:
 	ScaleMonoVO(std::string mode);

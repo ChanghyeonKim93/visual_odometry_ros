@@ -1,4 +1,4 @@
-#include "image_processing.h"
+#include "core/image_processing.h"
 
 namespace image_processing {
 	std::string type2str(cv::Mat img) {

@@ -28,14 +28,15 @@ catkin_package(
 set(SRC ${SRC} 
   src/mononode.cpp
 
-  src/scale_mono_vo.cpp
-  
-  src/camera.cpp
-  src/feature_extractor.cpp
-  src/image_processing.cpp
-  src/motion_tracker.cpp
+  src/core/scale_mono_vo.cpp
+  src/core/camera.cpp
+  src/core/frame.cpp
+  src/core/landmark.cpp
+  src/core/feature_extractor.cpp
+  src/core/image_processing.cpp
+  src/core/motion_tracker.cpp
 
-  src/dataset_loader.cpp
+  src/core/dataset_loader.cpp
 
   src/util/timer.cpp
   src/util/signal_handler_linux.cpp

@@ -1,4 +1,4 @@
-#include "scale_mono_vo.h"
+#include "core/scale_mono_vo.h"
 
 /**
  * @brief Scale mono VO object
