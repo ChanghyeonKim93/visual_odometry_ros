@@ -30,15 +30,17 @@ set(SRC ${SRC}
 
   src/scale_mono_vo.cpp
   
+  src/frame.cpp
+
   src/camera.cpp
   src/feature_extractor.cpp
   src/image_processing.cpp
-  src/motion_tracker.cpp
+  # src/motion_tracker.cpp
 
   src/dataset_loader.cpp
 
-  src/timer.cpp
-  src/signal_handler_linux.cpp
+  src/util/timer.cpp
+  src/util/signal_handler_linux.cpp
 )
 
 set(includeDirs ${includeDirs} ${CMAKE_CURRENT_BINARY_DIR})

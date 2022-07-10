@@ -14,9 +14,7 @@ MonoNode::MonoNode(ros::NodeHandle& nh)
     this->run();
 };
 
-MonoNode::~MonoNode(){
-
-};
+MonoNode::~MonoNode() { };
 
 void MonoNode::getParameters(){
 

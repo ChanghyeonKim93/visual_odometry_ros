@@ -26,6 +26,9 @@
 // Defines 
 #include "defines.h"
 
+// utility
+#include "util/timer.h"
+
 // custom
 #include "camera.h"
 #include "feature_extractor.h"
@@ -33,7 +36,14 @@
 #include "image_processing.h"
 #include "dataset_loader.h"
 
-#include "timer.h"
+
+#include "landmark.h"
+#include "frame.h"
+
+// class Landmark;
+// class Frame;
+// typedef std::shared_ptr<Landmark> LandmarkPtr;
+// typedef std::shared_ptr<Frame> FramePtr;
 
 class ScaleMonoVO
 {
@@ -47,8 +57,13 @@ private:
 private:
 	std::shared_ptr<FeatureExtractor> extractor_;
 	//std::shared_ptr<FeatureTracker>   tracker_;
-	//std::shared_ptr<DataBase>         database_;
 	//std::shared_ptr<MotionTracker>    motion_tracker_;
+	//std::shared_ptr<DataBase>         database_;
+
+	std::vector<FramePtr>    all_frames_;
+	std::vector<LandmarkPtr> all_landmarks_;
+
+	
 
 // dataset related.
 private:

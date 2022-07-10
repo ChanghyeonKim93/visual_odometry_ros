@@ -17,14 +17,13 @@
 
 #include "scale_mono_vo.h"
 
-#include "timer.h"
+#include "util/timer.h"
 
 class MonoNode{
 
 public:
     MonoNode(ros::NodeHandle& nh);
     ~MonoNode();
-
 
 private:
     void getParameters();
