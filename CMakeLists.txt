@@ -12,11 +12,9 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   cv_bridge
   
-  message_filters
-  image_transport
-
   geometry_msgs
   sensor_msgs
+  nav_msgs
 )
 
 catkin_package(

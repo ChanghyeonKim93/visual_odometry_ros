@@ -1,14 +1,18 @@
 <launch>
-    <node pkg="scale_mono_vo_ros" name="vo_node"  
-          type="vo_node" output="screen">
+    <node pkg="scale_mono_vo_ros" name="vo_node" type="vo_node" output="screen">
+        <!-- Image topicname to be subscribed -->
+        <param name="topicname_image" type="string" value="/kitti_odometry/left/image_raw"/>
+        
+        <!-- topicname of the VO pose estimation to be published -->
+        <param name="topicname_pose_estimation" type="string" value="/scale_mono_vo/pose"/>
+
 
         <!-- ORB parameters -->
-        <param name="/ORBextractor/nFeatures"   type="int"    value="2000" />
+        <param name="/ORBextractor/nFeatures"   type="int"    value="1000" />
         <param name="/ORBextractor/scaleFactor" type="double" value="1.2" />
         <param name="/ORBextractor/nLevels"     type="int"    value="8" />
         <param name="/ORBextractor/iniThFAST"   type="int"    value="20" />
         <param name="/ORBextractor/minThFAST"   type="int"    value="7" />
-
 
         <!-- Camera calibration and distortion parameters (OpenCV) -->
         <param name="camera_fx" type="double" value="615.6707153320312" />
@@ -22,6 +26,5 @@
         <param name="camera_p1" type="double" value="0.0" />
         <param name="camera_p2" type="double" value="0.0" />
         <param name="camera_k3" type="double" value="0.0" />
-
-        </node>
+    </node>
 </launch>

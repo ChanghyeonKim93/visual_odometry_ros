@@ -18,6 +18,20 @@ MonoNode::MonoNode(ros::NodeHandle& nh) : nh_(nh)
     std::string mode = "rosbag";
     scale_mono_vo_ = std::make_unique<ScaleMonoVO>(mode);
 
+    // Subscriber
+    if(!ros::param::has("~topicname_image")) throw std::runtime_error("'topicname_image' is not set.");
+    ros::param::get("~topicname_image", topicname_image_);
+    
+    img_sub_ = 
+        nh_.subscribe<sensor_msgs::Image>(topicname_image_, 10, &MonoNode::imageCallback, this);
+
+    // Publisher
+    if(!ros::param::has("~topicname_pose_estimation")) throw std::runtime_error("'topicname_pose_estimation' is not set.");
+    ros::param::get("~topicname_pose_estimation", topicname_pose_estimation_);
+
+    pub_pose_estimation_ =
+        nh_.advertise<nav_msgs::Odometry>(topicname_pose_estimation_, 1);
+
     ROS_INFO_STREAM("MonoNode - generate Scale Mono VO object. Starts.");
 
     // spin .
@@ -69,7 +83,7 @@ void MonoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
     // current_frame_time_ = msg->header.stamp;
     // scale_mono_vo_->trackImage(cv_ptr->image, cv_ptr->header.stamp.toSec());
     // Update();
-    ROS_INFO_STREAM( "execution time: " << timer::toc(0) << " sec.");
+    ROS_INFO_STREAM( "execution time: " << timer::toc(0) << " msec.");
 };
 
 /**
@@ -80,7 +94,7 @@ void MonoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
  * @date 10-July-2022
  */
 void MonoNode::run(){
-    ros::Rate rate(200);
+    ros::Rate rate(1000);
     while(nh_.ok()){
         ros::spinOnce();
         rate.sleep();

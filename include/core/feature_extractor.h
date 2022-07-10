@@ -22,12 +22,12 @@ typedef cv::KeyPoint Feature;
 typedef std::vector<Feature> Features;
 
 struct ParamsORB {
-	int   MaxFeatures = 100;    // % MaxFeatures (300) % The maximum number of features to retain.
-	float ScaleFactor = 1.05;   // % ScaleFactor (1.2) % Pyramid decimation ratio.
-	int   NLevels = 1;      // % NLevels (8)% The number of pyramid levels.
-	float EdgeThreshold = 6;      // % EdgeThreshold (31)% This is size of the border where the features are not detected.
-	int   FirstLevel = 0;      // % FirstLevel (0)% The level of pyramid to put source image to.
-	int   WTA_K = 2;      // % WTA_K (2)% The number of points that produce each element of the oriented BRIEF descriptor. (2, 3, 4)
+	int   MaxFeatures     = 100;    // % MaxFeatures (300) % The maximum number of features to retain.
+	float ScaleFactor     = 1.05;   // % ScaleFactor (1.2) % Pyramid decimation ratio.
+	int   NLevels         = 1;      // % NLevels (8)% The number of pyramid levels.
+	float EdgeThreshold   = 6;      // % EdgeThreshold (31)% This is size of the border where the features are not detected.
+	int   FirstLevel      = 0;      // % FirstLevel (0)% The level of pyramid to put source image to.
+	int   WTA_K           = 2;      // % WTA_K (2)% The number of points that produce each element of the oriented BRIEF descriptor. (2, 3, 4)
 	std::string ScoreType = "FAST"; // % ScoreType (Harris) % Algorithm used to rank features. (Harris, FAST)
 	int   PatchSize       = 31;     // % PatchSize (31) % Size of the patch used by the oriented BRIEF descriptor.
 	float FastThreshold   = 15;     // % FastThreshold (20)% Threshold on difference between intensity of the central pixel and pixels of a circle around this pixel
@@ -37,7 +37,7 @@ struct ParamsORB {
 };
 
 struct WeightBin {
-	int* weight = nullptr;
+	int* weight  = nullptr;
 	int* u_bound = nullptr;
 	int* v_bound = nullptr;
 	int n_bins_u = 0;
