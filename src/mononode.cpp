@@ -19,7 +19,7 @@ MonoNode::MonoNode(ros::NodeHandle& nh) : nh_(nh)
     scale_mono_vo_ = std::make_unique<ScaleMonoVO>(mode, directory_intrinsic_);
 
     // Subscriber    
-    img_sub_ = nh_.subscribe<sensor_msgs::Image>(topicname_image_, 5, &MonoNode::imageCallback, this);
+    img_sub_ = nh_.subscribe<sensor_msgs::Image>(topicname_image_, 1, &MonoNode::imageCallback, this);
 
     // Publisher
     pub_pose_       = nh_.advertise<nav_msgs::Odometry>(topicname_pose_, 1);
@@ -86,16 +86,18 @@ void MonoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
     } 
     catch (cv_bridge::Exception& e) {
         ROS_ERROR("cv_bridge exception: %s", e.what());
+        throw std::runtime_error("ERR!!!!");
         return;
-    }
-
+    }    
     // update camera pose.
+    double time_now = cv_ptr->header.stamp.toSec();
     timer::tic();
     // current_frame_time_ = msg->header.stamp;
     ROS_INFO_STREAM( "New image arrives. scale_mono_vo ->trackImage()");
-    scale_mono_vo_->trackImage(cv_ptr->image, cv_ptr->header.stamp.toSec());
+    scale_mono_vo_->trackImage(cv_ptr->image, time_now);
     // Update();
     ROS_INFO_STREAM( "execution time: " << timer::toc(0) << " msec.");
+    std::cout << "OK? " << std::endl;
 };
 
 /**
@@ -107,7 +109,7 @@ void MonoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
  */
 void MonoNode::run(){
     ros::Rate rate(100);
-    while(nh_.ok()){
+    while(ros::ok()){
         ros::spinOnce();
         rate.sleep();
     }

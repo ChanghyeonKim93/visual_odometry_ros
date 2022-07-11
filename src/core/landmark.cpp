@@ -24,22 +24,22 @@ void Landmark::addObservationAndRelatedFrame(const Pixel& p, const FramePtr& fra
     }
 };    
 
-void Landmark::setTrackInView(Mask value){
-    track_in_view_ = value;
-};
-void Landmark::setTrackProjUV(float u, float v){
-    track_proj_u_ = u; track_proj_v_ = v;
-};
-void Landmark::setTrackScaleLevel(uint32_t lvl){
-    track_scale_level_ = lvl;
-};
-void Landmark::setTrackViewCos(float vcos){
-    track_view_cos_ = vcos;
-};
+// void Landmark::setTrackInView(Mask value){
+//     track_in_view_ = value;
+// };
+// void Landmark::setTrackProjUV(float u, float v){
+//     track_proj_u_ = u; track_proj_v_ = v;
+// };
+// void Landmark::setTrackScaleLevel(uint32_t lvl){
+//     track_scale_level_ = lvl;
+// };
+// void Landmark::setTrackViewCos(float vcos){
+//     track_view_cos_ = vcos;
+// };
+
 void Landmark::setAlive(bool value){
     is_alive_ = value;
 };
-
 const uint32_t& Landmark::getID() const { 
     return id_; 
 };

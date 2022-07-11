@@ -4,6 +4,7 @@ Frame::Frame() {
     Twc_ = Eigen::Matrix4f::Identity();
     Tcw_ = Eigen::Matrix4f::Identity();
     id_  = frame_counter_;
+    timestamp_ = 0;
     ++frame_counter_;
 };
 

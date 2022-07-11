@@ -9,12 +9,10 @@
  * @date 10-July-2022
  */
 ScaleMonoVO::ScaleMonoVO(std::string mode, std::string directory_intrinsic)
-: cam_(nullptr), system_flags_() {
+: cam_(nullptr), system_flags_(), dataset_(), frame_prev_(nullptr) {
 	std::cout << "Scale mono VO starts\n";
 	
-	system_flags_.flagFirstImageGot  = false;
-	system_flags_.flagVOInit         = false;
-
+	
 	// Initialize camera
 	cam_ = std::make_shared<Camera>();
 
@@ -206,7 +204,7 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 			frame_curr->setRelatedLandmarks(lmvec0);
 			frame_curr->setPtsSeen(pxvec0);
 
-			if(1){
+			if( true ){
 				cv::namedWindow("img_features");
 				cv::Mat img_draw;
 				frame_curr->getImage().copyTo(img_draw);
@@ -214,7 +212,7 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 				for(auto p : pxvec0) cv::circle(img_draw, p, 4.0, cv::Scalar(255,0,255));
 				
 				cv::imshow("img_features", img_draw);
-				cv::waitKey(10);
+				// cv::waitKey(10);
 			}
 
 			system_flags_.flagFirstImageGot = true;
@@ -259,6 +257,7 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 			if(!motion_estimator_->calcPose5PointsAlgorithm(pxvec0_alive, pxvec1_alive, cam_, maskvec_inlier)){
 				throw std::runtime_error("calcPose5PointsAlgorithm() is failed.");
 			}
+			std::cout << pxvec0_alive.size() << "," << pxvec1_alive.size() <<std::endl;
 
 			// tracking, 5p algorithm, newpoint 모두 합쳐서 살아남은 점만 frame_curr에 넣는다
 			LandmarkPtrVec lmvec1_final;
@@ -299,10 +298,8 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 				cv::Mat img_draw;
 				frame_curr->getImage().copyTo(img_draw);
 				cv::cvtColor(img_draw, img_draw, CV_GRAY2RGB);
-				for(int i = 0; i < pxvec0.size(); ++i) {
-					if(maskvec1_track[i]) cv::circle(img_draw, pxvec0[i], 4.0, cv::Scalar(255,0,255)); // alived magenta
-					else cv::circle(img_draw, pxvec0[i], 2.0, cv::Scalar(0,0,255)); // red, dead points
-				}
+				for(int i = 0; i < pxvec0_alive.size(); ++i) 
+					cv::circle(img_draw, pxvec0_alive[i], 4.0, cv::Scalar(255,0,255)); // alived magenta
 				for(int i = 0; i < pxvec1_final.size(); ++i)
 					cv::circle(img_draw, pxvec1_final[i], 4.0, cv::Scalar(0,255,0)); // green tracked points
 				for(int i = 0; i < pxvec1_new.size(); ++i)
@@ -318,7 +315,7 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 
 				std::cout << "VO initialzed!\n";
 			}
-		}		
+		}
 	}	
 	else { // VO initialized. Do track the new image.
 		std::cout << "VO init. run!.\n";
@@ -343,4 +340,5 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 
 	// Replace the 'frame_prev_' with 'frame_curr'
 	frame_prev_ = frame_curr;
+	std::cout << "frame prev is updated \n";
 };

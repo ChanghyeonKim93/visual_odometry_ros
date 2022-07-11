@@ -32,16 +32,16 @@ private:
 
 // Used for tracking
 private:
-    bool track_in_view_;
-    float track_proj_u_;
-    float track_proj_v_;
-    uint32_t track_scale_level_;
-    float track_view_cos_;
+    // bool track_in_view_;
+    // float track_proj_u_;
+    // float track_proj_v_;
+    // uint32_t track_scale_level_;
+    // float track_view_cos_;
 
     float max_possible_distance_;
     float min_possible_distance_;
 
-    Eigen::Vector3f normal_vector_;
+    // Eigen::Vector3f normal_vector_;
 
 public: // static counter
     inline static uint32_t landmark_counter_ = 0;
@@ -54,10 +54,10 @@ public:
     void set3DPoint(const Point& Xw);
     void addObservationAndRelatedFrame(const Pixel& p, const FramePtr& frame);
 
-    void setTrackInView(bool value);
-    void setTrackProjUV(float u, float v);
-    void setTrackScaleLevel(uint32_t lvl);
-    void setTrackViewCos(float vcos);
+    // void setTrackInView(bool value);
+    // void setTrackProjUV(float u, float v);
+    // void setTrackScaleLevel(uint32_t lvl);
+    // void setTrackViewCos(float vcos);
     void setAlive(bool value);
     
     const uint32_t& getID() const;

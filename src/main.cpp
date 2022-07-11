@@ -17,8 +17,7 @@ int main(int argc, char **argv) {
     ROS_INFO_STREAM("vo_node - starts.");
    
     try {  
-        std::unique_ptr<MonoNode> node;
-        node = std::make_unique<MonoNode>(nh);
+        MonoNode node(nh);
     }
     catch (std::exception& e) {
         ROS_ERROR(e.what());

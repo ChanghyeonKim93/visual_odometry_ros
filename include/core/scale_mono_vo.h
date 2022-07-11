@@ -63,14 +63,15 @@ private:
 
 // For scale recovery thread
 private:
-	std::thread thread_scale_recovery_;
-	std::mutex mut_;
-	std::condition_variable convar_dataready_;
+	// std::thread thread_scale_recovery_;
+	// std::mutex mut_;
+	// std::condition_variable convar_dataready_;
 
 private:
 	struct SystemFlags{
 		bool flagFirstImageGot;
 		bool flagVOInit;
+		SystemFlags():flagFirstImageGot(false), flagVOInit(false) {};
 	};
 
 // For tracker
