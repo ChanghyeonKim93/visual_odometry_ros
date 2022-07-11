@@ -8,18 +8,20 @@
  * @author Changhyeon Kim (hyun91015@gmail.com)
  * @date 10-July-2022
  */
-ScaleMonoVO::ScaleMonoVO(std::string mode) {
+ScaleMonoVO::ScaleMonoVO(std::string mode, std::string directory_intrinsic)
+: cam_(nullptr) {
 	std::cout << "Scale mono VO starts\n";
 	
 	flag_vo_initialized_ = false;
+
+	// Set cam_
+	cam_ = std::make_shared<Camera>();
 
 	if(mode == "dataset"){
 		std::cout <<"ScaleMonoVO - 'dataset' mode.\n";
 		std::string dir_dataset = "D:/#DATASET/kitti/data_odometry_gray";
 		std::string dataset_num = "00";
 
-		// Set cam_
-		cam_ = std::make_shared<Camera>();
 		this->loadCameraIntrinsic_KITTI_IMAGE0(dir_dataset + "/dataset/sequences/" + dataset_num + "/intrinsic.yaml");
 
 		// Get dataset filenames.
@@ -29,6 +31,8 @@ ScaleMonoVO::ScaleMonoVO(std::string mode) {
 	}
 	else if(mode == "rosbag"){
 		std::cout << "ScaleMonoVO - 'rosbag' mode.\n";
+		
+		this->loadCameraIntrinsic(directory_intrinsic);
 		// wait callback ...
 	}
 	else 
@@ -65,6 +69,14 @@ void ScaleMonoVO::runDataset() {
 	}*/
 };
 
+/**
+ * @brief load monocular camera intrinsic parameters from yaml file.
+ * @details 카메라의 intrinsic parameter (fx,fy,cx,cy, distortion)을 얻어온다. 
+ * @param dir file directory
+ * @return void
+ * @author Changhyeon Kim (hyun91015@gmail.com)
+ * @date 11-July-2022
+ */
 void ScaleMonoVO::loadCameraIntrinsic_KITTI_IMAGE0(const std::string& dir) {
 
 	cv::FileStorage fs(dir, cv::FileStorage::READ);
@@ -81,6 +93,69 @@ void ScaleMonoVO::loadCameraIntrinsic_KITTI_IMAGE0(const std::string& dir) {
 	
 	std::cout << " - 'loadCameraIntrinsicMono()' - loaded.\n";
 };
+
+/**
+ * @brief load monocular camera intrinsic parameters from yaml file.
+ * @details 카메라의 intrinsic parameter (fx,fy,cx,cy, distortion)을 얻어온다. 
+ * @param dir file directory
+ * @return void
+ * @author Changhyeon Kim (hyun91015@gmail.com)
+ * @date 11-July-2022
+ */
+void ScaleMonoVO::loadCameraIntrinsic(const std::string& dir) {
+	cv::FileStorage fs(dir, cv::FileStorage::READ);
+	if (!fs.isOpened()) throw std::runtime_error("intrinsic file cannot be found!\n");
+
+	int rows, cols;
+	rows = fs["Camera.height"];
+	cols = fs["Camera.width"];
+
+	float fx,fy,cx,cy;
+	fx = fs["Camera.fx"];
+	fy = fs["Camera.fy"];
+	cx = fs["Camera.cx"];
+	cy = fs["Camera.cy"];
+
+	float k1,k2,k3,p1,p2;
+	k1 = fs["Camera.k1"];
+	k2 = fs["Camera.k2"];
+	k3 = fs["Camera.k3"];
+	p1 = fs["Camera.p1"];
+	p2 = fs["Camera.p2"];
+
+	cv::Mat cvK_tmp;
+	cvK_tmp = cv::Mat(3,3,CV_32FC1);
+	cvK_tmp.at<float>(0,0) = fx;
+	cvK_tmp.at<float>(0,1) = 0.0f;
+	cvK_tmp.at<float>(0,2) = cx;
+	cvK_tmp.at<float>(1,0) = 0.0f;
+	cvK_tmp.at<float>(1,1) = fy;
+	cvK_tmp.at<float>(1,2) = cy;
+	cvK_tmp.at<float>(2,0) = 0.0f;
+	cvK_tmp.at<float>(2,1) = 0.0f;
+	cvK_tmp.at<float>(2,2) = 1.0f;
+	
+	cv::Mat cvD_tmp;
+	cvD_tmp = cv::Mat(1,5,CV_32FC1);
+	cvD_tmp.at<float>(0,0) = k1;
+	cvD_tmp.at<float>(0,1) = k2;
+	cvD_tmp.at<float>(0,2) = p1;
+	cvD_tmp.at<float>(0,3) = p2;
+	cvD_tmp.at<float>(0,4) = k3;
+
+	if(cam_ == nullptr) throw std::runtime_error("cam_ is not allocated.");
+	cam_->initParams(cols, rows, cvK_tmp, cvD_tmp);
+
+	std::cout << cam_->fx() <<", "
+			  << cam_->fy() <<", "
+			  << cam_->cx() <<", "
+			  << cam_->cy() <<", "
+			  << cam_->cols() <<", "
+			  << cam_->rows() <<"\n";
+	
+	std::cout << " - 'loadCameraIntrinsic()' - loaded.\n";
+};
+
 
 /**
  * @brief function to track a new image
@@ -101,7 +176,6 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 
 	// 생성된 frame은 저장한다.
 	all_frames_.push_back(frame_curr_);
-
 	if(!flag_vo_initialized_){ // Not initialized yet.
 		
 		// frame_prev_ 이 가지고 있는 related_landmarks_을 img

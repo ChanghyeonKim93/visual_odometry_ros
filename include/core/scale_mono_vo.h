@@ -11,11 +11,6 @@
 
 #include <ros/ros.h>
 
-#include <sensor_msgs/Image.h>
-#include <sensor_msgs/CameraInfo.h>
-#include <sensor_msgs/image_encodings.h>
-#include <image_transport/image_transport.h>
-
 // Eigen
 #include <Eigen/Dense>
 
@@ -77,7 +72,7 @@ private:
 	std::vector<FramePtr>    all_keyframes_;
 	
 public:
-	ScaleMonoVO(std::string mode);
+	ScaleMonoVO(std::string mode, std::string directory_intrinsic);
 	~ScaleMonoVO();
 
 	void trackImage(const cv::Mat& img, const double& timestamp);
@@ -87,6 +82,7 @@ private:
 
 private:
 	void loadCameraIntrinsic_KITTI_IMAGE0(const std::string& dir); // functions for loading yaml files.
+	void loadCameraIntrinsic(const std::string& dir);
 };
 
 

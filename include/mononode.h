@@ -40,6 +40,8 @@ private:
     ros::Publisher pub_pose_estimation_;
     std::string topicname_pose_estimation_;
 
+    std::string directory_intrinsic_;
+
 private:
     std::unique_ptr<ScaleMonoVO> scale_mono_vo_;
 };
