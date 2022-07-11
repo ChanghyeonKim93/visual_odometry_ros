@@ -98,12 +98,11 @@ struct WeightBin {
 		for (int i = 1; i < n_bins_u; ++i) this->u_bound[i] = u_step * i;
 		for (int i = 1; i < n_bins_v; ++i) this->v_bound[i] = v_step * i;
 
-		printf("   - FEATURE_EXTRACTOR - WeightBin - 'init'\n");
+		std::cout<< "   - FEATURE_EXTRACTOR - WeightBin - 'init'\n";
 	};
 
 	void reset() {
-		int n_total_cells = this->n_bins_u*this->n_bins_v;
-		for (int i = 0; i < n_total_cells; ++i) weight[i] = 1;
+		for (int i = 0; i < n_bins_total; ++i) weight[i] = 1;
 	};
 
 	void update(const PixelVec& pts) {
@@ -115,8 +114,7 @@ struct WeightBin {
 			int bin_idx = v_idx * n_bins_u + u_idx;
 			if(bin_idx >= 0 && bin_idx < n_bins_total) weight[bin_idx] = 0;
 		}
-
-		std::cout <<"   - FEATURE_EXTRACTOR - WeightBin - 'update' : # input points: "<<n_pts << "\n";
+		// std::cout <<" - FEATURE_EXTRACTOR - WeightBin - 'update' : # input points: "<<n_pts << "\n";
 	};
 };
 

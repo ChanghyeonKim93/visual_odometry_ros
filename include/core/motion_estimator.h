@@ -31,17 +31,22 @@ public:
 
 private:
  
-    bool verifySolutions(const std::vector<Eigen::Matrix3f>& R10_vec,
-                        const std::vector<Eigen::Vector3f>& t10_vec, 
-                        Eigen::Matrix3f& R10_true, 
-                        Eigen::Vector3f& t10_true, 
-                        MaskVec& max_inlier, 
-                        PointVec& X0);
+    bool verifySolutions(
+        const std::vector<Eigen::Matrix3f>& R10_vec, const std::vector<Eigen::Vector3f>& t10_vec, 
+        const PixelVec& pxvec0, const PixelVec& pxvec1, const std::shared_ptr<Camera>& cam,
+        Eigen::Matrix3f& R10_true, Eigen::Vector3f& t10_true, 
+        MaskVec& max_inlier, PointVec& X0);
 
-    void triangulate(const PixelVec& pts0, const PixelVec& pts1, 
-                     const Eigen::Matrix3f& R10, const Eigen::Vector3f& t10, 
-                     PointVec& X0, PointVec& X1,
-                     MaskVec& inlier);
+    void triangulateDLT(const PixelVec& pts0, const PixelVec& pts1, 
+                        const Eigen::Matrix3f& R10, const Eigen::Vector3f& t10, const std::shared_ptr<Camera>& cam, 
+                        PointVec& X0, PointVec& X1);
+
+    Eigen::Matrix3f skew(const Eigen::Vector3f& vec);
+
+private:
+    Eigen::MatrixXf m_matrix_template_; // 선할당.
+
+
 };
 
 #endif

@@ -85,7 +85,7 @@ void FeatureExtractor::extractORBwithBinning(const cv::Mat& img, PixelVec& pts_e
 
 	pts_extracted.resize(0);
 	pts_extracted.reserve(10000);
-	fts_tmp.reserve(3000);
+	fts_tmp.reserve(500);
 
 	int*& u_idx = weight_bin_->u_bound;
 	int*& v_idx = weight_bin_->v_bound;

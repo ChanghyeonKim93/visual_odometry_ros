@@ -182,9 +182,7 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 	frame_curr->setImageAndTimestamp(img_undist, timestamp);
 
 	if( !system_flags_.flagVOInit ) { // 초기화 미완료
-		std::cout << "not init\n";
 		if( !system_flags_.flagFirstImageGot ) { // 최초 이미지 없음
-			std::cout << "The first image\n";
 
 			// Get the first image.
 			const cv::Mat& I0 = frame_curr->getImage();
@@ -216,13 +214,11 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 			}
 
 			system_flags_.flagFirstImageGot = true;
-			std::cout << "The first image is got.\n";
 		}
 		else { // 최초 첫 이미지는 들어왔으나, 아직 초기화가 되지 않은 상태.
 			   // 초기화는 맨 첫 이미지 (첫 키프레임) 대비, 제대로 추적 된 landmark가 60 퍼센트 이상이며, 
 			   // 추적된 landmark 각각의 최대 parallax 가 1도 이상인 경우 초기화 완료.
 			// 이전 프레임의 pixels 와 lms0를 가져온다.
-			std::cout << "first image ok, but not init.\n";
 
 			const PixelVec&       pxvec0 = frame_prev_->getPtsSeen();
 			const LandmarkPtrVec& lmvec0 = frame_prev_->getRelatedLandmarkPtr();
@@ -257,7 +253,6 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 			if(!motion_estimator_->calcPose5PointsAlgorithm(pxvec0_alive, pxvec1_alive, cam_, maskvec_inlier)){
 				throw std::runtime_error("calcPose5PointsAlgorithm() is failed.");
 			}
-			std::cout << pxvec0_alive.size() << "," << pxvec1_alive.size() <<"," << maskvec_inlier.size() << std::endl;
 
 			// tracking, 5p algorithm, newpoint 모두 합쳐서 살아남은 점만 frame_curr에 넣는다
 			LandmarkPtrVec lmvec1_final;
@@ -271,14 +266,15 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 					++cnt_alive;
 				}
 				else lmvec1_alive[i]->setAlive(false); // 5p algorithm failed. Dead point.
-			}			
+			}
 			std::cout << "# of 5pts  : " << cnt_alive << " / " << pxvec1_alive.size() << std::endl;
+
+			// lmvec1_final 중, depth가 복원되지 않은 경우 복원해준다.
 
 			// 빈 곳에 특징점 pts1_new 를 추출한다.
 			PixelVec pxvec1_new;
 			extractor_->updateWeightBin(pxvec1_final); // 이미 pts1가 있는 곳은 제외.
 			extractor_->extractORBwithBinning(frame_curr->getImage(), pxvec1_new);
-			// extractor_->extractHarriswithBinning(frame_curr->getImage(), pxvec1_new);
 
 			if( pxvec1_new.size() > 0 ){
 				// 새로운 특징점은 새로운 landmark가 된다.
@@ -310,6 +306,7 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 				cv::waitKey(10);
 			}
 
+			// 
 			if(false){ // lms_tracked_ 의 평균 parallax가 특정 값 이상인 경우, 초기화 끝. 
 				// lms_tracked_를 업데이트한다. 
 				system_flags_.flagVOInit = true;
@@ -319,8 +316,6 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 		}
 	}	
 	else { // VO initialized. Do track the new image.
-		std::cout << "VO init. run!.\n";
-
 		const double dt = timestamp - frame_prev_->getTimestamp();
 		std::cout << "dt_img: " << dt << " sec." << std::endl;
 

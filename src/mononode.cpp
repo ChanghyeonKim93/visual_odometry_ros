@@ -93,9 +93,10 @@ void MonoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
     ROS_INFO_STREAM( "New image arrives. scale_mono_vo ->trackImage()");
     double time_now = cv_ptr->header.stamp.toSec();
     timer::tic();
-    // current_frame_time_ = msg->header.stamp;
     scale_mono_vo_->trackImage(cv_ptr->image, time_now);
-    // Update();
+
+    // Get odometry results
+    
     ROS_INFO_STREAM( "execution time: " << timer::toc(0) << " msec.");
     std::cout << "OK? " << std::endl;
 };
