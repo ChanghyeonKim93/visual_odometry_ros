@@ -11,6 +11,10 @@ Landmark::Landmark(const Pixel& p, const FramePtr& frame)
     addObservationAndRelatedFrame(p, frame);
 };  
 
+Landmark::~Landmark(){
+    std::cout << "Landmark destructor called.\n";  
+};
+
 void Landmark::set3DPoint(const Point& Xw) { Xw_ = Xw;  is_triangulated_ = true; };
 void Landmark::addObservationAndRelatedFrame(const Pixel& p, const FramePtr& frame) {
     observations_.push_back(p);

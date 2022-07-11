@@ -11,6 +11,7 @@ MotionEstimator::~MotionEstimator(){
 bool MotionEstimator::calcPose5PointsAlgorithm(const PixelVec& pts0, const PixelVec& pts1, const std::shared_ptr<Camera>& cam,
     MaskVec& mask_inlier)
 {
+    std::cout <<" - MotionEstimator - 'calcPose5PointsAlgorithm()'\n";
     if(pts0.size() != pts1.size()) {
         throw std::runtime_error("calcPose5PointsAlgorithm(): pts0.size() != pts1.size()");
         return false;
@@ -27,9 +28,9 @@ bool MotionEstimator::calcPose5PointsAlgorithm(const PixelVec& pts0, const Pixel
     essential = cv::findEssentialMat(pts0, pts1, cam->cvK(), cv::RANSAC, 0.999, 1.5, inlier_mat);
     
     // Calculate fundamental matrix
-    Eigen::Matrix3f E, F;
-    cv::cv2eigen(essential, E);
-    F = cam->Kinv().transpose() * E * cam->Kinv();
+    Eigen::Matrix3f E10, F10;
+    cv::cv2eigen(essential, E10);
+    F10 = cam->Kinv().transpose() * E10 * cam->Kinv();
 
     // Check inliers
     uint32_t cnt_inlier = 0;
@@ -45,7 +46,7 @@ bool MotionEstimator::calcPose5PointsAlgorithm(const PixelVec& pts0, const Pixel
 
     // Extract R, t
     Eigen::Matrix3f U,V;
-    Eigen::JacobiSVD<Eigen::Matrix3f> svd(E, Eigen::ComputeFullU | Eigen::ComputeFullV);
+    Eigen::JacobiSVD<Eigen::Matrix3f> svd(E10, Eigen::ComputeFullU | Eigen::ComputeFullV);
     U = svd.matrixU();
     V = svd.matrixV();
 
@@ -58,22 +59,22 @@ bool MotionEstimator::calcPose5PointsAlgorithm(const PixelVec& pts0, const Pixel
     W << 0, -1, 0, 1, 0, 0, 0, 0, 1;
 
     // Four possibilities.
-    std::vector<Eigen::Matrix3f> R_vec(4);
-    std::vector<Eigen::Vector3f> t_vec(4);
-    R_vec[0] = U * W * V.transpose();
-    R_vec[1] = R_vec[0];
-    R_vec[2] = U * W.transpose() * V.transpose();
-    R_vec[3] = R_vec[2];
-    t_vec[0] = U.block(0, 2, 3, 1);
-    t_vec[1] = -t_vec[0];
-    t_vec[2] = t_vec[0];
-    t_vec[3] = -t_vec[0];
+    std::vector<Eigen::Matrix3f> R10_vec(4);
+    std::vector<Eigen::Vector3f> t10_vec(4);
+    R10_vec[0] = U * W * V.transpose();
+    R10_vec[1] = R10_vec[0];
+    R10_vec[2] = U * W.transpose() * V.transpose();
+    R10_vec[3] = R10_vec[2];
+    t10_vec[0] = U.block(0, 2, 3, 1);
+    t10_vec[1] = -t10_vec[0];
+    t10_vec[2] = t10_vec[0];
+    t10_vec[3] = -t10_vec[0];
 
     // Solve two-fold ambiguity
     std::vector<bool> max_inlier;
     std::vector<Eigen::Vector3f> X_curr;
 
-    bool success = false;
+    bool success = true;
 
     return success;
 
@@ -103,12 +104,12 @@ bool MotionEstimator::calcPose5PointsAlgorithm(const PixelVec& pts0, const Pixel
 bool MotionEstimator::calcPosePnPAlgorithm(const PointVec& Xw, const PixelVec& pts1){
 
 };
-bool MotionEstimator::verifySolution(const std::vector<Eigen::Matrix3f>& R_vec,
-                    const std::vector<Eigen::Vector3f>& t_vec, 
-                    Eigen::Matrix3f& R, 
-                    Eigen::Vector3f& t, 
-                    MaskVec& max_inlier, 
-                    PointVec& opt_X_curr)
+bool MotionEstimator::verifySolutions(const std::vector<Eigen::Matrix3f>& R10_vec,
+                        const std::vector<Eigen::Vector3f>& t10_vec, 
+                        Eigen::Matrix3f& R10_true, 
+                        Eigen::Vector3f& t10_true, 
+                        MaskVec& max_inlier, 
+                        PointVec& X0)
 {
     bool success;
 

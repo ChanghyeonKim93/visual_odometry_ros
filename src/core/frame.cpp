@@ -20,17 +20,13 @@ void Frame::setImageAndTimestamp(const cv::Mat& img, const double& timestamp) {
 void Frame::setRelatedLandmarks(const LandmarkPtrVec& landmarks){
     related_landmarks_.resize(0);
     related_landmarks_.reserve(landmarks.size());
-    for(auto lm : landmarks) {
-        related_landmarks_.push_back(lm);
-    }
+    for(auto lm : landmarks) related_landmarks_.push_back(lm);
 };
 
 void Frame::setPtsSeen(const PixelVec& pts){
     pts_seen_.resize(0);
     pts_seen_.reserve(pts.size());
-    for(auto p : pts) {
-        pts_seen_.emplace_back(p);
-    }
+    for(auto p : pts) pts_seen_.emplace_back(p);
 };
 
 const uint32_t& Frame::getID() const { 

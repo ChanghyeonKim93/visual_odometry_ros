@@ -49,6 +49,7 @@ public: // static counter
 public:
     Landmark();
     Landmark(const Pixel& p, const FramePtr& frame);
+    ~Landmark();
 
     void set3DPoint(const Point& Xw);
     void addObservationAndRelatedFrame(const Pixel& p, const FramePtr& frame);

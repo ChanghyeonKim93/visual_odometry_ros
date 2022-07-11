@@ -92,6 +92,7 @@ void MonoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
     // update camera pose.
     timer::tic();
     // current_frame_time_ = msg->header.stamp;
+    ROS_INFO_STREAM( "New image arrives. scale_mono_vo ->trackImage()");
     scale_mono_vo_->trackImage(cv_ptr->image, cv_ptr->header.stamp.toSec());
     // Update();
     ROS_INFO_STREAM( "execution time: " << timer::toc(0) << " msec.");
@@ -105,7 +106,7 @@ void MonoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
  * @date 10-July-2022
  */
 void MonoNode::run(){
-    ros::Rate rate(1000);
+    ros::Rate rate(100);
     while(nh_.ok()){
         ros::spinOnce();
         rate.sleep();

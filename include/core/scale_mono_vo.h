@@ -76,12 +76,11 @@ private:
 // For tracker
 private:
 	SystemFlags system_flags_;
-
 	FramePtr       frame_prev_;
-	LandmarkPtrVec lms_prev_;
 	
 // All frames and landmarks
 private:
+	
 	LandmarkPtrVec all_landmarks_;
 	FramePtrVec    all_frames_;
 	FramePtrVec    all_keyframes_;

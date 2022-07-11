@@ -171,20 +171,23 @@ void ScaleMonoVO::loadCameraIntrinsic(const std::string& dir) {
  * @date 10-July-2022
  */
 void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
-	// 현재 들어온 이미지에 대한 Frame을 생성한다.
+	// 현재 이미지에 대한 새로운 Frame 생성
 	FramePtr frame_curr = std::make_shared<Frame>();
 
-	// 이미지를 undistort 한다. (KITTI라서 할 필요 없음.)
+	// 이미지 undistort (KITTI라서 할 필요 X)
 	bool flag_do_undistort = false;
 	cv::Mat img_undist;
 	if(flag_do_undistort) cam_->undistort(img, img_undist);
 	else img.copyTo(img_undist);
 
+	// frame_curr에 img_undist와 시간 부여
 	frame_curr->setImageAndTimestamp(img_undist, timestamp);
-	
-	// 생성된 frame은 저장한다.
-	if( !system_flags_.flagVOInit ) { // 아직 초기화가 되지 않았다.
-		if( !system_flags_.flagFirstImageGot ) { // 최초 첫 이미지가 아직 안들어온 상태.
+
+	if( !system_flags_.flagVOInit ) { // 초기화 미완료
+		std::cout << "not init\n";
+		if( !system_flags_.flagFirstImageGot ) { // 최초 이미지 없음
+			std::cout << "The first image\n";
+
 			// Get the first image.
 			const cv::Mat& I0 = frame_curr->getImage();
 
@@ -197,7 +200,8 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 			
 			// Set initial landmarks
 			lmvec0.reserve(pxvec0.size());
-			for(auto p : pxvec0) lmvec0.push_back(std::make_shared<Landmark>(p, frame_curr));
+			for(auto p : pxvec0) 
+				lmvec0.push_back(std::make_shared<Landmark>(p, frame_curr));
 			
 			frame_curr->setRelatedLandmarks(lmvec0);
 			frame_curr->setPtsSeen(pxvec0);
@@ -207,11 +211,10 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 				cv::Mat img_draw;
 				frame_curr->getImage().copyTo(img_draw);
 				cv::cvtColor(img_draw,img_draw, CV_GRAY2RGB);
-				for(auto p : pxvec0)
-					cv::circle(img_draw, p, 4.0, cv::Scalar(255,0,255));
+				for(auto p : pxvec0) cv::circle(img_draw, p, 4.0, cv::Scalar(255,0,255));
 				
 				cv::imshow("img_features", img_draw);
-				cv::waitKey(3);
+				cv::waitKey(10);
 			}
 
 			system_flags_.flagFirstImageGot = true;
@@ -221,61 +224,71 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 			   // 초기화는 맨 첫 이미지 (첫 키프레임) 대비, 제대로 추적 된 landmark가 60 퍼센트 이상이며, 
 			   // 추적된 landmark 각각의 최대 parallax 가 1도 이상인 경우 초기화 완료.
 			// 이전 프레임의 pixels 와 lms0를 가져온다.
+			std::cout << "first image ok, but not init.\n";
+
 			const PixelVec&       pxvec0 = frame_prev_->getPtsSeen();
 			const LandmarkPtrVec& lmvec0 = frame_prev_->getRelatedLandmarkPtr();
 			
-			// frame_prev_ 의 lms 를 현재 이미지로 track.
 			float thres_err         = 20.0;
 			float thres_bidirection = 1.0;
 
+			// frame_prev_ 의 lms 를 현재 이미지로 track.
 			PixelVec pxvec1_track;
-			MaskVec maskvec1_track;
+			MaskVec  maskvec1_track;
 			tracker_->trackBidirection(frame_prev_->getImage(), frame_curr->getImage(), pxvec0, thres_err, thres_bidirection,
-							pxvec1_track, maskvec1_track);
+							           pxvec1_track, maskvec1_track);
 
 			// Tracking 결과를 반영하여 pxvec1_alive, lmvec1_alive를 정리한다.
-			LandmarkPtrVec lmvec1_alive;
 			PixelVec       pxvec0_alive;
 			PixelVec       pxvec1_alive;
+			LandmarkPtrVec lmvec1_alive;
+			int cnt_alive = 0;
 			for(int i = 0; i < pxvec1_track.size(); ++i){
-				if( maskvec1_track[i]){
+				if( maskvec1_track[i]) {
 					pxvec0_alive.push_back(pxvec0[i]);
 					lmvec1_alive.push_back(lmvec0[i]);
 					pxvec1_alive.push_back(pxvec1_track[i]);
+					++cnt_alive;
 				}
 				else lmvec0[i]->setAlive(false); // track failed. Dead point.
 			}
+			std::cout << "# of alive : " << cnt_alive << " / " << maskvec1_track.size() << std::endl;
 			
 			// pts0 와 pts1을 이용, 5-point algorithm 으로 모션을 구한다.
 			MaskVec maskvec_inlier;
-			motion_estimator_->calcPose5PointsAlgorithm(pxvec0_alive, pxvec1_alive, cam_, maskvec_inlier);
-			
+			if(!motion_estimator_->calcPose5PointsAlgorithm(pxvec0_alive, pxvec1_alive, cam_, maskvec_inlier)){
+				throw std::runtime_error("calcPose5PointsAlgorithm() is failed.");
+			}
+
 			// tracking, 5p algorithm, newpoint 모두 합쳐서 살아남은 점만 frame_curr에 넣는다
 			LandmarkPtrVec lmvec1_final;
 			PixelVec       pxvec1_final;
+			cnt_alive = 0;
 			for(int i = 0; i < pxvec1_alive.size(); ++i){
 				if( maskvec_inlier[i] ) {
 					lmvec1_alive[i]->addObservationAndRelatedFrame(pxvec1_alive[i], frame_curr);
 					lmvec1_final.push_back(lmvec1_alive[i]);
 					pxvec1_final.push_back(pxvec1_alive[i]);
+					++cnt_alive;
 				}
 				else lmvec1_alive[i]->setAlive(false); // 5p algorithm failed. Dead point.
 			}			
+			std::cout << "# of 5pts  : " << cnt_alive << " / " << pxvec1_alive.size() << std::endl;
 
 			// 빈 곳에 특징점 pts1_new 를 추출한다.
 			PixelVec pxvec1_new;
 			extractor_->updateWeightBin(pxvec1_final); // 이미 pts1가 있는 곳은 제외.
 			extractor_->extractORBwithBinning(frame_curr->getImage(), pxvec1_new);
 
-			if(!pxvec1_new.empty()){
+			if( pxvec1_new.size() > 0 ){
 				// 새로운 특징점은 새로운 landmark가 된다.
 				for(auto p1_new : pxvec1_new) {
-					lmvec1_final.push_back(std::make_shared<Landmark>(p1_new, frame_curr));
+					LandmarkPtr ptr = std::make_shared<Landmark>(p1_new, frame_curr);
+					lmvec1_final.push_back(ptr);
 					pxvec1_final.emplace_back(p1_new);
 				}
 				std::cout << "pts1_new size: " << pxvec1_new.size() << std::endl;
 			}
-
 
 			// lms1와 pts1을 frame_curr에 넣는다.
 			frame_curr->setRelatedLandmarks(lmvec1_final);
@@ -285,7 +298,7 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 				cv::namedWindow("img_features");
 				cv::Mat img_draw;
 				frame_curr->getImage().copyTo(img_draw);
-				cv::cvtColor(img_draw,img_draw, CV_GRAY2RGB);
+				cv::cvtColor(img_draw, img_draw, CV_GRAY2RGB);
 				for(int i = 0; i < pxvec0.size(); ++i) {
 					if(maskvec1_track[i]) cv::circle(img_draw, pxvec0[i], 4.0, cv::Scalar(255,0,255)); // alived magenta
 					else cv::circle(img_draw, pxvec0[i], 2.0, cv::Scalar(0,0,255)); // red, dead points
@@ -296,7 +309,7 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 					cv::circle(img_draw, pxvec1_new[i], 4.0, cv::Scalar(255,128,0)); // blue new points
 				
 				cv::imshow("img_features", img_draw);
-				cv::waitKey(5);
+				cv::waitKey(10);
 			}
 
 			if(false){ // lms_tracked_ 의 평균 parallax가 특정 값 이상인 경우, 초기화 끝. 
@@ -308,6 +321,8 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 		}		
 	}	
 	else { // VO initialized. Do track the new image.
+		std::cout << "VO init. run!.\n";
+
 		const double dt = timestamp - frame_prev_->getTimestamp();
 		std::cout << "dt_img: " << dt << " sec." << std::endl;
 
@@ -324,6 +339,7 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 
 	// Add the newly incoming frame into the frame stack
 	all_frames_.push_back(frame_curr);
+	std::cout << "The number of all frames: " << all_frames_.size() << std::endl;
 
 	// Replace the 'frame_prev_' with 'frame_curr'
 	frame_prev_ = frame_curr;

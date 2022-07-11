@@ -30,13 +30,13 @@ public:
     bool calcPosePnPAlgorithm(const PointVec& Xw, const PixelVec& pts1);
 
 private:
-
-    bool verifySolution(const std::vector<Eigen::Matrix3f>& R_vec,
-                        const std::vector<Eigen::Vector3f>& t_vec, 
-                        Eigen::Matrix3f& R, 
-                        Eigen::Vector3f& t, 
+ 
+    bool verifySolutions(const std::vector<Eigen::Matrix3f>& R10_vec,
+                        const std::vector<Eigen::Vector3f>& t10_vec, 
+                        Eigen::Matrix3f& R10_true, 
+                        Eigen::Vector3f& t10_true, 
                         MaskVec& max_inlier, 
-                        PointVec& opt_X_curr);
+                        PointVec& X0);
 
     void triangulate(const PixelVec& pts0, const PixelVec& pts1, 
                      const Eigen::Matrix3f& R10, const Eigen::Vector3f& t10, 
