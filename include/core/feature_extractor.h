@@ -21,34 +21,52 @@
 class FeatureExtractor ;
 
 struct ParamsORB {
-	int   MaxFeatures     = 100;    // % MaxFeatures (300) % The maximum number of features to retain.
-	float ScaleFactor     = 1.05;   // % ScaleFactor (1.2) % Pyramid decimation ratio.
-	int   NLevels         = 1;      // % NLevels (8)% The number of pyramid levels.
-	float EdgeThreshold   = 6;      // % EdgeThreshold (31)% This is size of the border where the features are not detected.
-	int   FirstLevel      = 0;      // % FirstLevel (0)% The level of pyramid to put source image to.
-	int   WTA_K           = 2;      // % WTA_K (2)% The number of points that produce each element of the oriented BRIEF descriptor. (2, 3, 4)
-	std::string ScoreType = "FAST"; // % ScoreType (Harris) % Algorithm used to rank features. (Harris, FAST)
-	int   PatchSize       = 31;     // % PatchSize (31) % Size of the patch used by the oriented BRIEF descriptor.
-	float FastThreshold   = 15;     // % FastThreshold (20)% Threshold on difference between intensity of the central pixel and pixels of a circle around this pixel
-	float r               = 5;      // % Radius of non maximum suppresion (5)
-	int   n_bins_u        = -1;
-	int   n_bins_v        = -1;
-};
-
-struct ParamsHarris{
-	
+	int   MaxFeatures     ;// % MaxFeatures (300) % The maximum number of features to retain.
+	float ScaleFactor     ;// % ScaleFactor (1.2) % Pyramid decimation ratio.
+	int   NLevels         ;// % NLevels (8)% The number of pyramid levels.
+	float EdgeThreshold   ;// % EdgeThreshold (31)% This is size of the border where the features are not detected.
+	int   FirstLevel      ;// % FirstLevel (0)% The level of pyramid to put source image to.
+	int   WTA_K           ;// % WTA_K (2)% The number of points that produce each element of the oriented BRIEF descriptor. (2, 3, 4)
+	std::string ScoreType ;// % ScoreType (Harris) % Algorithm used to rank features. (Harris, FAST)
+	int   PatchSize       ;// % PatchSize (31) % Size of the patch used by the oriented BRIEF descriptor.
+	float FastThreshold   ;// % FastThreshold (20)% Threshold on difference between intensity of the central pixel and pixels of a circle around this pixel
+	float r               ;// % Radius of non maximum suppresion (5)
+	int   n_bins_u        ;
+	int   n_bins_v        ;
+	ParamsORB(){
+		MaxFeatures     = 100;    // % MaxFeatures (300) % The maximum number of features to retain.
+		ScaleFactor     = 1.05;   // % ScaleFactor (1.2) % Pyramid decimation ratio.
+		NLevels         = 1;      // % NLevels (8)% The number of pyramid levels.
+		EdgeThreshold   = 6;      // % EdgeThreshold (31)% This is size of the border where the features are not detected.
+		FirstLevel      = 0;      // % FirstLevel (0)% The level of pyramid to put source image to.
+		WTA_K           = 2;      // % WTA_K (2)% The number of points that produce each element of the oriented BRIEF descriptor. (2, 3, 4)
+	    ScoreType       = "FAST"; // % ScoreType (Harris) % Algorithm used to rank features. (Harris, FAST)
+		PatchSize       = 31;     // % PatchSize (31) % Size of the patch used by the oriented BRIEF descriptor.
+		FastThreshold   = 15;     // % FastThreshold (20)% Threshold on difference between intensity of the central pixel and pixels of a circle around this pixel
+		r               = 5;      // % Radius of non maximum suppresion (5)
+		n_bins_u        = -1;
+		n_bins_v        = -1;
+	};
 };
 
 struct WeightBin {
-	int* weight  = nullptr;
-	int* u_bound = nullptr;
-	int* v_bound = nullptr;
-	int n_bins_u = 0;
-	int n_bins_v = 0;
-	int u_step = 0;
-	int v_step = 0;
+	int* weight ;
+	int* u_bound;
+	int* v_bound;
+	int n_bins_u;
+	int n_bins_v;
+	int u_step  ;
+	int v_step  ;
 
-	WeightBin() {};
+	WeightBin() {
+		weight  = nullptr;
+		u_bound = nullptr;
+		v_bound = nullptr;
+		n_bins_u = 0;
+		n_bins_v = 0;
+		u_step = 0;
+		v_step = 0;
+	};
 	~WeightBin() {
 		if (weight != nullptr) delete weight;
 		if (v_bound != nullptr) delete v_bound;

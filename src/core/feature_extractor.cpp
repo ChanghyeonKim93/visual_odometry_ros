@@ -1,7 +1,7 @@
 #include "core/feature_extractor.h"
 #include <algorithm>
 
-FeatureExtractor::FeatureExtractor() {
+FeatureExtractor::FeatureExtractor() :params_orb_() {
 	weight_bin_  = nullptr;
 	flag_debug_  = false;
 	flag_nonmax_ = true;
@@ -128,9 +128,9 @@ void FeatureExtractor::extractORBwithBinning(const cv::Mat& img, PixelVec& pts_e
 				// image sampling
 				// TODO: which one is better? : sampling vs. masking
 				cv::Rect roi = cv::Rect(cv::Point(u_range[0], v_range[0]), cv::Point(u_range[1], v_range[1]));
-
+				cv::Mat img_small = img(roi);
 				fts_tmp.resize(0);
-				extractor_orb_->detect(img(roi), fts_tmp);
+				extractor_orb_->detect(img_small, fts_tmp);
 
 				int n_pts_tmp = fts_tmp.size();
 				if (n_pts_tmp > 0) { //feature can be extracted from this bin.
