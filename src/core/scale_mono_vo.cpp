@@ -236,7 +236,7 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 			tracker_->trackBidirection(frame_prev_->getImage(), frame_curr->getImage(), pxvec0, thres_err, thres_bidirection,
 							           pxvec1_track, maskvec1_track);
 
-			// Tracking 결과를 반영하여 pxvec1_alive, lmvec1_alive를 정리한다.
+			// // Tracking 결과를 반영하여 pxvec1_alive, lmvec1_alive를 정리한다.
 			PixelVec       pxvec0_alive;
 			PixelVec       pxvec1_alive;
 			LandmarkPtrVec lmvec1_alive;
@@ -252,12 +252,12 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 			}
 			std::cout << "# of alive : " << cnt_alive << " / " << maskvec1_track.size() << std::endl;
 			
-			// pts0 와 pts1을 이용, 5-point algorithm 으로 모션을 구한다.
+			// // pts0 와 pts1을 이용, 5-point algorithm 으로 모션을 구한다.
 			MaskVec maskvec_inlier;
 			if(!motion_estimator_->calcPose5PointsAlgorithm(pxvec0_alive, pxvec1_alive, cam_, maskvec_inlier)){
 				throw std::runtime_error("calcPose5PointsAlgorithm() is failed.");
 			}
-			std::cout << pxvec0_alive.size() << "," << pxvec1_alive.size() <<std::endl;
+			std::cout << pxvec0_alive.size() << "," << pxvec1_alive.size() <<"," << maskvec_inlier.size() << std::endl;
 
 			// tracking, 5p algorithm, newpoint 모두 합쳐서 살아남은 점만 frame_curr에 넣는다
 			LandmarkPtrVec lmvec1_final;

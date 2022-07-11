@@ -10,8 +10,9 @@
 #include "mononode.h"
 
 int main(int argc, char **argv) {
-    ros::init(argc, argv, "vo_node", ros::init_options::NoSigintHandler);
-    SignalHandle::initSignalHandler();
+    ros::init(argc, argv, "vo_node");
+    // ros::init(argc, argv, "vo_node", ros::init_options::NoSigintHandler);
+    // SignalHandle::initSignalHandler();
 
     ros::NodeHandle nh("~");
     ROS_INFO_STREAM("vo_node - starts.");
