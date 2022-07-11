@@ -16,10 +16,9 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/features2d.hpp>
 
-typedef cv::Point2f Pixel;
-typedef std::vector<cv::Point2f> Pixels;
-typedef cv::KeyPoint Feature;
-typedef std::vector<Feature> Features;
+#include "core/type_defines.h"
+
+class FeatureExtractor ;
 
 struct ParamsORB {
 	int   MaxFeatures     = 100;    // % MaxFeatures (300) % The maximum number of features to retain.
@@ -34,6 +33,10 @@ struct ParamsORB {
 	float r               = 5;      // % Radius of non maximum suppresion (5)
 	int   n_bins_u        = -1;
 	int   n_bins_v        = -1;
+};
+
+struct ParamsHarris{
+	
 };
 
 struct WeightBin {
@@ -77,15 +80,16 @@ struct WeightBin {
 	};
 
 	void reset() {
-		for (int i = 0; i < this->n_bins_u*this->n_bins_v; ++i) weight[i] = 1;
+		int n_total_cells = this->n_bins_u*this->n_bins_v;
+		for (int i = 0; i < n_total_cells; ++i) weight[i] = 1;
 	};
 
-	void update(const Pixels& pts) {
+	void update(const PixelVec& pts) {
 		int n_pts = pts.size();
 
-		for (auto pt : pts) {
-			int u_idx = floor((float)pt.x / (float)u_step);
-			int v_idx = floor((float)pt.y / (float)v_step);
+		for (auto p : pts) {
+			int u_idx = floor((float)p.x / (float)u_step);
+			int v_idx = floor((float)p.y / (float)v_step);
 			int bin_idx = v_idx * n_bins_u + u_idx;
 			weight[bin_idx] = 0;
 		}
@@ -97,8 +101,9 @@ struct WeightBin {
 class FeatureExtractor {
 private:
 	WeightBin* weight_bin_;
+
 	ParamsORB  params_orb_;
-	cv::Ptr<cv::ORB> extractor_;
+	cv::Ptr<cv::ORB> extractor_orb_; // orb extractor
 	// cv::Ptr<cv::Feature2D> extractor_;
 
 private:
@@ -115,22 +120,10 @@ public:
 	~FeatureExtractor();
 
 	void initParams(int n_cols, int n_rows, int n_bins_u, int n_bins_v, int THRES_FAST, int radius);
-	void updateWeightBin(const Pixels& pts);
+	void updateWeightBin(const PixelVec& pts);
 	void resetWeightBin();
-	void extractORBwithBinning(const cv::Mat& img, Pixels& pts_extracted);
-
-private:
-
+	void extractORBwithBinning(const cv::Mat& img, PixelVec& pts_extracted);
+	void extractHarriswithBinning(const cv::Mat& img, PixelVec& pts_extracted);
 };
-/*
-virtual void Feature2D::detect(InputArray image,
-							   std::vector<Feature>& keypoints,
-							   InputArray mask = noArray());
-*/
-// detector->detect(gray_image1, keypoints_object);
-// void extract(const cv::Mat& img, cv::Mat& des, vector<cv::KeyPoint>& kp) {
-	// const static auto& orb = cv::ORB::create();
-	// orb->detectAndCompute(img, cv::noArray(), kp, des);
-// }
 
 #endif

@@ -27,12 +27,16 @@ set(SRC ${SRC}
   src/mononode.cpp
 
   src/core/scale_mono_vo.cpp
+
   src/core/camera.cpp
   src/core/frame.cpp
   src/core/landmark.cpp
+
   src/core/feature_extractor.cpp
+  src/core/feature_tracker.cpp
+  src/core/motion_estimator.cpp
+
   src/core/image_processing.cpp
-  src/core/motion_tracker.cpp
 
   src/core/dataset_loader.cpp
 

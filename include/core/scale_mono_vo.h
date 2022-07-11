@@ -24,6 +24,7 @@
 
 // Defines 
 #include "core/defines.h"
+#include "core/type_defines.h"
 
 // custom
 #include "core/camera.h"
@@ -32,25 +33,33 @@
 #include "core/landmark.h"
 
 #include "core/feature_extractor.h"
+#include "core/feature_tracker.h"
+#include "core/motion_estimator.h"
+
 #include "core/image_processing.h"
 #include "core/dataset_loader.h"
 
 #include "util/timer.h"
 
-class ScaleMonoVO
-{
+class ScaleMonoVO;
+
+class ScaleMonoVO {
 public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-// dataset related.
+// Dataset related.
 private:
 	dataset_loader::DatasetStruct dataset_;
 
+// Camera object
 private:
-	std::shared_ptr<Camera> cam_;
+	std::shared_ptr<Camera>           cam_;
+
+// Modules
+private:
 	std::shared_ptr<FeatureExtractor> extractor_;
-	//std::shared_ptr<FeatureTracker>   tracker_;
-	//std::shared_ptr<MotionTracker>    motion_tracker_;
+	std::shared_ptr<FeatureTracker>   tracker_;
+	std::shared_ptr<MotionEstimator>  motion_estimator_;
 
 // For scale recovery thread
 private:
@@ -61,15 +70,16 @@ private:
 // For tracker
 private:
 	bool flag_vo_initialized_;
+	bool flag_first_image_got_;
 
 	FramePtr frame_prev_;
-	std::vector<LandmarkPtr> lms_prev_;
+	LandmarkPtrVec lms_prev_;
 	
 // All frames and landmarks
 private:
-	std::vector<LandmarkPtr> all_landmarks_;
-	std::vector<FramePtr>    all_frames_;
-	std::vector<FramePtr>    all_keyframes_;
+	LandmarkPtrVec all_landmarks_;
+	FramePtrVec    all_frames_;
+	FramePtrVec    all_keyframes_;
 	
 public:
 	ScaleMonoVO(std::string mode, std::string directory_intrinsic);

@@ -17,27 +17,42 @@ void Frame::setImageAndTimestamp(const cv::Mat& img, const double& timestamp) {
     timestamp_ = timestamp;
 };
 
-void Frame::setLandmarks(const std::vector<LandmarkPtr>& landmarks){
+void Frame::setRelatedLandmarks(const LandmarkPtrVec& landmarks){
     related_landmarks_.resize(0);
     related_landmarks_.reserve(landmarks.size());
-    for(auto lm : landmarks) related_landmarks_.push_back(lm);
+    for(auto lm : landmarks) {
+        related_landmarks_.push_back(lm);
+    }
 };
 
-uint32_t Frame::getID() const { 
+void Frame::setPtsSeen(const PixelVec& pts){
+    pts_seen_.resize(0);
+    pts_seen_.reserve(pts.size());
+    for(auto p : pts) {
+        pts_seen_.emplace_back(p);
+    }
+};
+
+const uint32_t& Frame::getID() const { 
     return id_; 
 };
 
-Eigen::Matrix4f Frame::getPose() const { 
+const Eigen::Matrix4f& Frame::getPose() const { 
     return Twc_; 
 };
 
-cv::Mat Frame::getImage() const {
+const cv::Mat& Frame::getImage() const {
     return image_; 
 }; 
 
-std::vector<LandmarkPtr> Frame::getRelatedLandmarkPtr() const { 
+const LandmarkPtrVec& Frame::getRelatedLandmarkPtr() const { 
     return related_landmarks_; 
 };
-double Frame::getTimestamp() const {
+
+const PixelVec& Frame::getPtsSeen() const {
+    return pts_seen_;  
+};
+
+const double& Frame::getTimestamp() const {
     return timestamp_;
 };

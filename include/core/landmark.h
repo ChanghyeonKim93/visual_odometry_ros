@@ -8,6 +8,8 @@
 
 #include <opencv2/core/core.hpp>
 
+#include "core/type_defines.h"
+
 #include "core/frame.h"
 
 /*
@@ -15,19 +17,15 @@
     address of visual landmarks observed in the frame.
     a 6-DoF motion w.r.t. the global frame {W}.
 */
-class Frame;
 class Landmark;
-
-typedef std::shared_ptr<Frame> FramePtr;
-typedef std::shared_ptr<Landmark> LandmarkPtr;
 
 class Landmark{
 private:
     uint32_t id_;
-    Eigen::Vector3f Xw_;
+    Point    Xw_;
 
-    std::vector<cv::KeyPoint> observations_;
-    std::vector<FramePtr> related_frames_;
+    PixelVec observations_;
+    FramePtrVec related_frames_;
 
 // Used for tracking
 private:
@@ -47,18 +45,19 @@ public: // static counter
 
 public:
     Landmark();
+    Landmark(const Pixel& p, const FramePtr& frame);
 
-    void set3DPoint(const Eigen::Vector3f& Xw);
-    void addObservationAndRelatedFrame(const cv::KeyPoint& p, const FramePtr& frame);
+    void set3DPoint(const Point& Xw);
+    void addObservationAndRelatedFrame(const Pixel& p, const FramePtr& frame);
 
     void setTrackInView(bool value);
     void setTrackProjUV(float u, float v);
     void setTrackScaleLevel(uint32_t lvl);
     void setTrackViewCos(float vcos);
     
-    uint32_t getID() const;
-    Eigen::Vector3f get3DPoint() const;
-    std::vector<cv::KeyPoint> getObservations() const;
-    std::vector<FramePtr> getRelatedFramePtr() const;
+    const uint32_t& getID() const;
+    const Point& get3DPoint() const;
+    const PixelVec& getObservations() const;
+    const FramePtrVec& getRelatedFramePtr() const;
 };
 #endif

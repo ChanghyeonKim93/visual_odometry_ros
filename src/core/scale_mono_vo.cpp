@@ -12,9 +12,10 @@ ScaleMonoVO::ScaleMonoVO(std::string mode, std::string directory_intrinsic)
 : cam_(nullptr) {
 	std::cout << "Scale mono VO starts\n";
 	
-	flag_vo_initialized_ = false;
+	flag_vo_initialized_  = false;
+	flag_first_image_got_ = false;
 
-	// Set cam_
+	// Initialize camera
 	cam_ = std::make_shared<Camera>();
 
 	if(mode == "dataset"){
@@ -37,6 +38,21 @@ ScaleMonoVO::ScaleMonoVO(std::string mode, std::string directory_intrinsic)
 	}
 	else 
 		throw std::runtime_error("ScaleMonoVO - unknown mode.");
+
+	// Initialize feature extractor (ORB-based)
+	extractor_ = std::make_shared<FeatureExtractor>();
+	int n_bins_u = 20;
+	int n_bins_v = 12;
+	float THRES_FAST = 20.0;
+	float radius = 10.0;
+	extractor_->initParams(cam_->cols(), cam_->rows(), n_bins_u, n_bins_v, THRES_FAST, radius);
+
+	// Initialize feature tracker (KLT-based)
+	tracker_ = std::make_shared<FeatureTracker>();
+
+	// Initialize motion estimator
+	motion_estimator_ = std::make_shared<MotionEstimator>();
+
 };
 
 /**
@@ -170,24 +186,124 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 	// 현재 들어온 이미지에 대한 Frame을 생성한다.
 	FramePtr frame_curr = std::make_shared<Frame>();
 
-	// 이미지를  undistort 한다. (KITTI 라서 할 필요 없음.)
-	// cv::Mat img_undist;
-	// cam_->undistort(img, img_undist);
-	// frame_curr_->setImageAndTimestamp(img_undist, timestamp);
-	frame_curr->setImageAndTimestamp(img, timestamp);
+	// 이미지를 undistort 한다. (KITTI라서 할 필요 없음.)
+	bool flag_do_undistort = false;
+	cv::Mat img_undist;
+	if(flag_do_undistort) cam_->undistort(img, img_undist);
+	else img.copyTo(img_undist);
 
+	frame_curr->setImageAndTimestamp(img_undist, timestamp);
+	
 	// 생성된 frame은 저장한다.
-	all_frames_.push_back(frame_curr);
-	if(!flag_vo_initialized_){ // Not initialized yet.
-		
-		// frame_prev_ 이 가지고 있는 related_landmarks_을 img		
-		if(1){ // lms_tracked_ 의 평균 parallax가 특정 값 이상인 경우, 초기화 끝. 
+	if( !flag_vo_initialized_ ) { // Not initialized yet.
+		if( !flag_first_image_got_ ) { // 최초 첫 이미지가 아직 안들어온 상태.
+			// Extract pixels
+			PixelVec       pts0;
+			LandmarkPtrVec lms0;
+			const cv::Mat& I0 = frame_curr->getImage();
 
-			// lms_tracked_를 업데이트한다. 
-			flag_vo_initialized_ = true;
+			extractor_->resetWeightBin();
+			extractor_->extractORBwithBinning(I0, pts0);
+			
+			// Set initial landmarks
+			lms0.reserve(pts0.size());
+			for(auto p : pts0) lms0.push_back(std::make_shared<Landmark>(p, frame_curr));
+			
+			frame_curr->setRelatedLandmarks(lms0);
+			frame_curr->setPtsSeen(pts0);
 
-			std::cout << "VO initialzed!\n";
+			if(1){
+				cv::namedWindow("img_features");
+				cv::Mat img_draw;
+				frame_curr->getImage().copyTo(img_draw);
+				cv::cvtColor(img_draw,img_draw, CV_GRAY2RGB);
+				for(int i = 0; i < pts0.size(); ++i)
+					cv::circle(img_draw, pts0[i], 4.0, cv::Scalar(255,0,255));
+				
+				cv::imshow("img_features", img_draw);
+				cv::waitKey(3);
+			}
+
+			flag_first_image_got_ = true;
+			std::cout << "The first image is got.\n";
 		}
+		else {
+			// 이전 프레임의 pixels 와 lms0를 가져온다.
+			const PixelVec&       pts0 = frame_prev_->getPtsSeen();
+			const LandmarkPtrVec& lms0 = frame_prev_->getRelatedLandmarkPtr();
+			
+			// frame_prev_ 의 lms 를 현재 이미지로 track.
+			float thres_err = 20.0;
+			float thres_bidirection = 1.0;
+
+			PixelVec pts1_track;
+			MaskVec mask1_track;
+			tracker_->trackBidirection(frame_prev_->getImage(), frame_curr->getImage(), pts0, thres_err, thres_bidirection,
+							pts1_track, mask1_track);
+
+			// frame_curr을 위한 lms1 와 pts1을 정리한다.
+			LandmarkPtrVec lms1_valid;
+			PixelVec pts0_valid;
+			PixelVec pts1_valid;
+			for(int i = 0; i < pts1_track.size(); ++i){
+				if( mask1_track[i] ) {
+					lms0[i]->addObservationAndRelatedFrame(pts1_track[i], frame_curr);
+					lms1_valid.push_back(lms0[i]);
+					pts0_valid.emplace_back(pts0[i]);
+					pts1_valid.emplace_back(pts1_track[i]);
+				}
+			}
+
+			// pts0 와 pts1을 이용, 5-point algorithm 으로 모션을 구한다.
+			MaskVec mask_inlier;
+			motion_estimator_->calcPose5PointsAlgorithm(pts0_valid, pts1_valid, cam_, mask_inlier);
+			int sum = 0; for(auto it : mask_inlier) sum += it;
+			std::cout << "After 5 point algorith: inlier : " << sum <<" / " << mask_inlier.size() <<std::endl;
+						
+
+			// 빈 곳에 특징점 pts1_new 를 추출한다.
+			PixelVec pts1_new;
+			extractor_->updateWeightBin(pts1_valid); // 이미 pts1가 있는 곳은 제외.
+			extractor_->extractORBwithBinning(frame_curr->getImage(), pts1_new);
+
+			if(!pts1_new.empty()){
+				// 새로운 특징점은 새로운 landmark가 된다.
+				for(auto p1_new : pts1_new) {
+					lms1_valid.push_back(std::make_shared<Landmark>(p1_new, frame_curr));
+					pts1_valid.emplace_back(p1_new);
+				}
+				std::cout << "pts1_new size: " << pts1_new.size() << std::endl;
+			}
+
+			// lms1와 pts1을 frame_curr에 넣는다.
+			frame_curr->setRelatedLandmarks(lms1_valid);
+			frame_curr->setPtsSeen(pts1_valid);
+
+			if(1){
+				cv::namedWindow("img_features");
+				cv::Mat img_draw;
+				frame_curr->getImage().copyTo(img_draw);
+				cv::cvtColor(img_draw,img_draw, CV_GRAY2RGB);
+				for(int i = 0; i < pts0.size(); ++i) {
+					if(mask1_track[i]) cv::circle(img_draw, pts0[i], 4.0, cv::Scalar(255,0,255));
+					else cv::circle(img_draw, pts0[i], 2.0, cv::Scalar(0,0,255));
+				}
+				for(int i = 0; i < pts1_new.size(); ++i)
+					cv::circle(img_draw, pts1_new[i], 4.0, cv::Scalar(255,0,0));
+				for(int i = 0; i < pts1_valid.size(); ++i)
+					cv::circle(img_draw, pts1_valid[i], 4.0, cv::Scalar(0,255,0));
+				
+				cv::imshow("img_features", img_draw);
+				cv::waitKey(0);
+			}
+
+			if(1){ // lms_tracked_ 의 평균 parallax가 특정 값 이상인 경우, 초기화 끝. 
+				// lms_tracked_를 업데이트한다. 
+				flag_vo_initialized_ = true;
+
+				std::cout << "VO initialzed!\n";
+			}
+		}		
 	}	
 	else { // VO initialized. Do track the new image.
 		const double dt = timestamp - frame_prev_->getTimestamp();
@@ -203,5 +319,10 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 		// lms_tracked_ 중, depth가 있는 점에 대해서 prior 계산한다.
 
 	}
+
+	// Add the newly incoming frame into the frame stack
+	all_frames_.push_back(frame_curr);
+
+	// Replace the 'frame_prev_' with 'frame_curr'
 	frame_prev_ = frame_curr;
 };

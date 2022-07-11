@@ -1,12 +1,18 @@
 #include "core/landmark.h"
+
 Landmark::Landmark()
 : Xw_(0,0,0), id_(landmark_counter_++), max_possible_distance_(0),min_possible_distance_(0)
 {
     
 };  
+Landmark::Landmark(const Pixel& p, const FramePtr& frame)
+: Xw_(0,0,0), id_(landmark_counter_++), max_possible_distance_(0),min_possible_distance_(0)
+{
+    addObservationAndRelatedFrame(p, frame);
+};  
 
-void Landmark::set3DPoint(const Eigen::Vector3f& Xw) { Xw_ = Xw; };
-void Landmark::addObservationAndRelatedFrame(const cv::KeyPoint& p, const FramePtr& frame) {
+void Landmark::set3DPoint(const Point& Xw) { Xw_ = Xw; };
+void Landmark::addObservationAndRelatedFrame(const Pixel& p, const FramePtr& frame) {
     observations_.push_back(p);
     related_frames_.push_back(frame);
     if(observations_.size() != related_frames_.size()){
@@ -14,7 +20,7 @@ void Landmark::addObservationAndRelatedFrame(const cv::KeyPoint& p, const FrameP
     }
 };    
 
-void Landmark::setTrackInView(bool value){
+void Landmark::setTrackInView(Mask value){
     track_in_view_ = value;
 };
 void Landmark::setTrackProjUV(float u, float v){
@@ -27,9 +33,9 @@ void Landmark::setTrackViewCos(float vcos){
     track_view_cos_ = vcos;
 };
 
-uint32_t Landmark::getID() const { 
+const uint32_t& Landmark::getID() const { 
     return id_; 
 };
-Eigen::Vector3f Landmark::get3DPoint() const { return Xw_; };
-std::vector<cv::KeyPoint> Landmark::getObservations() const { return observations_; };
-std::vector<FramePtr> Landmark::getRelatedFramePtr() const { return related_frames_; };
+const Point& Landmark::get3DPoint() const { return Xw_; };
+const PixelVec& Landmark::getObservations() const { return observations_; };
+const FramePtrVec& Landmark::getRelatedFramePtr() const { return related_frames_; };

@@ -19,12 +19,12 @@ MonoNode::MonoNode(ros::NodeHandle& nh) : nh_(nh)
     scale_mono_vo_ = std::make_unique<ScaleMonoVO>(mode, directory_intrinsic_);
 
     // Subscriber    
-    img_sub_ = 
-        nh_.subscribe<sensor_msgs::Image>(topicname_image_, 5, &MonoNode::imageCallback, this);
+    img_sub_ = nh_.subscribe<sensor_msgs::Image>(topicname_image_, 5, &MonoNode::imageCallback, this);
 
     // Publisher
-    pub_pose_estimation_ = 
-        nh_.advertise<nav_msgs::Odometry>(topicname_pose_estimation_, 1);
+    pub_pose_       = nh_.advertise<nav_msgs::Odometry>(topicname_pose_, 1);
+    pub_trajectory_ = nh_.advertise<nav_msgs::Path>(topicname_trajectory_, 1);
+    pub_map_points_ = nh_.advertise<sensor_msgs::PointCloud2>(topicname_map_points_, 1);
 
     ROS_INFO_STREAM("MonoNode - generate Scale Mono VO object. Starts.");
 
@@ -53,13 +53,21 @@ MonoNode::~MonoNode(){
 void MonoNode::getParameters(){
     if(!ros::param::has("~topicname_image"))
         throw std::runtime_error("'topicname_image' is not set.");
-    if(!ros::param::has("~topicname_pose_estimation"))
-        throw std::runtime_error("'topicname_pose_estimation' is not set.");
+    if(!ros::param::has("~topicname_pose"))
+        throw std::runtime_error("'topicname_pose' is not set.");
+    if(!ros::param::has("~topicname_map_points"))
+        throw std::runtime_error("'topicname_map_points' is not set.");
+    if(!ros::param::has("~topicname_trajectory"))
+        throw std::runtime_error("'topicname_trajectory' is not set.");
     if(!ros::param::has("~directory_intrinsic"))
         throw std::runtime_error("'directory_intrinsic' is not set.");
 
     ros::param::get("~topicname_image", topicname_image_);
-    ros::param::get("~topicname_pose_estimation", topicname_pose_estimation_);
+
+    ros::param::get("~topicname_pose",       topicname_pose_);
+    ros::param::get("~topicname_trajectory", topicname_trajectory_);
+    ros::param::get("~topicname_map_points", topicname_map_points_);
+    
     ros::param::get("~directory_intrinsic", directory_intrinsic_);
 };
 

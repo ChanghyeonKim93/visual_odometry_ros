@@ -15,6 +15,9 @@ Camera::~Camera() {
 
 void Camera::initParams(int n_cols, int n_rows, const cv::Mat& cvK, const cv::Mat& cvD) {
 	n_cols_ = n_cols; n_rows_ = n_rows;
+	
+	cvK.copyTo(cvK_);
+
 	fx_ = cvK.at<float>(0, 0); fy_ = cvK.at<float>(1, 1);
 	cx_ = cvK.at<float>(0, 2); cy_ = cvK.at<float>(1, 2);
 	fxinv_ = 1.0f / fx_; fyinv_ = 1.0f / fy_;

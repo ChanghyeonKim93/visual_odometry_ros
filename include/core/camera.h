@@ -9,12 +9,17 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
+class Camera ;
+
 class Camera {
 private:
 	int n_cols_, n_rows_;
 
 	Eigen::Matrix3f K_;
 	Eigen::Matrix3f Kinv_;
+
+	cv::Mat cvK_;
+
 	float fx_, fy_, cx_, cy_;
 	float fxinv_, fyinv_;
 	float distortion_[5];
@@ -41,6 +46,7 @@ public:
 	const float fyinv() const { return fyinv_; };
 	const Eigen::Matrix3f K() const { return K_; };
 	const Eigen::Matrix3f Kinv() const { return Kinv_; };
+	const cv::Mat cvK() const { return cvK_; };
 
 private:
 	void generateUndistortMaps();
