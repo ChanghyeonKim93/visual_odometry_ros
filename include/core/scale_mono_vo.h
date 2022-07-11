@@ -67,12 +67,17 @@ private:
 	std::mutex mut_;
 	std::condition_variable convar_dataready_;
 
+private:
+	struct SystemFlags{
+		bool flagFirstImageGot;
+		bool flagVOInit;
+	};
+
 // For tracker
 private:
-	bool flag_vo_initialized_;
-	bool flag_first_image_got_;
+	SystemFlags system_flags_;
 
-	FramePtr frame_prev_;
+	FramePtr       frame_prev_;
 	LandmarkPtrVec lms_prev_;
 	
 // All frames and landmarks

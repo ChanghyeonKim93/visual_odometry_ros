@@ -27,6 +27,9 @@ private:
     PixelVec observations_;
     FramePtrVec related_frames_;
 
+    bool is_alive_;
+    bool is_triangulated_;
+
 // Used for tracking
 private:
     bool track_in_view_;
@@ -54,10 +57,13 @@ public:
     void setTrackProjUV(float u, float v);
     void setTrackScaleLevel(uint32_t lvl);
     void setTrackViewCos(float vcos);
+    void setAlive(bool value);
     
     const uint32_t& getID() const;
     const Point& get3DPoint() const;
     const PixelVec& getObservations() const;
     const FramePtrVec& getRelatedFramePtr() const;
+    const bool& getAlive() const;
+    const bool& getTriangulated() const;
 };
 #endif

@@ -9,11 +9,11 @@
  * @date 10-July-2022
  */
 ScaleMonoVO::ScaleMonoVO(std::string mode, std::string directory_intrinsic)
-: cam_(nullptr) {
+: cam_(nullptr), system_flags_() {
 	std::cout << "Scale mono VO starts\n";
 	
-	flag_vo_initialized_  = false;
-	flag_first_image_got_ = false;
+	system_flags_.flagFirstImageGot  = false;
+	system_flags_.flagVOInit         = false;
 
 	// Initialize camera
 	cam_ = std::make_shared<Camera>();
@@ -123,33 +123,21 @@ void ScaleMonoVO::loadCameraIntrinsic(const std::string& dir) {
 	if (!fs.isOpened()) throw std::runtime_error("intrinsic file cannot be found!\n");
 
 	int rows, cols;
-	rows = fs["Camera.height"];
-	cols = fs["Camera.width"];
+	rows = fs["Camera.height"];	cols = fs["Camera.width"];
 
-	float fx,fy,cx,cy;
-	fx = fs["Camera.fx"];
-	fy = fs["Camera.fy"];
-	cx = fs["Camera.cx"];
-	cy = fs["Camera.cy"];
+	float fx, fy, cx, cy;
+	fx = fs["Camera.fx"];	fy = fs["Camera.fy"];
+	cx = fs["Camera.cx"];	cy = fs["Camera.cy"];
 
 	float k1,k2,k3,p1,p2;
-	k1 = fs["Camera.k1"];
-	k2 = fs["Camera.k2"];
-	k3 = fs["Camera.k3"];
-	p1 = fs["Camera.p1"];
-	p2 = fs["Camera.p2"];
+	k1 = fs["Camera.k1"];	k2 = fs["Camera.k2"];	k3 = fs["Camera.k3"];
+	p1 = fs["Camera.p1"];	p2 = fs["Camera.p2"];
 
 	cv::Mat cvK_tmp;
 	cvK_tmp = cv::Mat(3,3,CV_32FC1);
-	cvK_tmp.at<float>(0,0) = fx;
-	cvK_tmp.at<float>(0,1) = 0.0f;
-	cvK_tmp.at<float>(0,2) = cx;
-	cvK_tmp.at<float>(1,0) = 0.0f;
-	cvK_tmp.at<float>(1,1) = fy;
-	cvK_tmp.at<float>(1,2) = cy;
-	cvK_tmp.at<float>(2,0) = 0.0f;
-	cvK_tmp.at<float>(2,1) = 0.0f;
-	cvK_tmp.at<float>(2,2) = 1.0f;
+	cvK_tmp.at<float>(0,0) = fx;	cvK_tmp.at<float>(0,1) = 0.0f;	cvK_tmp.at<float>(0,2) = cx;
+	cvK_tmp.at<float>(1,0) = 0.0f;	cvK_tmp.at<float>(1,1) = fy;	cvK_tmp.at<float>(1,2) = cy;
+	cvK_tmp.at<float>(2,0) = 0.0f;	cvK_tmp.at<float>(2,1) = 0.0f;	cvK_tmp.at<float>(2,2) = 1.0f;
 	
 	cv::Mat cvD_tmp;
 	cvD_tmp = cv::Mat(1,5,CV_32FC1);
@@ -195,111 +183,125 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 	frame_curr->setImageAndTimestamp(img_undist, timestamp);
 	
 	// 생성된 frame은 저장한다.
-	if( !flag_vo_initialized_ ) { // Not initialized yet.
-		if( !flag_first_image_got_ ) { // 최초 첫 이미지가 아직 안들어온 상태.
-			// Extract pixels
-			PixelVec       pts0;
-			LandmarkPtrVec lms0;
+	if( !system_flags_.flagVOInit ) { // 아직 초기화가 되지 않았다.
+		if( !system_flags_.flagFirstImageGot ) { // 최초 첫 이미지가 아직 안들어온 상태.
+			// Get the first image.
 			const cv::Mat& I0 = frame_curr->getImage();
 
+			// Extract pixels
+			PixelVec       pxvec0;
+			LandmarkPtrVec lmvec0;
+
 			extractor_->resetWeightBin();
-			extractor_->extractORBwithBinning(I0, pts0);
+			extractor_->extractORBwithBinning(I0, pxvec0);
 			
 			// Set initial landmarks
-			lms0.reserve(pts0.size());
-			for(auto p : pts0) lms0.push_back(std::make_shared<Landmark>(p, frame_curr));
+			lmvec0.reserve(pxvec0.size());
+			for(auto p : pxvec0) lmvec0.push_back(std::make_shared<Landmark>(p, frame_curr));
 			
-			frame_curr->setRelatedLandmarks(lms0);
-			frame_curr->setPtsSeen(pts0);
+			frame_curr->setRelatedLandmarks(lmvec0);
+			frame_curr->setPtsSeen(pxvec0);
 
 			if(1){
 				cv::namedWindow("img_features");
 				cv::Mat img_draw;
 				frame_curr->getImage().copyTo(img_draw);
 				cv::cvtColor(img_draw,img_draw, CV_GRAY2RGB);
-				for(int i = 0; i < pts0.size(); ++i)
-					cv::circle(img_draw, pts0[i], 4.0, cv::Scalar(255,0,255));
+				for(auto p : pxvec0)
+					cv::circle(img_draw, p, 4.0, cv::Scalar(255,0,255));
 				
 				cv::imshow("img_features", img_draw);
 				cv::waitKey(3);
 			}
 
-			flag_first_image_got_ = true;
+			system_flags_.flagFirstImageGot = true;
 			std::cout << "The first image is got.\n";
 		}
-		else {
+		else { // 최초 첫 이미지는 들어왔으나, 아직 초기화가 되지 않은 상태.
+			   // 초기화는 맨 첫 이미지 (첫 키프레임) 대비, 제대로 추적 된 landmark가 60 퍼센트 이상이며, 
+			   // 추적된 landmark 각각의 최대 parallax 가 1도 이상인 경우 초기화 완료.
 			// 이전 프레임의 pixels 와 lms0를 가져온다.
-			const PixelVec&       pts0 = frame_prev_->getPtsSeen();
-			const LandmarkPtrVec& lms0 = frame_prev_->getRelatedLandmarkPtr();
+			const PixelVec&       pxvec0 = frame_prev_->getPtsSeen();
+			const LandmarkPtrVec& lmvec0 = frame_prev_->getRelatedLandmarkPtr();
 			
 			// frame_prev_ 의 lms 를 현재 이미지로 track.
-			float thres_err = 20.0;
+			float thres_err         = 20.0;
 			float thres_bidirection = 1.0;
 
-			PixelVec pts1_track;
-			MaskVec mask1_track;
-			tracker_->trackBidirection(frame_prev_->getImage(), frame_curr->getImage(), pts0, thres_err, thres_bidirection,
-							pts1_track, mask1_track);
+			PixelVec pxvec1_track;
+			MaskVec maskvec1_track;
+			tracker_->trackBidirection(frame_prev_->getImage(), frame_curr->getImage(), pxvec0, thres_err, thres_bidirection,
+							pxvec1_track, maskvec1_track);
 
-			// frame_curr을 위한 lms1 와 pts1을 정리한다.
-			LandmarkPtrVec lms1_valid;
-			PixelVec pts0_valid;
-			PixelVec pts1_valid;
-			for(int i = 0; i < pts1_track.size(); ++i){
-				if( mask1_track[i] ) {
-					lms0[i]->addObservationAndRelatedFrame(pts1_track[i], frame_curr);
-					lms1_valid.push_back(lms0[i]);
-					pts0_valid.emplace_back(pts0[i]);
-					pts1_valid.emplace_back(pts1_track[i]);
+			// Tracking 결과를 반영하여 pxvec1_alive, lmvec1_alive를 정리한다.
+			LandmarkPtrVec lmvec1_alive;
+			PixelVec       pxvec0_alive;
+			PixelVec       pxvec1_alive;
+			for(int i = 0; i < pxvec1_track.size(); ++i){
+				if( maskvec1_track[i]){
+					pxvec0_alive.push_back(pxvec0[i]);
+					lmvec1_alive.push_back(lmvec0[i]);
+					pxvec1_alive.push_back(pxvec1_track[i]);
 				}
+				else lmvec0[i]->setAlive(false); // track failed. Dead point.
 			}
-
+			
 			// pts0 와 pts1을 이용, 5-point algorithm 으로 모션을 구한다.
-			MaskVec mask_inlier;
-			motion_estimator_->calcPose5PointsAlgorithm(pts0_valid, pts1_valid, cam_, mask_inlier);
-			int sum = 0; for(auto it : mask_inlier) sum += it;
-			std::cout << "After 5 point algorith: inlier : " << sum <<" / " << mask_inlier.size() <<std::endl;
-						
+			MaskVec maskvec_inlier;
+			motion_estimator_->calcPose5PointsAlgorithm(pxvec0_alive, pxvec1_alive, cam_, maskvec_inlier);
+			
+			// tracking, 5p algorithm, newpoint 모두 합쳐서 살아남은 점만 frame_curr에 넣는다
+			LandmarkPtrVec lmvec1_final;
+			PixelVec       pxvec1_final;
+			for(int i = 0; i < pxvec1_alive.size(); ++i){
+				if( maskvec_inlier[i] ) {
+					lmvec1_alive[i]->addObservationAndRelatedFrame(pxvec1_alive[i], frame_curr);
+					lmvec1_final.push_back(lmvec1_alive[i]);
+					pxvec1_final.push_back(pxvec1_alive[i]);
+				}
+				else lmvec1_alive[i]->setAlive(false); // 5p algorithm failed. Dead point.
+			}			
 
 			// 빈 곳에 특징점 pts1_new 를 추출한다.
-			PixelVec pts1_new;
-			extractor_->updateWeightBin(pts1_valid); // 이미 pts1가 있는 곳은 제외.
-			extractor_->extractORBwithBinning(frame_curr->getImage(), pts1_new);
+			PixelVec pxvec1_new;
+			extractor_->updateWeightBin(pxvec1_final); // 이미 pts1가 있는 곳은 제외.
+			extractor_->extractORBwithBinning(frame_curr->getImage(), pxvec1_new);
 
-			if(!pts1_new.empty()){
+			if(!pxvec1_new.empty()){
 				// 새로운 특징점은 새로운 landmark가 된다.
-				for(auto p1_new : pts1_new) {
-					lms1_valid.push_back(std::make_shared<Landmark>(p1_new, frame_curr));
-					pts1_valid.emplace_back(p1_new);
+				for(auto p1_new : pxvec1_new) {
+					lmvec1_final.push_back(std::make_shared<Landmark>(p1_new, frame_curr));
+					pxvec1_final.emplace_back(p1_new);
 				}
-				std::cout << "pts1_new size: " << pts1_new.size() << std::endl;
+				std::cout << "pts1_new size: " << pxvec1_new.size() << std::endl;
 			}
 
-			// lms1와 pts1을 frame_curr에 넣는다.
-			frame_curr->setRelatedLandmarks(lms1_valid);
-			frame_curr->setPtsSeen(pts1_valid);
 
-			if(1){
+			// lms1와 pts1을 frame_curr에 넣는다.
+			frame_curr->setRelatedLandmarks(lmvec1_final);
+			frame_curr->setPtsSeen(pxvec1_final);
+
+			if( true ){
 				cv::namedWindow("img_features");
 				cv::Mat img_draw;
 				frame_curr->getImage().copyTo(img_draw);
 				cv::cvtColor(img_draw,img_draw, CV_GRAY2RGB);
-				for(int i = 0; i < pts0.size(); ++i) {
-					if(mask1_track[i]) cv::circle(img_draw, pts0[i], 4.0, cv::Scalar(255,0,255));
-					else cv::circle(img_draw, pts0[i], 2.0, cv::Scalar(0,0,255));
+				for(int i = 0; i < pxvec0.size(); ++i) {
+					if(maskvec1_track[i]) cv::circle(img_draw, pxvec0[i], 4.0, cv::Scalar(255,0,255)); // alived magenta
+					else cv::circle(img_draw, pxvec0[i], 2.0, cv::Scalar(0,0,255)); // red, dead points
 				}
-				for(int i = 0; i < pts1_new.size(); ++i)
-					cv::circle(img_draw, pts1_new[i], 4.0, cv::Scalar(255,0,0));
-				for(int i = 0; i < pts1_valid.size(); ++i)
-					cv::circle(img_draw, pts1_valid[i], 4.0, cv::Scalar(0,255,0));
+				for(int i = 0; i < pxvec1_final.size(); ++i)
+					cv::circle(img_draw, pxvec1_final[i], 4.0, cv::Scalar(0,255,0)); // green tracked points
+				for(int i = 0; i < pxvec1_new.size(); ++i)
+					cv::circle(img_draw, pxvec1_new[i], 4.0, cv::Scalar(255,128,0)); // blue new points
 				
 				cv::imshow("img_features", img_draw);
-				cv::waitKey(0);
+				cv::waitKey(5);
 			}
 
-			if(1){ // lms_tracked_ 의 평균 parallax가 특정 값 이상인 경우, 초기화 끝. 
+			if(false){ // lms_tracked_ 의 평균 parallax가 특정 값 이상인 경우, 초기화 끝. 
 				// lms_tracked_를 업데이트한다. 
-				flag_vo_initialized_ = true;
+				system_flags_.flagVOInit = true;
 
 				std::cout << "VO initialzed!\n";
 			}

@@ -1,17 +1,17 @@
 #include "core/landmark.h"
 
 Landmark::Landmark()
-: Xw_(0,0,0), id_(landmark_counter_++), max_possible_distance_(0),min_possible_distance_(0)
+: Xw_(0,0,0), id_(landmark_counter_++), max_possible_distance_(0),min_possible_distance_(0), is_alive_(true), is_triangulated_(false)
 {
     
 };  
 Landmark::Landmark(const Pixel& p, const FramePtr& frame)
-: Xw_(0,0,0), id_(landmark_counter_++), max_possible_distance_(0),min_possible_distance_(0)
+: Xw_(0,0,0), id_(landmark_counter_++), max_possible_distance_(0),min_possible_distance_(0), is_alive_(true), is_triangulated_(false)
 {
     addObservationAndRelatedFrame(p, frame);
 };  
 
-void Landmark::set3DPoint(const Point& Xw) { Xw_ = Xw; };
+void Landmark::set3DPoint(const Point& Xw) { Xw_ = Xw;  is_triangulated_ = true; };
 void Landmark::addObservationAndRelatedFrame(const Pixel& p, const FramePtr& frame) {
     observations_.push_back(p);
     related_frames_.push_back(frame);
@@ -32,6 +32,9 @@ void Landmark::setTrackScaleLevel(uint32_t lvl){
 void Landmark::setTrackViewCos(float vcos){
     track_view_cos_ = vcos;
 };
+void Landmark::setAlive(bool value){
+    is_alive_ = value;
+};
 
 const uint32_t& Landmark::getID() const { 
     return id_; 
@@ -39,3 +42,5 @@ const uint32_t& Landmark::getID() const {
 const Point& Landmark::get3DPoint() const { return Xw_; };
 const PixelVec& Landmark::getObservations() const { return observations_; };
 const FramePtrVec& Landmark::getRelatedFramePtr() const { return related_frames_; };
+const bool& Landmark::getAlive() const { return is_alive_; };
+const bool& Landmark::getTriangulated() const { return is_triangulated_; };
