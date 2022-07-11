@@ -278,6 +278,7 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 			PixelVec pxvec1_new;
 			extractor_->updateWeightBin(pxvec1_final); // 이미 pts1가 있는 곳은 제외.
 			extractor_->extractORBwithBinning(frame_curr->getImage(), pxvec1_new);
+			// extractor_->extractHarriswithBinning(frame_curr->getImage(), pxvec1_new);
 
 			if( pxvec1_new.size() > 0 ){
 				// 새로운 특징점은 새로운 landmark가 된다.

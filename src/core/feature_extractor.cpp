@@ -65,7 +65,7 @@ void FeatureExtractor::resetWeightBin() {
 };
 
 void FeatureExtractor::updateWeightBin(const PixelVec& fts) {
-	printf(" - FEATURE_EXTRACTOR - 'updateWeightBin'\n");
+	std::cout << " - FEATURE_EXTRACTOR - 'updateWeightBin'\n";
 
 	weight_bin_->reset();
 	weight_bin_->update(fts);
