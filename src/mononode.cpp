@@ -20,7 +20,7 @@ MonoNode::MonoNode(ros::NodeHandle& nh) : nh_(nh)
 
     // Subscriber    
     img_sub_ = 
-        nh_.subscribe<sensor_msgs::Image>(topicname_image_, 10, &MonoNode::imageCallback, this);
+        nh_.subscribe<sensor_msgs::Image>(topicname_image_, 5, &MonoNode::imageCallback, this);
 
     // Publisher
     pub_pose_estimation_ = 
@@ -84,7 +84,7 @@ void MonoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
     // update camera pose.
     timer::tic();
     // current_frame_time_ = msg->header.stamp;
-    // scale_mono_vo_->trackImage(cv_ptr->image, cv_ptr->header.stamp.toSec());
+    scale_mono_vo_->trackImage(cv_ptr->image, cv_ptr->header.stamp.toSec());
     // Update();
     ROS_INFO_STREAM( "execution time: " << timer::toc(0) << " msec.");
 };

@@ -146,12 +146,12 @@ void ScaleMonoVO::loadCameraIntrinsic(const std::string& dir) {
 	if(cam_ == nullptr) throw std::runtime_error("cam_ is not allocated.");
 	cam_->initParams(cols, rows, cvK_tmp, cvD_tmp);
 
-	std::cout << cam_->fx() <<", "
-			  << cam_->fy() <<", "
-			  << cam_->cx() <<", "
-			  << cam_->cy() <<", "
-			  << cam_->cols() <<", "
-			  << cam_->rows() <<"\n";
+	std::cout << "fx: " << cam_->fx() <<", "
+			  << "fy: " << cam_->fy() <<", "
+			  << "cx: " << cam_->cx() <<", "
+			  << "cy: " << cam_->cy() <<", "
+			  << "cols: " << cam_->cols() <<", "
+			  << "rows: " << cam_->rows() <<"\n";
 	
 	std::cout << " - 'loadCameraIntrinsic()' - loaded.\n";
 };
@@ -168,39 +168,40 @@ void ScaleMonoVO::loadCameraIntrinsic(const std::string& dir) {
  */
 void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 	// 현재 들어온 이미지에 대한 Frame을 생성한다.
-	FramePtr frame_curr_ = std::make_shared<Frame>();
-	// 이미지를  undistort 한다. 
-	cv::Mat img_undist;
-	cam_->undistort(img, img_undist);
-	frame_curr_->setImageAndTimestamp(img_undist, timestamp);
+	FramePtr frame_curr = std::make_shared<Frame>();
+
+	// 이미지를  undistort 한다. (KITTI 라서 할 필요 없음.)
+	// cv::Mat img_undist;
+	// cam_->undistort(img, img_undist);
+	// frame_curr_->setImageAndTimestamp(img_undist, timestamp);
+	frame_curr->setImageAndTimestamp(img, timestamp);
 
 	// 생성된 frame은 저장한다.
-	all_frames_.push_back(frame_curr_);
+	all_frames_.push_back(frame_curr);
 	if(!flag_vo_initialized_){ // Not initialized yet.
 		
-		// frame_prev_ 이 가지고 있는 related_landmarks_을 img
-		
-		
+		// frame_prev_ 이 가지고 있는 related_landmarks_을 img		
 		if(1){ // lms_tracked_ 의 평균 parallax가 특정 값 이상인 경우, 초기화 끝. 
 
 			// lms_tracked_를 업데이트한다. 
 			flag_vo_initialized_ = true;
-		}
 
+			std::cout << "VO initialzed!\n";
+		}
 	}	
 	else { // VO initialized. Do track the new image.
-		double dt = timestamp - frame_prev_->getTimestamp();
-		std::cout << "dt: " << dt << std::endl;
+		const double dt = timestamp - frame_prev_->getTimestamp();
+		std::cout << "dt_img: " << dt << " sec." << std::endl;
 
 		// i-2, i-1 째 이미지를 이용해서 motion velocity를 구한다. 
-		Eigen::Matrix4f dTdt;
+		// Eigen::Matrix4f dTdt;
 		// dTdt = T(i-2)^-1*T(i-1) / (t(i-1) - t(i-2))
 		// dTdt*dt;
-		Eigen::Matrix4f Twc_prior = frame_prev_->getPose()*(dTdt*(float)dt);
+		// Eigen::Matrix4f Twc_prior = frame_prev_->getPose()*(dTdt*(float)dt);
 
 		// lms_tracked_ 를 가져온다.
 		// lms_tracked_ 중, depth가 있는 점에 대해서 prior 계산한다.
 
-
 	}
+	frame_prev_ = frame_curr;
 };
