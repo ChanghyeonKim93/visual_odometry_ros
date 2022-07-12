@@ -24,8 +24,8 @@ class Frame{
 private:
     uint32_t id_;
 
-    Eigen::Matrix4f Twc_;
-    Eigen::Matrix4f Tcw_;
+    PoseSE3 Twc_;
+    PoseSE3 Tcw_;
     cv::Mat image_;
 
     LandmarkPtrVec related_landmarks_;
@@ -52,7 +52,7 @@ public:
 
     // Get
     const uint32_t& getID() const;
-    const Eigen::Matrix4f& getPose() const;
+    const PoseSE3& getPose() const;
     const cv::Mat& getImage() const ; 
     const LandmarkPtrVec& getRelatedLandmarkPtr() const;
     const PixelVec& getPtsSeen() const;

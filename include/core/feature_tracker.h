@@ -33,7 +33,7 @@ public:
                 PixelVec& pts_track, MaskVec& mask_valid);
     void trackWithPrior(const cv::Mat& img0, const cv::Mat& img1, const PixelVec& pts0, const PixelVec& pts1_prior,
                 PixelVec& pts_track, MaskVec& mask_valid);
-    void calcPrior(const PixelVec& pts0, const PointVec& Xw, const Eigen::Matrix4f& Tw1, const Eigen::Matrix3f& K,
+    void calcPrior(const PixelVec& pts0, const PointVec& Xw, const PoseSE3& Tw1, const Eigen::Matrix3f& K,
                 PixelVec& pts1_prior);
 };
 

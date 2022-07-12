@@ -253,22 +253,33 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 			}
 			std::cout << "# of alive : " << cnt_alive << " / " << maskvec1_track.size() << std::endl;
 			
-			// // pts0 와 pts1을 이용, 5-point algorithm 으로 모션을 구한다.
+			// pts0 와 pts1을 이용, 5-point algorithm 으로 모션 & X0 를 구한다.
 			MaskVec maskvec_inlier(pxvec0_alive.size());
-			Eigen::Matrix3f R10;
-			Eigen::Vector3f t10;
-			if( !motion_estimator_->calcPose5PointsAlgorithm(pxvec0_alive, pxvec1_alive, cam_, R10, t10, maskvec_inlier) ) {
+			PointVec X0_inlier(pxvec0_alive.size());
+			Rot3 R10;
+			Pos3 t10;
+			if( !motion_estimator_->calcPose5PointsAlgorithm(pxvec0_alive, pxvec1_alive, cam_, R10, t10, X0_inlier, maskvec_inlier) ) {
 				throw std::runtime_error("calcPose5PointsAlgorithm() is failed.");
 			}
+
+			// Frame_curr의 자세를 넣는다.
+			PoseSE3 Tck; Tck << R10,t10,0,0,0,1;
+			frame_curr->setPose(Tck);
 
 			// tracking, 5p algorithm, newpoint 모두 합쳐서 살아남은 점만 frame_curr에 넣는다
 			LandmarkPtrVec lmvec1_final;
 			PixelVec       pxvec1_final;
 			cnt_alive = 0;
+			int cnt_parallax_ok = 0;
 			std::cout << pxvec1_alive.size() << "," << maskvec_inlier.size() << std::endl;
 			for(int i = 0; i < pxvec1_alive.size(); ++i){
 				if( maskvec_inlier[i] ) {
 					lmvec1_alive[i]->addObservationAndRelatedFrame(pxvec1_alive[i], frame_curr);
+					if(lmvec1_alive[i]->getMaxParallax() > params_.keyframe_update.thres_parallax) {
+						++cnt_parallax_ok;
+						std::cout << i <<"-th point parallax :" << lmvec1_alive[i]->getMaxParallax()*R2D <<" deg" << std::endl;
+						lmvec1_alive[i]->set3DPoint(X0_inlier[i]);
+					}
 					lmvec1_final.push_back(lmvec1_alive[i]);
 					pxvec1_final.push_back(pxvec1_alive[i]);
 					++cnt_alive;
@@ -277,6 +288,7 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 			}
 
 			// lmvec1_final 중, depth가 복원되지 않은 경우 복원해준다.
+			std::cout <<" parallax ok : " << cnt_parallax_ok << " / " << cnt_alive << std::endl;
 
 			// 빈 곳에 특징점 pts1_new 를 추출한다.
 			PixelVec pxvec1_new;

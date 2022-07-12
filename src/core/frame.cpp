@@ -2,14 +2,14 @@
 std::shared_ptr<Camera> Frame::cam_ = nullptr;
 
 Frame::Frame() : is_keyframe_(false) {
-    Twc_ = Eigen::Matrix4f::Identity();
-    Tcw_ = Eigen::Matrix4f::Identity();
+    Twc_ = PoseSE3::Identity();
+    Tcw_ = PoseSE3::Identity();
     id_  = frame_counter_;
     timestamp_ = 0;
     ++frame_counter_;
 };
 
-void Frame::setPose(const Eigen::Matrix4f& Twc) { 
+void Frame::setPose(const PoseSE3& Twc) { 
     Twc_ = Twc; 
     Tcw_ = Twc_.inverse();
 };
@@ -39,7 +39,7 @@ const uint32_t& Frame::getID() const {
     return id_; 
 };
 
-const Eigen::Matrix4f& Frame::getPose() const { 
+const PoseSE3& Frame::getPose() const { 
     return Twc_; 
 };
 

@@ -27,7 +27,7 @@ public:
     ~MotionEstimator();
 
     bool calcPose5PointsAlgorithm(const PixelVec& pts0, const PixelVec& pts1, const std::shared_ptr<Camera>& cam, 
-        Eigen::Matrix3f& R10_true, Eigen::Vector3f& t10_true, MaskVec& mask_inlier);
+        Rot3& R10_true, Pos3& t10_true, PointVec& X0_true, MaskVec& mask_inlier);
     // bool calcPosePnPAlgorithm(const PointVec& Xw, const PixelVec& pts1);
 
 private:
@@ -35,7 +35,7 @@ private:
     bool findCorrectRT(
         const std::vector<Eigen::Matrix3f>& R10_vec, const std::vector<Eigen::Vector3f>& t10_vec, 
         const PixelVec& pxvec0, const PixelVec& pxvec1, const std::shared_ptr<Camera>& cam,
-        Eigen::Matrix3f& R10_true, Eigen::Vector3f& t10_true, 
+        Rot3& R10_true, Pos3& t10_true, 
         MaskVec& maskvec_true, PointVec& X0);
 };
 

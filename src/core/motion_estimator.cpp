@@ -9,7 +9,7 @@ MotionEstimator::~MotionEstimator(){
 };
 
 bool MotionEstimator::calcPose5PointsAlgorithm(const PixelVec& pts0, const PixelVec& pts1, const std::shared_ptr<Camera>& cam,
-    Eigen::Matrix3f& R10_true, Eigen::Vector3f& t10_true, MaskVec& mask_inlier)
+    Rot3& R10_true, Pos3& t10_true, PointVec& X0_true, MaskVec& mask_inlier)
 {
     std::cout <<" - MotionEstimator - 'calcPose5PointsAlgorithm()'\n";
     if(pts0.size() != pts1.size()) {
@@ -59,8 +59,8 @@ bool MotionEstimator::calcPose5PointsAlgorithm(const PixelVec& pts0, const Pixel
     W << 0, -1, 0, 1, 0, 0, 0, 0, 1;
 
     // Four possibilities.
-    std::vector<Eigen::Matrix3f> R10_vec(4);
-    std::vector<Eigen::Vector3f> t10_vec(4);
+    std::vector<Rot3> R10_vec(4);
+    std::vector<Pos3> t10_vec(4);
     R10_vec[0] = U * W * V.transpose();
     R10_vec[1] = R10_vec[0];
     R10_vec[2] = U * W.transpose() * V.transpose();
@@ -75,13 +75,12 @@ bool MotionEstimator::calcPose5PointsAlgorithm(const PixelVec& pts0, const Pixel
     bool success = true;
 
     MaskVec  maskvec_verify(n_pts,true);
-    PointVec X1_verify;
 
-    Eigen::Matrix3f R10_verify;
-    Eigen::Vector3f t10_verify;
+    Rot3 R10_verify;
+    Pos3 t10_verify;
 
     success = findCorrectRT(R10_vec, t10_vec, pts0, pts1, cam, 
-                            R10_verify, t10_verify, maskvec_verify, X1_verify);
+                            R10_verify, t10_verify, maskvec_verify, X0_true);
     
     uint32_t cnt_correctRT = 0;
     for( int i = 0; i < n_pts; ++i) {
@@ -99,9 +98,9 @@ bool MotionEstimator::calcPose5PointsAlgorithm(const PixelVec& pts0, const Pixel
 // };
 
 bool MotionEstimator::findCorrectRT(
-    const std::vector<Eigen::Matrix3f>& R10_vec, const std::vector<Eigen::Vector3f>& t10_vec, 
+    const std::vector<Rot3>& R10_vec, const std::vector<Pos3>& t10_vec, 
     const PixelVec& pxvec0, const PixelVec& pxvec1, const std::shared_ptr<Camera>& cam,
-    Eigen::Matrix3f& R10_true, Eigen::Vector3f& t10_true, 
+    Rot3& R10_true, Pos3& t10_true, 
     MaskVec& maskvec_true, PointVec& X0_true)
 {
     bool success = true;

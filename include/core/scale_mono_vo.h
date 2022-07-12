@@ -88,10 +88,10 @@ private:
 			float radius            = 10.0; // NONMAX pixel threshold
 		};
 		struct MotionEstimatorParameters{
-
+			
 		};
 		struct KeyframeUpdateParameters{
-
+			float thres_parallax    = 1.0*D2R;
 		};
 		FeatureTrackerParameters   feature_tracker;
 		FeatureExtractorParameters feature_extractor;

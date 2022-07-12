@@ -114,7 +114,7 @@ void FeatureTracker::trackWithPrior(const cv::Mat& img0, const cv::Mat& img1, co
     printf(" - FEATURE_TRACKER - 'trackWithPrior()'\n");
 };
 
-void FeatureTracker::calcPrior(const PixelVec& pts0, const PointVec& Xw, const Eigen::Matrix4f& Tw1, const Eigen::Matrix3f& K,
+void FeatureTracker::calcPrior(const PixelVec& pts0, const PointVec& Xw, const PoseSE3& Tw1, const Eigen::Matrix3f& K,
     PixelVec& pts1_prior) 
 {
     int n_pts = Xw.size();

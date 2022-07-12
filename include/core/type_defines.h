@@ -29,4 +29,9 @@ typedef std::vector<Mask>         MaskVec;
 typedef std::vector<FramePtr>     FramePtrVec;
 typedef std::vector<LandmarkPtr>  LandmarkPtrVec;
 
+
+typedef Eigen::Vector3f           Pos3;
+typedef Eigen::Matrix3f           Rot3;
+typedef Eigen::Matrix4f           PoseSE3;
+
 #endif
