@@ -177,8 +177,8 @@ void MotionEstimator::triangulateDLT(const PixelVec& pts0, const PixelVec& pts1,
         const Pixel& p0 = pts0[i];
         const Pixel& p1 = pts1[i];
 
-        x0[i] = (p0.x-cx)*fxinv, (p0.y-cy)*fyinv, 1.0;
-        x1[i] = (p1.x-cx)*fxinv, (p1.y-cy)*fyinv, 1.0;
+        x0[i] << (p0.x-cx)*fxinv, (p0.y-cy)*fyinv, 1.0;
+        x1[i] << (p1.x-cx)*fxinv, (p1.y-cy)*fyinv, 1.0;
 
         Eigen::Matrix3f skewx1 = skew(x1[i]);
         
