@@ -11,6 +11,7 @@
 #include "core/type_defines.h"
 
 #include "core/frame.h"
+#include "core/camera.h"
 
 /*
 - Image frame :
@@ -30,6 +31,10 @@ private:
     bool is_alive_;
     bool is_triangulated_;
 
+    uint32_t age_;
+
+    float max_parallax_;
+
 // Used for tracking
 private:
     // bool track_in_view_;
@@ -45,26 +50,30 @@ private:
 
 public: // static counter
     inline static uint32_t landmark_counter_ = 0;
+    static std::shared_ptr<Camera> cam_;
 
 public:
     Landmark();
     Landmark(const Pixel& p, const FramePtr& frame);
     ~Landmark();
 
-    void set3DPoint(const Point& Xw);
     void addObservationAndRelatedFrame(const Pixel& p, const FramePtr& frame);
-
+    
+    void set3DPoint(const Point& Xw);
+    void setDead();
+    
     // void setTrackInView(bool value);
     // void setTrackProjUV(float u, float v);
     // void setTrackScaleLevel(uint32_t lvl);
     // void setTrackViewCos(float vcos);
-    void setAlive(bool value);
     
-    const uint32_t& getID() const;
-    const Point& get3DPoint() const;
-    const PixelVec& getObservations() const;
+    uint32_t           getID() const;
+    uint32_t           getAge() const;
+    float              getMaxParallax() const;       
+    const Point&       get3DPoint() const;
+    const PixelVec&    getObservations() const;
     const FramePtrVec& getRelatedFramePtr() const;
-    const bool& getAlive() const;
-    const bool& getTriangulated() const;
+    const bool&        getAlive() const;
+    const bool&        getTriangulated() const;
 };
 #endif

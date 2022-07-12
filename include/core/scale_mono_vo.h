@@ -74,11 +74,38 @@ private:
 		SystemFlags():flagFirstImageGot(false), flagVOInit(false) {};
 	};
 
+	struct AlgorithmParameters{
+		struct FeatureTrackerParameters{
+			float thres_error       = 20.0; // KLT error threshold
+			float thres_bidirection = 1.0; // bidirection pixel error threshold
+			uint32_t window_size    = 15;  // KLT window size 
+			uint32_t max_level      = 6;   // KLT maximum pyramid level
+		};
+		struct FeatureExtractorParameters{
+			uint32_t n_bins_u       = 18; // Bucket grid size u
+			uint32_t n_bins_v       = 8; // Bucket grid size v
+			float thres_fastscore   = 20.0; // FAST score threshold
+			float radius            = 10.0; // NONMAX pixel threshold
+		};
+		struct MotionEstimatorParameters{
+
+		};
+		struct KeyframeUpdateParameters{
+
+		};
+		FeatureTrackerParameters   feature_tracker;
+		FeatureExtractorParameters feature_extractor;
+		MotionEstimatorParameters  motion_estimator;
+		KeyframeUpdateParameters   keyframe_update;
+	};
+	AlgorithmParameters params_;
+
 // For tracker
 private:
-	SystemFlags system_flags_;
+	SystemFlags    system_flags_;
 	FramePtr       frame_prev_;
-	
+	FramePtr       keyframe_;
+
 // All frames and landmarks
 private:
 	
@@ -91,6 +118,9 @@ public:
 	~ScaleMonoVO();
 
 	void trackImage(const cv::Mat& img, const double& timestamp);
+
+private:
+	void updateKeyframe(const FramePtr& frame);
 
 private:
 	void runDataset(); // run algorithm

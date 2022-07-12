@@ -15,6 +15,8 @@ ScaleMonoVO::ScaleMonoVO(std::string mode, std::string directory_intrinsic)
 	
 	// Initialize camera
 	cam_ = std::make_shared<Camera>();
+	Landmark::cam_ = cam_;
+	Frame::cam_    = cam_;
 
 	if(mode == "dataset"){
 		std::cout <<"ScaleMonoVO - 'dataset' mode.\n";
@@ -39,10 +41,10 @@ ScaleMonoVO::ScaleMonoVO(std::string mode, std::string directory_intrinsic)
 
 	// Initialize feature extractor (ORB-based)
 	extractor_ = std::make_shared<FeatureExtractor>();
-	int n_bins_u = 20;
-	int n_bins_v = 12;
-	float THRES_FAST = 20.0;
-	float radius = 10.0;
+	int n_bins_u     = params_.feature_extractor.n_bins_u;
+	int n_bins_v     = params_.feature_extractor.n_bins_v;
+	float THRES_FAST = params_.feature_extractor.thres_fastscore;
+	float radius     = params_.feature_extractor.radius;
 	extractor_->initParams(cam_->cols(), cam_->rows(), n_bins_u, n_bins_v, THRES_FAST, radius);
 
 	// Initialize feature tracker (KLT-based)
@@ -171,6 +173,7 @@ void ScaleMonoVO::loadCameraIntrinsic(const std::string& dir) {
 void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 	// 현재 이미지에 대한 새로운 Frame 생성
 	FramePtr frame_curr = std::make_shared<Frame>();
+	all_frames_.push_back(frame_curr);
 
 	// 이미지 undistort (KITTI라서 할 필요 X)
 	bool flag_do_undistort = false;
@@ -182,9 +185,12 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 	frame_curr->setImageAndTimestamp(img_undist, timestamp);
 
 	if( !system_flags_.flagVOInit ) { // 초기화 미완료
-		if( !system_flags_.flagFirstImageGot ) { // 최초 이미지 없음
-
-			// Get the first image.
+		if( !system_flags_.flagFirstImageGot ) { // 최초 이미지
+			// It is the first keyframe
+			frame_curr->makeThisKeyframe();
+			this->updateKeyframe(frame_curr);
+			
+			// Get the first image
 			const cv::Mat& I0 = frame_curr->getImage();
 
 			// Extract pixels
@@ -199,6 +205,7 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 			for(auto p : pxvec0) 
 				lmvec0.push_back(std::make_shared<Landmark>(p, frame_curr));
 			
+			// Related Landmark와 tracked pixels를 업데이트
 			frame_curr->setRelatedLandmarks(lmvec0);
 			frame_curr->setPtsSeen(pxvec0);
 
@@ -210,26 +217,24 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 				for(auto p : pxvec0) cv::circle(img_draw, p, 4.0, cv::Scalar(255,0,255));
 				
 				cv::imshow("img_features", img_draw);
-				// cv::waitKey(10);
+				cv::waitKey(5);
 			}
 
+			// 첫 이미지 업데이트 완료
 			system_flags_.flagFirstImageGot = true;
 		}
 		else { // 최초 첫 이미지는 들어왔으나, 아직 초기화가 되지 않은 상태.
 			   // 초기화는 맨 첫 이미지 (첫 키프레임) 대비, 제대로 추적 된 landmark가 60 퍼센트 이상이며, 
 			   // 추적된 landmark 각각의 최대 parallax 가 1도 이상인 경우 초기화 완료.
-			// 이전 프레임의 pixels 와 lms0를 가져온다.
-
+			
+			// 이전 프레임의 pixels 와 lmvec0을 가져온다.
 			const PixelVec&       pxvec0 = frame_prev_->getPtsSeen();
 			const LandmarkPtrVec& lmvec0 = frame_prev_->getRelatedLandmarkPtr();
 			
-			float thres_err         = 20.0;
-			float thres_bidirection = 1.0;
-
 			// frame_prev_ 의 lms 를 현재 이미지로 track.
 			PixelVec pxvec1_track;
 			MaskVec  maskvec1_track;
-			tracker_->trackBidirection(frame_prev_->getImage(), frame_curr->getImage(), pxvec0, thres_err, thres_bidirection,
+			tracker_->trackBidirection(frame_prev_->getImage(), frame_curr->getImage(), pxvec0, params_.feature_tracker.thres_error, params_.feature_tracker.thres_bidirection,
 							           pxvec1_track, maskvec1_track);
 
 			// // Tracking 결과를 반영하여 pxvec1_alive, lmvec1_alive를 정리한다.
@@ -244,13 +249,15 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 					pxvec1_alive.push_back(pxvec1_track[i]);
 					++cnt_alive;
 				}
-				else lmvec0[i]->setAlive(false); // track failed. Dead point.
+				else lmvec0[i]->setDead(); // track failed. Dead point.
 			}
 			std::cout << "# of alive : " << cnt_alive << " / " << maskvec1_track.size() << std::endl;
 			
 			// // pts0 와 pts1을 이용, 5-point algorithm 으로 모션을 구한다.
-			MaskVec maskvec_inlier;
-			if(!motion_estimator_->calcPose5PointsAlgorithm(pxvec0_alive, pxvec1_alive, cam_, maskvec_inlier)){
+			MaskVec maskvec_inlier(pxvec0_alive.size());
+			Eigen::Matrix3f R10;
+			Eigen::Vector3f t10;
+			if( !motion_estimator_->calcPose5PointsAlgorithm(pxvec0_alive, pxvec1_alive, cam_, R10, t10, maskvec_inlier) ) {
 				throw std::runtime_error("calcPose5PointsAlgorithm() is failed.");
 			}
 
@@ -258,6 +265,7 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 			LandmarkPtrVec lmvec1_final;
 			PixelVec       pxvec1_final;
 			cnt_alive = 0;
+			std::cout << pxvec1_alive.size() << "," << maskvec_inlier.size() << std::endl;
 			for(int i = 0; i < pxvec1_alive.size(); ++i){
 				if( maskvec_inlier[i] ) {
 					lmvec1_alive[i]->addObservationAndRelatedFrame(pxvec1_alive[i], frame_curr);
@@ -265,7 +273,7 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 					pxvec1_final.push_back(pxvec1_alive[i]);
 					++cnt_alive;
 				}
-				else lmvec1_alive[i]->setAlive(false); // 5p algorithm failed. Dead point.
+				else lmvec1_alive[i]->setDead(); // 5p algorithm failed. Dead point.
 			}
 			std::cout << "# of 5pts  : " << cnt_alive << " / " << pxvec1_alive.size() << std::endl;
 
@@ -283,7 +291,7 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 					lmvec1_final.push_back(ptr);
 					pxvec1_final.emplace_back(p1_new);
 				}
-				std::cout << "pts1_new size: " << pxvec1_new.size() << std::endl;
+				std::cout << "pts1_new size: " << pxvec1_new.size() <<", pxvec1_final size: " << pxvec1_final.size() << std::endl;
 			}
 
 			// lms1와 pts1을 frame_curr에 넣는다.
@@ -331,10 +339,23 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 	}
 
 	// Add the newly incoming frame into the frame stack
-	all_frames_.push_back(frame_curr);
 	std::cout << "The number of all frames: " << all_frames_.size() << std::endl;
 
 	// Replace the 'frame_prev_' with 'frame_curr'
 	frame_prev_ = frame_curr;
 	std::cout << "frame prev is updated \n";
+};
+
+
+/**
+ * @brief Update keyframe with an input frame
+ * @details 새로운 frame으로 Keyframe을 업데이트 & all_keyframes_ 에 저장
+ * @param frame Keyframe이 될 frame
+ * @return void
+ * @author Changhyeon Kim (hyun91015@gmail.com)
+ * @date 12-July-2022
+ */
+void ScaleMonoVO::updateKeyframe(const FramePtr& frame){
+	keyframe_ = frame;
+	this->all_keyframes_.push_back(keyframe_);
 };

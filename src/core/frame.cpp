@@ -1,6 +1,7 @@
 #include "core/frame.h"
+std::shared_ptr<Camera> Frame::cam_ = nullptr;
 
-Frame::Frame() {
+Frame::Frame() : is_keyframe_(false) {
     Twc_ = Eigen::Matrix4f::Identity();
     Tcw_ = Eigen::Matrix4f::Identity();
     id_  = frame_counter_;
@@ -30,6 +31,10 @@ void Frame::setPtsSeen(const PixelVec& pts){
     for(auto p : pts) pts_seen_.emplace_back(p);
 };
 
+void Frame::makeThisKeyframe(){
+    is_keyframe_ = true;
+};
+
 const uint32_t& Frame::getID() const { 
     return id_; 
 };
@@ -52,4 +57,8 @@ const PixelVec& Frame::getPtsSeen() const {
 
 const double& Frame::getTimestamp() const {
     return timestamp_;
+};
+
+bool Frame::isKeyframe() const{
+    return is_keyframe_;
 };

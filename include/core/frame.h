@@ -11,9 +11,8 @@
 #include "core/type_defines.h"
 
 #include "core/landmark.h"
+#include "core/camera.h"
 
-#define FRAME_GRID_COLS 64
-#define FRAME_GRID_ROWS 48
 /*
 - Landmark
     2d pixel point hisotry over image
@@ -34,9 +33,12 @@ private:
     PixelVec pts_seen_;
 
     double timestamp_;
+
+    bool is_keyframe_;
     
 public: // static counter.
     inline static uint32_t frame_counter_ = 0;
+    static std::shared_ptr<Camera> cam_;
 
 public:
     Frame();
@@ -46,14 +48,16 @@ public:
     void setImageAndTimestamp(const cv::Mat& img, const double& timestamp); 
     void setRelatedLandmarks(const LandmarkPtrVec& landmarks);
     void setPtsSeen(const PixelVec& pts);
+    void makeThisKeyframe();
 
     // Get
     const uint32_t& getID() const;
     const Eigen::Matrix4f& getPose() const;
     const cv::Mat& getImage() const ; 
     const LandmarkPtrVec& getRelatedLandmarkPtr() const;
-    const PixelVec& getPtsSeen() const ;
+    const PixelVec& getPtsSeen() const;
     const double& getTimestamp() const;
+    bool isKeyframe() const;
 };
 
 #endif

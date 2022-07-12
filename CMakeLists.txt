@@ -37,6 +37,7 @@ set(SRC ${SRC}
   src/core/motion_estimator.cpp
 
   src/core/image_processing.cpp
+  src/core/mapping.cpp
 
   src/core/dataset_loader.cpp
 
