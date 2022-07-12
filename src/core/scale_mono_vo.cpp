@@ -177,8 +177,8 @@ void ScaleMonoVO::trackImageMy(const cv::Mat& img, const double& timestamp){
 
 	// 현재 이미지에 대한 새로운 Frame 생성
 	FramePtr frame_curr = std::make_shared<Frame>();
-	all_frames_.push_back(frame_curr);
-
+	this->saveFrames(frame_curr);
+	
 	// 이미지 undistort (KITTI라서 할 필요 X)
 	bool flag_do_undistort = false;
 	cv::Mat img_undist;
@@ -208,6 +208,8 @@ void ScaleMonoVO::trackImageMy(const cv::Mat& img, const double& timestamp){
 			// Related Landmark와 tracked pixels를 업데이트
 			frame_curr->setPtsSeen(pxvec0);
 			frame_curr->setRelatedLandmarks(lmvec0);
+
+			this->saveLandmarks(lmvec0);	
 
 			if( true )
 				this->showTracking("img_features", frame_curr->getImage(), pxvec0, PixelVec(), PixelVec());
@@ -318,6 +320,7 @@ void ScaleMonoVO::trackImageMy(const cv::Mat& img, const double& timestamp){
 					LandmarkPtr ptr = std::make_shared<Landmark>(p1_new, frame_curr);
 					pxvec1_final.emplace_back(p1_new);
 					lmvec1_final.push_back(ptr);
+					this->saveLandmarks(ptr);	
 				}
 			}
 
@@ -629,6 +632,29 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 void ScaleMonoVO::updateKeyframe(const FramePtr& frame){
 	keyframe_ = frame;
 	this->all_keyframes_.push_back(keyframe_);
+};
+
+void ScaleMonoVO::saveLandmarks(const LandmarkPtrVec& lms){
+	for(auto lm : lms)	
+		all_landmarks_.push_back(lm);
+
+	std::cout << "# of all accumulated landmarks: " << all_landmarks_.size() << std::endl;
+};
+
+void ScaleMonoVO::saveLandmarks(const LandmarkPtr& lm){
+	all_landmarks_.push_back(lm);
+	std::cout << "# of all accumulated landmarks: " << all_landmarks_.size() << std::endl;
+};
+
+void ScaleMonoVO::saveFrames(const FramePtrVec& frames){
+	for(auto f : frames)
+		all_frames_.push_back(f);
+	std::cout << "# of all accumulated frames   : " << all_frames_.size() << std::endl;
+};
+
+void ScaleMonoVO::saveFrames(const FramePtr& frame){
+	all_frames_.push_back(frame);
+	std::cout << "# of all accumulated frames   : " << all_frames_.size() << std::endl;
 };
 
 void ScaleMonoVO::showTracking(const std::string& window_name, const cv::Mat& img, const PixelVec& pts0, const PixelVec& pts1, const PixelVec& pts1_new){

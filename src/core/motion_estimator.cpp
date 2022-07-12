@@ -25,7 +25,7 @@ bool MotionEstimator::calcPose5PointsAlgorithm(const PixelVec& pts0, const Pixel
 
     // Calculate essential matrix
     cv::Mat inlier_mat, essential;
-    essential = cv::findEssentialMat(pts0, pts1, cam->cvK(), cv::RANSAC, 0.999, 1.5, inlier_mat);
+    essential = cv::findEssentialMat(pts0, pts1, cam->cvK(), cv::RANSAC, 0.999, 2.0, inlier_mat);
     
     // Calculate fundamental matrix
     Eigen::Matrix3f E10, F10;
@@ -266,7 +266,7 @@ bool MotionEstimator::fineInliers1PointHistogram(const PixelVec& pts0, const Pix
     std::vector<float> sampson_dist;
     this->calcSampsonDistance(pts0, pts1, cam, R10, t10, sampson_dist);
 
-    float thres_sampson = 10.0; // 15.0 px
+    float thres_sampson = 15.0; // 15.0 px
     thres_sampson *= thres_sampson;
     for(int i = 0; i < n_pts; ++i){
         if(sampson_dist[i] <= thres_sampson) maskvec_inlier[i] = true;

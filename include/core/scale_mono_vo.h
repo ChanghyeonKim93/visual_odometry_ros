@@ -76,15 +76,15 @@ private:
 
 	struct AlgorithmParameters{
 		struct FeatureTrackerParameters{
-			float thres_error       = 20.0; // KLT error threshold
+			float thres_error       =125.0; // KLT error threshold
 			float thres_bidirection = 1.0; // bidirection pixel error threshold
 			uint32_t window_size    = 15;  // KLT window size 
 			uint32_t max_level      = 6;   // KLT maximum pyramid level
 		};
 		struct FeatureExtractorParameters{
-			uint32_t n_bins_u       = 16; // Bucket grid size u
-			uint32_t n_bins_v       = 7; // Bucket grid size v
-			float thres_fastscore   = 25.0; // FAST score threshold
+			uint32_t n_bins_u       = 14; // Bucket grid size u
+			uint32_t n_bins_v       = 6; // Bucket grid size v
+			float thres_fastscore   = 50.0; // FAST score threshold
 			float radius            = 15.0; // NONMAX pixel threshold
 		};
 		struct MotionEstimatorParameters{
@@ -127,6 +127,10 @@ public:
 
 private:
 	void updateKeyframe(const FramePtr& frame);
+	void saveLandmarks(const LandmarkPtrVec& lms);
+	void saveLandmarks(const LandmarkPtr& lm);
+	void saveFrames(const FramePtrVec& frames);
+	void saveFrames(const FramePtr& frame);
  
 private:
 	void showTracking(const std::string& window_name, const cv::Mat& img, const PixelVec& pts0, const PixelVec& pts1, const PixelVec& pts1_new);
