@@ -275,7 +275,6 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 				}
 				else lmvec1_alive[i]->setDead(); // 5p algorithm failed. Dead point.
 			}
-			std::cout << "# of 5pts  : " << cnt_alive << " / " << pxvec1_alive.size() << std::endl;
 
 			// lmvec1_final 중, depth가 복원되지 않은 경우 복원해준다.
 

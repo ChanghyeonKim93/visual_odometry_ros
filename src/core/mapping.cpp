@@ -25,6 +25,9 @@ namespace Mapping{
 
         Eigen::Matrix4f M; 
         M.setZero();
+        // Constant elements
+        M(0,0) = -fx; M(0,1) =   0; M(0,3) = 0; 
+        M(1,0) =   0; M(1,1) = -fy; M(1,3) = 0; 
 
         X0.resize(n_pts);
         X1.resize(n_pts);
@@ -32,17 +35,20 @@ namespace Mapping{
             float u0 = pts0[i].x; float v0 = pts0[i].y;
             float u1 = pts1[i].x; float v1 = pts1[i].y;
 
-            M(0,0) = -fx; M(0,1) =   0; M(0,2) = u0-cx; M(0,3) = 0; 
-            M(1,0) =   0; M(1,1) = -fy; M(1,2) = v0-cy; M(1,3) = 0; 
-            M.block<1,4>(2,0) = u1*P10.block<1,4>(2,0)-P10.block<1,4>(0,0);
-            M.block<1,4>(3,0) = v1*P10.block<1,4>(2,0)-P10.block<1,4>(1,0);
+            // M(0,0) = -fx; M(0,1) =   0; M(0,2) = u0-cx; M(0,3) = 0; 
+            // M(1,0) =   0; M(1,1) = -fy; M(1,2) = v0-cy; M(1,3) = 0; 
+            M(0,2) = u0 - cx; 
+            M(1,2) = v0 - cy; 
+            M.block<1,4>(2,0) = u1*P10.block<1,4>(2,0) - P10.block<1,4>(0,0);
+            M.block<1,4>(3,0) = v1*P10.block<1,4>(2,0) - P10.block<1,4>(1,0);
             
             // Solve SVD
             Eigen::MatrixXf V;
             Eigen::JacobiSVD<Eigen::MatrixXf> svd(M, Eigen::ComputeFullV);
             V = svd.matrixV();     
 
-            X0[i] = V.block<3,1>(0,0)/V(3);       
+            // Get 3D point
+            X0[i] = V.block<3,1>(0,3)/V(3,3);       
             X1[i] = R10*X0[i] + t10;
         }
    };
