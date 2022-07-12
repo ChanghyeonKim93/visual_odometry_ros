@@ -26,9 +26,8 @@ void Frame::setRelatedLandmarks(const LandmarkPtrVec& landmarks){
 };
 
 void Frame::setPtsSeen(const PixelVec& pts){
-    pts_seen_.resize(0);
-    pts_seen_.reserve(pts.size());
-    for(auto p : pts) pts_seen_.emplace_back(p);
+    pts_seen_.resize(pts.size());
+    std::copy(pts.begin(),pts.end(), pts_seen_.begin());
 };
 
 void Frame::makeThisKeyframe(){

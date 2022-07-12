@@ -93,9 +93,70 @@ bool MotionEstimator::calcPose5PointsAlgorithm(const PixelVec& pts0, const Pixel
     return success;
 };
 
-// bool MotionEstimator::calcPosePnPAlgorithm(const PointVec& Xw, const PixelVec& pts1){
+/**
+ * @brief PnP 알고리즘
+ * @details 3차원 좌표가 생성된 특징점들에 대해 PnP 알고리즘을 수행하여 자세값을 계산한다.
+ * @param R 회전 행렬. 초기화하여 입력하여야 한다. 만약, 초기값이 없을 경우 Identity로 넣어야 한다.
+ * @param t 변위 벡터. 초기화하여 입력하여야 한다. 만약, 초기값이 없을 경우 setZero() 하여 넣어야 한다.
+ * @param maskvec_inlier PnP 인라이어 mask
+ * @return 성공적으로 자세를 계산하면, true
+ * @author Changhyeon Kim (hyun91015@gmail.com)
+ * @date 12-July-2022
+ */
+bool MotionEstimator::calcPosePnPAlgorithm(const PointVec& Xw, const PixelVec& pts_c, const std::shared_ptr<Camera>& cam, 
+    Rot3& Rwc, Pos3& twc, MaskVec& maskvec_inlier){
+    if(Xw.size() != pts_c.size())
+        throw std::runtime_error("Error in 'calcPosePnPAlgorithm()': Xw.size() != pts_c.size()");
 
-// };
+    if(Xw.size() == 0)
+        throw std::runtime_error("Error in 'calcPosePnPAlgorithm()': Xw.size() == pts_c.size() == 0");
+
+    int n_pts = Xw.size();
+    maskvec_inlier.resize(n_pts, false);
+
+    // cv::SOLVEPNP_AP3P;
+    // cv::SOLVEPNP_EPNP;
+
+    std::vector<cv::Point3f> object_pts(n_pts);
+    for(int i = 0; i < n_pts; ++i) {
+        object_pts[i].x = Xw[i](0);
+        object_pts[i].y = Xw[i](1);
+        object_pts[i].z = Xw[i](2);
+    }
+
+    // Prior values...
+    cv::Mat R_cv, r_vec, t_vec;
+    cv::eigen2cv(Rwc,   R_cv);
+    cv::eigen2cv(twc,   t_vec);
+    cv::Rodrigues(R_cv, r_vec);
+
+    std::vector<int> idx_inlier;
+    float pnp_reprojection_error = 0.5; // pixels
+    bool flag = cv::solvePnPRansac(object_pts, pts_c, cam->cvK(), cv::noArray(),
+                                    r_vec, t_vec, true, 1e3,
+                                    pnp_reprojection_error,     0.99, idx_inlier, cv::SOLVEPNP_AP3P);
+    if (!flag){
+        flag = cv::solvePnPRansac(object_pts, pts_c, cam->cvK(), cv::noArray(),
+                                    r_vec, t_vec, true, 1e3,
+                                    2.0*pnp_reprojection_error, 0.99, idx_inlier, cv::SOLVEPNP_AP3P);
+    }
+    
+    // change format
+    cv::Rodrigues(r_vec, R_cv);
+    cv::cv2eigen(R_cv, Rwc);
+    cv::cv2eigen(t_vec, twc);
+
+    // Set inliers
+    int num_inliers = 0;
+    for(int i = 0; i < idx_inlier.size(); ++i){
+        maskvec_inlier[idx_inlier[i]] = true;
+        ++num_inliers;
+    }
+
+    std::cout << "PnP inliers: " << num_inliers << " / " << n_pts << std::endl;
+
+    return flag;
+};
 
 bool MotionEstimator::findCorrectRT(
     const std::vector<Rot3>& R10_vec, const std::vector<Pos3>& t10_vec, 
@@ -150,4 +211,103 @@ bool MotionEstimator::findCorrectRT(
     }
         
 	return success;
+};
+
+bool MotionEstimator::fineInliers1PointHistogram(const PixelVec& pts0, const PixelVec& pts1, const std::shared_ptr<Camera>& cam,
+    MaskVec& maskvec_inlier){
+
+    bool success = true;
+    
+    if(pts0.size() != pts1.size()) {
+        throw std::runtime_error("Error in 'fineInliers1PointHistogram()': pts0.size() != pts1.size()");
+        return false;
+    }
+
+    int n_pts = pts0.size();
+
+    maskvec_inlier.resize(n_pts,false);
+
+    float invfx = cam->fxinv();
+    float invfy = cam->fyinv();
+    float cx = cam->cx();
+    float cy = cam->cy();
+
+    std::vector<float> theta(n_pts);
+    for(int i = 0; i < n_pts; ++i){
+        float x0 = (pts0[i].x-cx)*invfx;
+        float y0 = (pts0[i].y-cy)*invfy;
+        float x1 = (pts1[i].x-cx)*invfx;
+        float y1 = (pts1[i].y-cy)*invfy;
+        float z0 = 1; float z1 = 1;
+
+        float val = (x0*y1-y0*x1) / (y0*z1+z0*y1);
+        float th  = -2.0*atan(val);
+        theta[i] = th;
+    }
+
+    // Make theta histogram vector.
+    float hist_min = -0.4; // radian
+    float hist_max =  0.4; // radian
+    float n_bins   =  200;
+    std::vector<float> hist_centers;
+    std::vector<int>   hist_counts;
+    histogram::makeHistogram<float>(theta, hist_min, hist_max, n_bins, hist_centers, hist_counts);
+    float th_opt = histogram::medianHistogram(hist_centers, hist_counts);
+
+    std::cout << "theta_optimal: " << th_opt << " rad\n";
+
+    Rot3 R10;
+    Pos3 t10;
+    float costh = cos(th_opt);
+    float sinth = sin(th_opt);
+    R10 << costh, 0, sinth, 0, 1, 0, -sinth, 0, costh;
+    t10 << sin(th_opt*0.5f), 0.0f, cos(th_opt*0.5f);
+
+    std::vector<float> sampson_dist;
+    this->calcSampsonDistance(pts0, pts1, cam, R10, t10, sampson_dist);
+
+    float thres_sampson = 10.0; // 15.0 px
+    thres_sampson *= thres_sampson;
+    for(int i = 0; i < n_pts; ++i){
+        if(sampson_dist[i] <= thres_sampson) maskvec_inlier[i] = true;
+        else maskvec_inlier[i] = false;
+        // std::cout << i << " -th sampson dist: " << sampson_dist[i] << " px\n";
+    }
+
+
+    return success;
+
+};
+
+
+void MotionEstimator::calcSampsonDistance(const PixelVec& pts0, const PixelVec& pts1, const std::shared_ptr<Camera>& cam, 
+    const Rot3& R10, const Pos3& t10, std::vector<float>& sampson_dist)
+{
+    if(pts0.size() != pts1.size()) 
+        throw std::runtime_error("Error in 'fineInliers1PointHistogram()': pts0.size() != pts1.size()");
+    
+    int n_pts = pts0.size();
+    
+    sampson_dist.resize(n_pts);
+
+    Eigen::Matrix3f E10,F10, F10t;
+
+    E10 = Mapping::skew(t10)*R10;
+    F10 = cam->Kinv().transpose()*E10*cam->Kinv();
+    F10t = F10.transpose();
+
+    for(int i = 0; i < n_pts; ++i){
+        Point p0,p1;
+        p0 << pts0[i].x, pts0[i].y, 1.0f;
+        p1 << pts1[i].x, pts1[i].y, 1.0f;
+
+        Point F10p0  = F10*p0;
+        Point F10tp1 = F10t*p1;
+        
+        float numerator = p1.transpose()*F10p0;
+        numerator *= numerator;
+        float denominator = F10p0(0)*F10p0(0) + F10p0(1)*F10p0(1) + F10tp1(0)*F10tp1(0) + F10tp1(1)*F10tp1(1);
+        float dist_tmp = numerator / denominator;
+        sampson_dist[i] = dist_tmp;
+    }
 };

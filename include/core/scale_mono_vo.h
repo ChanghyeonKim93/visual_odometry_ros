@@ -82,21 +82,26 @@ private:
 			uint32_t max_level      = 6;   // KLT maximum pyramid level
 		};
 		struct FeatureExtractorParameters{
-			uint32_t n_bins_u       = 18; // Bucket grid size u
-			uint32_t n_bins_v       = 8; // Bucket grid size v
-			float thres_fastscore   = 20.0; // FAST score threshold
-			float radius            = 10.0; // NONMAX pixel threshold
+			uint32_t n_bins_u       = 16; // Bucket grid size u
+			uint32_t n_bins_v       = 7; // Bucket grid size v
+			float thres_fastscore   = 25.0; // FAST score threshold
+			float radius            = 15.0; // NONMAX pixel threshold
 		};
 		struct MotionEstimatorParameters{
 			
 		};
 		struct KeyframeUpdateParameters{
-			float thres_parallax    = 1.0*D2R;
+			int thres_alive_ratio     = 0.7;
+			float thres_mean_parallax = 3.0*D2R;
+		};
+		struct MappingParameters{
+			float thres_parallax      = 1.0*D2R;
 		};
 		FeatureTrackerParameters   feature_tracker;
 		FeatureExtractorParameters feature_extractor;
 		MotionEstimatorParameters  motion_estimator;
 		KeyframeUpdateParameters   keyframe_update;
+		MappingParameters          map_update;
 	};
 	AlgorithmParameters params_;
 
@@ -118,9 +123,13 @@ public:
 	~ScaleMonoVO();
 
 	void trackImage(const cv::Mat& img, const double& timestamp);
+	void trackImageMy(const cv::Mat& img, const double& timestamp);
 
 private:
 	void updateKeyframe(const FramePtr& frame);
+ 
+private:
+	void showTracking(const std::string& window_name, const cv::Mat& img, const PixelVec& pts0, const PixelVec& pts1, const PixelVec& pts1_new);
 
 private:
 	void runDataset(); // run algorithm

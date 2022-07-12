@@ -44,6 +44,7 @@ set(SRC ${SRC}
   src/util/timer.cpp
   src/util/signal_handler_linux.cpp
   src/util/geometry_library.cpp
+  src/util/histogram.cpp
 )
 
 set(includeDirs ${includeDirs} ${CMAKE_CURRENT_BINARY_DIR})

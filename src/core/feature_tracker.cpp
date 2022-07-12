@@ -57,15 +57,73 @@ void FeatureTracker::trackBidirection(const cv::Mat& img0, const cv::Mat& img1, 
     std::vector<float> err_forward;
     cv::calcOpticalFlowPyrLK(img0, img1, 
         pts0, pts_track, 
-        status_forward, err_forward, cv::Size(15,15), maxLevel);
+        status_forward, err_forward, cv::Size(15,15), maxLevel+1);
     
     // backward tracking
-    PixelVec pts0_backward;
+    PixelVec pts0_backward(n_pts);
+    std::copy(pts0.begin(), pts0.end(), pts0_backward.begin());
     std::vector<uchar> status_backward;
     std::vector<float> err_backward;
     cv::calcOpticalFlowPyrLK(img1, img0, 
         pts_track, pts0_backward,
-        status_backward, err_backward, cv::Size(15,15), maxLevel);
+        status_backward, err_backward, cv::Size(15,15), maxLevel-2, {}, cv::OPTFLOW_USE_INITIAL_FLOW, {});
+
+    // Check validity.
+    for(int i = 0; i < n_pts; ++i){
+        Pixel dp = pts0_backward[i]-pts0[i];
+        float dist2 = dp.x*dp.x + dp.y*dp.y;
+
+        // border validity
+        mask_valid[i] = (mask_valid[i] && pts_track[i].x > 3 && pts_track[i].x < n_cols-3
+                                       && pts_track[i].y > 3 && pts_track[i].y < n_rows-3);
+        // other ...
+        mask_valid[i] = (mask_valid[i] 
+            && status_forward[i]
+            && status_backward[i]
+            && err_forward[i]  <= thres_err
+            && err_backward[i] <= thres_err
+            && dist2 <= thres_bidirection2
+        );
+    }
+    
+    printf(" - FEATURE_TRACKER - 'trackBidirection()'\n");
+};
+
+
+void FeatureTracker::trackBidirectionWithPrior(const cv::Mat& img0, const cv::Mat& img1, const PixelVec& pts0, const PixelVec& pts1_prior, float thres_err, float thres_bidirection,
+                PixelVec& pts_track, MaskVec& mask_valid)
+{
+
+    float thres_bidirection2 = thres_bidirection*thres_bidirection;
+
+    int n_cols = img0.size().width;
+    int n_rows = img0.size().height;
+
+    int n_pts = pts0.size();
+    mask_valid.resize(n_pts, true);
+
+    // KLT tracking
+    pts_track.resize(0);
+    pts_track.reserve(n_pts);
+    std::copy(pts1_prior.begin(), pts1_prior.end(), pts_track.begin());
+
+    int maxLevel = 5;
+
+    // forward tracking
+    std::vector<uchar> status_forward;
+    std::vector<float> err_forward;
+    cv::calcOpticalFlowPyrLK(img0, img1, 
+        pts0, pts_track, 
+        status_forward, err_forward, cv::Size(15,15), maxLevel, {}, cv::OPTFLOW_USE_INITIAL_FLOW, {});
+
+    // backward tracking
+    PixelVec pts0_backward(n_pts);
+    std::copy(pts0.begin(), pts0.end(), pts0_backward.begin());
+    std::vector<uchar> status_backward;
+    std::vector<float> err_backward;
+    cv::calcOpticalFlowPyrLK(img1, img0, 
+        pts_track, pts0_backward,
+        status_backward, err_backward, cv::Size(15,15), maxLevel, {}, cv::OPTFLOW_USE_INITIAL_FLOW, {});
 
     // Check validity.
     for(int i = 0; i < n_pts; ++i){
