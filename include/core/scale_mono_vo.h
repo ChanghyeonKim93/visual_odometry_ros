@@ -127,10 +127,13 @@ public:
 
 private:
 	void updateKeyframe(const FramePtr& frame);
-	void saveLandmarks(const LandmarkPtrVec& lms);
-	void saveLandmarks(const LandmarkPtr& lm);
-	void saveFrames(const FramePtrVec& frames);
-	void saveFrames(const FramePtr& frame);
+	void saveLandmarks(const LandmarkPtrVec& lms, bool verbose = false);
+	void saveLandmarks(const LandmarkPtr& lm, bool verbose = false);
+	void saveFrames(const FramePtrVec& frames, bool verbose = false);
+	void saveFrames(const FramePtr& frame, bool verbose = false);
+
+private:
+	float calcLandmarksMeanAge(const LandmarkPtrVec& lms);
  
 private:
 	void showTracking(const std::string& window_name, const cv::Mat& img, const PixelVec& pts0, const PixelVec& pts1, const PixelVec& pts1_new);

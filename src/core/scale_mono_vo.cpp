@@ -328,6 +328,8 @@ void ScaleMonoVO::trackImageMy(const cv::Mat& img, const double& timestamp){
 			frame_curr->setPtsSeen(pxvec1_final);
 			frame_curr->setRelatedLandmarks(lmvec1_final);
 
+			std::cout << "mean age : " << calcLandmarksMeanAge(lmvec1_final) << std::endl;
+
 			// 초기화를 완료할지 판단
 			// lmvec1_final가 최초 관측되었던 (keyframe) 
 			bool initialization_done = false;
@@ -634,27 +636,46 @@ void ScaleMonoVO::updateKeyframe(const FramePtr& frame){
 	this->all_keyframes_.push_back(keyframe_);
 };
 
-void ScaleMonoVO::saveLandmarks(const LandmarkPtrVec& lms){
+void ScaleMonoVO::saveLandmarks(const LandmarkPtrVec& lms, bool verbose){
 	for(auto lm : lms)	
 		all_landmarks_.push_back(lm);
 
-	std::cout << "# of all accumulated landmarks: " << all_landmarks_.size() << std::endl;
+	if(verbose)
+		std::cout << "# of all accumulated landmarks: " << all_landmarks_.size() << std::endl;
 };
 
-void ScaleMonoVO::saveLandmarks(const LandmarkPtr& lm){
+void ScaleMonoVO::saveLandmarks(const LandmarkPtr& lm, bool verbose){
 	all_landmarks_.push_back(lm);
-	std::cout << "# of all accumulated landmarks: " << all_landmarks_.size() << std::endl;
+	
+	if(verbose)
+		std::cout << "# of all accumulated landmarks: " << all_landmarks_.size() << std::endl;
 };
 
-void ScaleMonoVO::saveFrames(const FramePtrVec& frames){
+void ScaleMonoVO::saveFrames(const FramePtrVec& frames, bool verbose){
 	for(auto f : frames)
 		all_frames_.push_back(f);
-	std::cout << "# of all accumulated frames   : " << all_frames_.size() << std::endl;
+	
+	if(verbose)
+		std::cout << "# of all accumulated frames   : " << all_frames_.size() << std::endl;
 };
 
-void ScaleMonoVO::saveFrames(const FramePtr& frame){
+void ScaleMonoVO::saveFrames(const FramePtr& frame, bool verbose){
 	all_frames_.push_back(frame);
-	std::cout << "# of all accumulated frames   : " << all_frames_.size() << std::endl;
+	
+	if(verbose)
+		std::cout << "# of all accumulated frames   : " << all_frames_.size() << std::endl;
+};
+
+float ScaleMonoVO::calcLandmarksMeanAge(const LandmarkPtrVec& lms){
+	float mean_age = 0.0f;
+	float n_lms = lms.size();
+
+	for(int i = 0; i < n_lms; ++i){
+		mean_age += lms[i]->getAge();
+	}
+	mean_age /= n_lms;
+
+	return mean_age;
 };
 
 void ScaleMonoVO::showTracking(const std::string& window_name, const cv::Mat& img, const PixelVec& pts0, const PixelVec& pts1, const PixelVec& pts1_new){
