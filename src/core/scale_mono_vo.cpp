@@ -25,7 +25,7 @@ ScaleMonoVO::ScaleMonoVO(std::string mode, std::string directory_intrinsic)
 		std::string dir_dataset = "D:/#DATASET/kitti/data_odometry_gray";
 		std::string dataset_num = "00";
 
-		this->loadCameraIntrinsic_KITTI_IMAGE0(dir_dataset + "/dataset/sequences/" + dataset_num + "/intrinsic.yaml");
+		this->loadCameraIntrinsicAndUserParameters_KITTI_IMAGE0(dir_dataset + "/dataset/sequences/" + dataset_num + "/intrinsic.yaml");
 
 		// Get dataset filenames.
 		dataset_loader::getImageFileNames_KITTI(dir_dataset, dataset_num, dataset_);
@@ -35,7 +35,7 @@ ScaleMonoVO::ScaleMonoVO(std::string mode, std::string directory_intrinsic)
 	else if(mode == "rosbag"){
 		std::cout << "ScaleMonoVO - 'rosbag' mode.\n";
 		
-		this->loadCameraIntrinsic(directory_intrinsic);
+		this->loadCameraIntrinsicAndUserParameters(directory_intrinsic);
 		// wait callback ...
 	}
 	else 
@@ -93,34 +93,10 @@ void ScaleMonoVO::runDataset() {
  * @param dir file directory
  * @return void
  * @author Changhyeon Kim (hyun91015@gmail.com)
- * @date 11-July-2022
+ * @date 21-July-2022
  */
-void ScaleMonoVO::loadCameraIntrinsic_KITTI_IMAGE0(const std::string& dir) {
+void ScaleMonoVO::loadCameraIntrinsicAndUserParameters_KITTI_IMAGE0(const std::string& dir) {
 
-	cv::FileStorage fs(dir, cv::FileStorage::READ);
-	if (!fs.isOpened()) throw std::runtime_error("intrinsic file cannot be found!\n");
-
-	int rows_tmp, cols_tmp;
-
-	cv::Mat cvK_tmp, cvD_tmp;
-	rows_tmp = fs["cam0.height"];
-	cols_tmp = fs["cam0.width"];
-	fs["cam0.K"] >> cvK_tmp;
-	fs["cam0.D"] >> cvD_tmp;
-	cam_->initParams(cols_tmp, rows_tmp, cvK_tmp, cvD_tmp);
-	
-	std::cout << " - 'loadCameraIntrinsicMono()' - loaded.\n";
-};
-
-/**
- * @brief load monocular camera intrinsic parameters from yaml file.
- * @details 카메라의 intrinsic parameter (fx,fy,cx,cy, distortion)을 얻어온다. 
- * @param dir file directory
- * @return void
- * @author Changhyeon Kim (hyun91015@gmail.com)
- * @date 11-July-2022
- */
-void ScaleMonoVO::loadCameraIntrinsic(const std::string& dir) {
 	cv::FileStorage fs(dir, cv::FileStorage::READ);
 	if (!fs.isOpened()) throw std::runtime_error("intrinsic file cannot be found!\n");
 
@@ -158,11 +134,97 @@ void ScaleMonoVO::loadCameraIntrinsic(const std::string& dir) {
 			  << "cy: " << cam_->cy() <<", "
 			  << "cols: " << cam_->cols() <<", "
 			  << "rows: " << cam_->rows() <<"\n";
+
+	// Load user setting parameters
+	params_.feature_tracker.thres_error = fs["feature_tracker.thres_error"];
+	params_.feature_tracker.thres_bidirection = fs["feature_tracker.thres_bidirection"];
+	params_.feature_tracker.window_size = (int)fs["feature_tracker.window_size"];
+	params_.feature_tracker.max_level = (int)fs["feature_tracker.max_level"];
+
+
+	params_.feature_extractor.n_features = (int)fs["feature_extractor.n_features"];
+	params_.feature_extractor.n_bins_u   = (int)fs["feature_extractor.n_bins_u"];
+	params_.feature_extractor.n_bins_v   = (int)fs["feature_extractor.n_bins_v"];
+	params_.feature_extractor.thres_fastscore = fs["feature_extractor.thres_fastscore"];
+	params_.feature_extractor.radius          = fs["feature_extractor.radius"];
+
+	params_.keyframe_update.thres_alive_ratio   = fs["keyframe_update.thres_alive_ratio"];
+	params_.keyframe_update.thres_mean_parallax = fs["keyframe_update.thres_mean_parallax"];
 	
-	std::cout << " - 'loadCameraIntrinsic()' - loaded.\n";
+	params_.map_update.thres_parallax = fs["map_update.thres_parallax"];
+	
+	std::cout << " - 'loadCameraIntrinsicMono()' - loaded.\n";
 };
 
+/**
+ * @brief load monocular camera intrinsic parameters from yaml file.
+ * @details 카메라의 intrinsic parameter (fx,fy,cx,cy, distortion)을 얻어온다. 
+ * @param dir file directory
+ * @return void
+ * @author Changhyeon Kim (hyun91015@gmail.com)
+ * @date 11-July-2022
+ */
+void ScaleMonoVO::loadCameraIntrinsicAndUserParameters(const std::string& dir) {
+	cv::FileStorage fs(dir, cv::FileStorage::READ);
+	if (!fs.isOpened()) throw std::runtime_error("intrinsic file cannot be found!\n");
 
+	int rows, cols;
+	rows = fs["Camera.height"];	cols = fs["Camera.width"];
+
+	float fx, fy, cx, cy;
+	fx = fs["Camera.fx"];	fy = fs["Camera.fy"];
+	cx = fs["Camera.cx"];	cy = fs["Camera.cy"];
+
+	float k1,k2,k3,p1,p2;
+	k1 = fs["Camera.k1"];	k2 = fs["Camera.k2"];	k3 = fs["Camera.k3"];
+	p1 = fs["Camera.p1"];	p2 = fs["Camera.p2"];
+
+	cv::Mat cvK_tmp;
+	cvK_tmp = cv::Mat(3,3,CV_32FC1);
+	cvK_tmp.at<float>(0,0) = fx;	cvK_tmp.at<float>(0,1) = 0.0f;	cvK_tmp.at<float>(0,2) = cx;
+	cvK_tmp.at<float>(1,0) = 0.0f;	cvK_tmp.at<float>(1,1) = fy;	cvK_tmp.at<float>(1,2) = cy;
+	cvK_tmp.at<float>(2,0) = 0.0f;	cvK_tmp.at<float>(2,1) = 0.0f;	cvK_tmp.at<float>(2,2) = 1.0f;
+	
+	cv::Mat cvD_tmp;
+	cvD_tmp = cv::Mat(1,5,CV_32FC1);
+	cvD_tmp.at<float>(0,0) = k1;
+	cvD_tmp.at<float>(0,1) = k2;
+	cvD_tmp.at<float>(0,2) = p1;
+	cvD_tmp.at<float>(0,3) = p2;
+	cvD_tmp.at<float>(0,4) = k3;
+
+	if(cam_ == nullptr) throw std::runtime_error("cam_ is not allocated.");
+	cam_->initParams(cols, rows, cvK_tmp, cvD_tmp);
+
+	std::cout << "fx: " << cam_->fx() <<", "
+			  << "fy: " << cam_->fy() <<", "
+			  << "cx: " << cam_->cx() <<", "
+			  << "cy: " << cam_->cy() <<", "
+			  << "cols: " << cam_->cols() <<", "
+			  << "rows: " << cam_->rows() <<"\n";
+
+	// Load user setting parameters
+	params_.feature_tracker.thres_error = fs["feature_tracker.thres_error"];
+	params_.feature_tracker.thres_bidirection = fs["feature_tracker.thres_bidirection"];
+	params_.feature_tracker.window_size = (int)fs["feature_tracker.window_size"];
+	params_.feature_tracker.max_level = (int)fs["feature_tracker.max_level"];
+
+
+	params_.feature_extractor.n_features = (int)fs["feature_extractor.n_features"];
+	params_.feature_extractor.n_bins_u   = (int)fs["feature_extractor.n_bins_u"];
+	params_.feature_extractor.n_bins_v   = (int)fs["feature_extractor.n_bins_v"];
+	params_.feature_extractor.thres_fastscore = fs["feature_extractor.thres_fastscore"];
+	params_.feature_extractor.radius          = fs["feature_extractor.radius"];
+
+	params_.keyframe_update.thres_alive_ratio   = fs["keyframe_update.thres_alive_ratio"];
+	params_.keyframe_update.thres_mean_parallax = fs["keyframe_update.thres_mean_parallax"];
+	
+	params_.map_update.thres_parallax = fs["map_update.thres_parallax"];
+	
+	system_flags_.flagDoUndistortion = (int)fs["flagDoUndistortion"];
+
+	std::cout << " - 'loadCameraIntrinsic()' - loaded.\n";
+};
 
 /**
  * @brief function to track a new image
@@ -180,9 +242,11 @@ void ScaleMonoVO::trackImageMy(const cv::Mat& img, const double& timestamp){
 	this->saveFrames(frame_curr);
 	
 	// 이미지 undistort (KITTI라서 할 필요 X)
-	bool flag_do_undistort = false;
 	cv::Mat img_undist;
-	if(flag_do_undistort) cam_->undistort(img, img_undist);
+	if(system_flags_.flagDoUndistortion) {
+		cam_->undistort(img, img_undist);
+		img_undist.convertTo(img_undist, CV_8UC1);
+	}
 	else img.copyTo(img_undist);
 
 	// frame_curr에 img_undist와 시간 부여
@@ -379,9 +443,8 @@ void ScaleMonoVO::trackImageMy(const cv::Mat& img, const double& timestamp){
 // 	all_frames_.push_back(frame_curr);
 
 // 	// 이미지 undistort (KITTI라서 할 필요 X)
-// 	bool flag_do_undistort = false;
 // 	cv::Mat img_undist;
-// 	if(flag_do_undistort) cam_->undistort(img, img_undist);
+// 	if(system_flags_.flagDoUndistortion) cam_->undistort(img, img_undist);
 // 	else img.copyTo(img_undist);
 
 // 	// frame_curr에 img_undist와 시간 부여

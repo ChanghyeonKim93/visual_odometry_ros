@@ -9,14 +9,10 @@
 #include <mutex>
 #include <condition_variable>
 
-#include <ros/ros.h>
-
 // Eigen
 #include <Eigen/Dense>
 
 // OpenCV
-#include <cv_bridge/cv_bridge.h>
-
 #include <opencv2/core.hpp>
 #include <opencv2/core/eigen.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -71,20 +67,22 @@ private:
 	struct SystemFlags{
 		bool flagFirstImageGot;
 		bool flagVOInit;
-		SystemFlags():flagFirstImageGot(false), flagVOInit(false) {};
+		bool flagDoUndistortion;
+		SystemFlags():flagFirstImageGot(false), flagVOInit(false), flagDoUndistortion(false) {};
 	};
 
 	struct AlgorithmParameters{
 		struct FeatureTrackerParameters{
-			float thres_error       =125.0; // KLT error threshold
+			float thres_error       = 125.0; // KLT error threshold
 			float thres_bidirection = 1.0; // bidirection pixel error threshold
 			uint32_t window_size    = 15;  // KLT window size 
 			uint32_t max_level      = 6;   // KLT maximum pyramid level
 		};
 		struct FeatureExtractorParameters{
-			uint32_t n_bins_u       = 14; // Bucket grid size u
-			uint32_t n_bins_v       = 6; // Bucket grid size v
-			float thres_fastscore   = 50.0; // FAST score threshold
+			uint32_t n_features     = 100; // # of features to extract from a bucket
+			uint32_t n_bins_u       = 16; // Bucket grid size u
+			uint32_t n_bins_v       = 8; // Bucket grid size v
+			float thres_fastscore   = 25.0; // FAST score threshold
 			float radius            = 15.0; // NONMAX pixel threshold
 		};
 		struct MotionEstimatorParameters{
@@ -142,8 +140,8 @@ private:
 	void runDataset(); // run algorithm
 
 private:
-	void loadCameraIntrinsic_KITTI_IMAGE0(const std::string& dir); // functions for loading yaml files.
-	void loadCameraIntrinsic(const std::string& dir);
+	void loadCameraIntrinsicAndUserParameters_KITTI_IMAGE0(const std::string& dir); // functions for loading yaml files.
+	void loadCameraIntrinsicAndUserParameters(const std::string& dir);
 };
 
 

@@ -44,7 +44,7 @@ void FeatureExtractor::initParams(int n_cols, int n_rows, int n_bins_u, int n_bi
 	this->params_orb_.n_bins_u = this->n_bins_u_;
 	this->params_orb_.n_bins_v = this->n_bins_v_;
 
-	extractor_orb_->setMaxFeatures(30);
+	extractor_orb_->setMaxFeatures(100);
 	extractor_orb_->setScaleFactor(1.05);
 	extractor_orb_->setNLevels(1);
 	extractor_orb_->setEdgeThreshold(6);
@@ -77,7 +77,10 @@ void FeatureExtractor::extractORBwithBinning(const cv::Mat& img, PixelVec& pts_e
 	cv::Mat img_in;
 	if (img.type() != CV_8UC1) {
 		img.convertTo(img_in, CV_8UC1);
+		std::cout << "in extractor, image is converted to the CV_8UC1.\n";
 	}
+	else img_in = img;
+
 
 	int overlap = floor(1 * params_orb_.EdgeThreshold);
 
@@ -124,11 +127,14 @@ void FeatureExtractor::extractORBwithBinning(const cv::Mat& img, PixelVec& pts_e
 					u_range[0] = u_idx[u] - overlap;
 					u_range[1] = u_idx[u + 1] + overlap;
 				}
-
 				// image sampling
 				// TODO: which one is better? : sampling vs. masking
+				// std::cout << "set ROI \n";
 				cv::Rect roi = cv::Rect(cv::Point(u_range[0], v_range[0]), cv::Point(u_range[1], v_range[1]));
-				cv::Mat img_small = img(roi);
+				// std::cout << "roi: " << roi << std::endl;
+				// std::cout << "image size : " << img_in.size() <<std::endl;
+				
+				cv::Mat img_small = img_in(roi);
 				fts_tmp.resize(0);
 				extractor_orb_->detect(img_small, fts_tmp);
 
@@ -226,7 +232,7 @@ void FeatureExtractor::extractHarriswithBinning(const cv::Mat& img, PixelVec& pt
 				double min_px_dist   = 5.0; 
 				double k = 0.0005;
 				std::vector<cv::Point2f> pts_tmp;
-				cv::goodFeaturesToTrack(img(roi), pts_tmp, max_corners, quality_level, min_px_dist, {}, 5, true, k);
+				cv::goodFeaturesToTrack(img_in(roi), pts_tmp, max_corners, quality_level, min_px_dist, {}, 5, true, k);
 
 				fts_tmp.resize(0);
 				for(auto it : pts_tmp){

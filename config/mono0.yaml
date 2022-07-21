@@ -5,22 +5,22 @@
 #--------------------------------------------------------------------------------------------
 
 # Flag do undistortion
-flagDoUndistortion: 0
+flagDoUndistortion: 1
 
 # Camera calibration and distortion parameters (OpenCV) 
-Camera.fx: 718.856
-Camera.fy: 718.856
-Camera.cx: 607.1928
-Camera.cy: 185.2157
+Camera.fx: 638.242993
+Camera.fy: 638.209362
+Camera.cx: 370.313109
+Camera.cy: 211.734889
 
-Camera.k1: 0.0
-Camera.k2: 0.0
+Camera.k1: -0.395333
+Camera.k2: 0.160590
+Camera.p1: -0.000109
+Camera.p2: 0.000378
 Camera.k3: 0.0
-Camera.p1: 0.0
-Camera.p2: 0.0
 
-Camera.width: 1241
-Camera.height: 376
+Camera.width: 752
+Camera.height: 480
 
 #--------------------------------------------------------------------------------------------
 # User setting Parameters
@@ -28,14 +28,14 @@ Camera.height: 376
 
 feature_tracker.thres_error: 125.0       
 feature_tracker.thres_bidirection: 1.0 
-feature_tracker.window_size: 15
-feature_tracker.max_level: 6
+feature_tracker.window_size: 25
+feature_tracker.max_level: 5
 
-feature_extractor.n_features: 100
-feature_extractor.n_bins_u: 16
-feature_extractor.n_bins_v: 8
-feature_extractor.thres_fastscore: 25.0
-feature_extractor.radius: 15.0
+feature_extractor.n_features: 200
+feature_extractor.n_bins_u: 20
+feature_extractor.n_bins_v: 12
+feature_extractor.thres_fastscore: 15.0
+feature_extractor.radius: 10.0
 
 keyframe_update.thres_alive_ratio: 0.7
 keyframe_update.thres_mean_parallax: 3.0

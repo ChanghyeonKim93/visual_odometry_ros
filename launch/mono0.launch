@@ -1,7 +1,7 @@
 <launch>
     <node pkg="scale_mono_vo_ros" name="vo_node" type="vo_node" output="screen">
         <!-- Image topicname to be subscribed -->
-        <param name="topicname_image" type="string" value="/kitti_odometry/left/image_raw"/>
+        <param name="topicname_image" type="string" value="/mono0/image_raw"/>
         
         <!-- topicname of the VO pose estimation to be published -->
         <param name="topicname_pose"            type="string" value="/scale_mono_vo/pose"/>
@@ -9,6 +9,6 @@
         <param name="topicname_map_points"      type="string" value="/scale_mono_vo/map_points"/>
 
         <!-- intrinsic parameter yaml file directory -->
-        <param name="directory_intrinsic" type="string" value="$(find scale_mono_vo_ros)/config/kitti_00.yaml"/>
+        <param name="directory_intrinsic" type="string" value="$(find scale_mono_vo_ros)/config/mono0.yaml"/>
     </node>
 </launch>

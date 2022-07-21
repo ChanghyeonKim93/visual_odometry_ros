@@ -59,7 +59,7 @@ void Camera::generateUndistortMaps() {
 			r2 = xx + yy;
 			r4 = r2 * r2;
 			r6 = r4 * r2;
-			r = sqrt(r2);
+			// r = sqrt(r2);
 			r_radial = 1.0 + k1_ * r2 + k2_ * r4 + k3_ * r6;
 			x_dist = x * r_radial + 2.0*p1_*xy2 + p2_ * (r2 + 2 * xx);
 			y_dist = y * r_radial + p1_ * (r2 + 2 * yy) + 2.0*p2_*xy2;
@@ -72,8 +72,19 @@ void Camera::generateUndistortMaps() {
 };
 
 void Camera::undistort(const cv::Mat& raw, cv::Mat& rectified) {
-	if (raw.empty() || raw.type() != CV_32FC1 || raw.cols != n_cols_ || raw.rows != n_rows_)
-		throw std::runtime_error("undistort image: provided image has not the same size as the camera model or image is not grayscale (32FC1)!\n");
+	if (raw.empty() || raw.cols != n_cols_ || raw.rows != n_rows_)
+		throw std::runtime_error("undistort image: provided image has not the same size as the camera model!\n");
 
-	cv::remap(raw, rectified, this->undist_map_x_, this->undist_map_y_, cv::INTER_LINEAR);
+	cv::Mat img_float;
+	if(raw.channels() == 3){
+		std::cout << "Input image channels == 3\n";
+		cv::cvtColor(raw, img_float, cv::COLOR_RGB2GRAY);
+	}
+	else raw.copyTo(img_float);
+
+	if(img_float.type() != CV_32FC1 ){
+		img_float.convertTo(img_float, CV_32FC1);
+	}
+
+	cv::remap(img_float, rectified, this->undist_map_x_, this->undist_map_y_, cv::INTER_LINEAR);
 };

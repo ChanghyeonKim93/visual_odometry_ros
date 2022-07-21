@@ -17,6 +17,7 @@
 #include <opencv2/features2d.hpp>
 
 #include "core/type_defines.h"
+#include "core/image_processing.h"
 
 class FeatureExtractor ;
 
