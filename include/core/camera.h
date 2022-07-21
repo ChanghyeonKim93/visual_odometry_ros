@@ -9,7 +9,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
-class Camera ;
+#include "core/type_defines.h"
 
 class Camera {
 private:
@@ -34,7 +34,9 @@ public:
 	~Camera();
 
 	void initParams(int n_cols, int n_rows, const cv::Mat& cvK, const cv::Mat& cvD);
-	void undistort(const cv::Mat& raw, cv::Mat& rectified);
+	void undistortImage(const cv::Mat& raw, cv::Mat& rectified);
+
+	void undistortPixels(const PixelVec& pts_raw, PixelVec& pts_undist);
 
 	const int cols() const { return n_cols_; };
 	const int rows() const { return n_rows_; };

@@ -54,15 +54,15 @@ void Camera::generateUndistortMaps() {
 
 		for (int u = 0; u < n_cols_; ++u) {
 			x = ((double)u - (double)cx_) * (double)fxinv_;
-			xy2 = 2 * x*y;
+			xy2 = 2.0 * x*y;
 			xx = x * x; yy = y * y;
 			r2 = xx + yy;
 			r4 = r2 * r2;
 			r6 = r4 * r2;
 			// r = sqrt(r2);
 			r_radial = 1.0 + k1_ * r2 + k2_ * r4 + k3_ * r6;
-			x_dist = x * r_radial + 2.0*p1_*xy2 + p2_ * (r2 + 2 * xx);
-			y_dist = y * r_radial + p1_ * (r2 + 2 * yy) + 2.0*p2_*xy2;
+			x_dist = x * r_radial + p1_*xy2 + p2_ * (r2 + 2.0 * xx);
+			y_dist = y * r_radial + p1_ * (r2 + 2.0 * yy) + p2_*xy2;
 
 			*(map_x_ptr + u) = (double)cx_ + x_dist * (double)fx_;
 			*(map_y_ptr + u) = (double)cy_ + y_dist * (double)fy_;
@@ -71,7 +71,7 @@ void Camera::generateUndistortMaps() {
 	printf(" - CAMERA - 'generateUndistortMaps()' ... \n");
 };
 
-void Camera::undistort(const cv::Mat& raw, cv::Mat& rectified) {
+void Camera::undistortImage(const cv::Mat& raw, cv::Mat& rectified) {
 	if (raw.empty() || raw.cols != n_cols_ || raw.rows != n_rows_)
 		throw std::runtime_error("undistort image: provided image has not the same size as the camera model!\n");
 
@@ -87,4 +87,30 @@ void Camera::undistort(const cv::Mat& raw, cv::Mat& rectified) {
 	}
 
 	cv::remap(img_float, rectified, this->undist_map_x_, this->undist_map_y_, cv::INTER_LINEAR);
+};
+
+void Camera::undistortPixels(const PixelVec& pts_raw, PixelVec& pts_undist){
+	uint32_t n_pts = pts_raw.size();
+	pts_undist.resize(n_pts);
+
+
+	float x, y, r, r2, r4, r6, r_radial, x_dist, y_dist, xy2, xx, yy;
+
+	for(int i = 0; i < n_pts; ++i){
+		x = fxinv_*(pts_raw[i].x-cx_);
+		y = fyinv_*(pts_raw[i].y-cy_);
+				
+		xy2 = 2.0 * x*y;
+		xx = x * x; yy = y * y;
+		r2 = xx + yy;
+		r4 = r2 * r2;
+		r6 = r4 * r2;
+		// r = sqrt(r2);
+		r_radial = 1.0 + k1_ * r2 + k2_ * r4 + k3_ * r6;
+		x_dist = x * r_radial + p1_*xy2 + p2_ * (r2 + 2.0 * xx);
+		y_dist = y * r_radial + p1_ * (r2 + 2.0 * yy) + p2_*xy2;
+
+		pts_undist[i].x = cx_ + x_dist * fx_;
+		pts_undist[i].y = cy_ + y_dist * fy_;
+	}
 };

@@ -244,7 +244,7 @@ void ScaleMonoVO::trackImageMy(const cv::Mat& img, const double& timestamp){
 	// 이미지 undistort (KITTI라서 할 필요 X)
 	cv::Mat img_undist;
 	if(system_flags_.flagDoUndistortion) {
-		cam_->undistort(img, img_undist);
+		cam_->undistortImage(img, img_undist);
 		img_undist.convertTo(img_undist, CV_8UC1);
 	}
 	else img.copyTo(img_undist);
