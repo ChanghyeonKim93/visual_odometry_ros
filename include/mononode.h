@@ -21,6 +21,7 @@
 #include "util/timer.h"
 
 #include "scale_mono_vo_ros/statisticsStamped.h"
+#include "util/geometry_library.h"
 
 class MonoNode{
 public:
@@ -46,10 +47,12 @@ private:
     std::string topicname_pose_;
 
     ros::Publisher pub_trajectory_;
+    nav_msgs::Path msg_trajectory_;
     std::string topicname_trajectory_;
 
     ros::Publisher pub_map_points_;
     std::string topicname_map_points_;
+
 
     ros::Publisher pub_statistics_;
     std::string topicname_statistics_;

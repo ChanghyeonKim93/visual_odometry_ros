@@ -145,6 +145,36 @@ void MonoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
 
     msg_statistics.steering_angle = stat.stats_frame.back().steering_angle;
     pub_statistics_.publish(msg_statistics);
+
+    // Pose publish
+    nav_msgs::Odometry msg_pose;
+    msg_pose.header.stamp = ros::Time::now();
+    msg_pose.header.frame_id = "map";
+
+    PoseSE3 Twc = stat.stats_frame.back().Twc;
+    msg_pose.pose.pose.position.x = Twc(0,3);
+    msg_pose.pose.pose.position.y = Twc(1,3);
+    msg_pose.pose.pose.position.z = Twc(2,3);
+    
+    Eigen::Vector4f q = geometry::r2q_f(Twc.block<3,3>(0,0));
+
+    msg_pose.pose.pose.orientation.w = q(0);
+    msg_pose.pose.pose.orientation.x = q(1);
+    msg_pose.pose.pose.orientation.y = q(2);
+    msg_pose.pose.pose.orientation.z = q(3);
+
+    pub_pose_.publish(msg_pose);
+
+    geometry_msgs::PoseStamped p;
+    p.header.frame_id = "map";
+    p.header.stamp = ros::Time::now();
+    p.pose = msg_pose.pose.pose;
+
+    msg_trajectory_.header.frame_id = "map";
+    msg_trajectory_.header.stamp = ros::Time::now();
+    msg_trajectory_.poses.push_back(p);
+
+    pub_trajectory_.publish(msg_trajectory_);
 };
 
 /**

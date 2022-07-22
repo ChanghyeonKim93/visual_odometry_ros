@@ -306,6 +306,8 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 			frame_curr->setPtsSeen(pxvec0);
 			frame_curr->setRelatedLandmarks(lmvec0);
 
+			frame_curr->setPose(PoseSE3::Identity());
+
 			this->saveLandmarks(lmvec0);	
 
 			if( true )
@@ -407,9 +409,16 @@ timer::tic();
 statcurr_execution.time_5p = timer::toc(false);
 #endif			
 			// Frame_curr의 자세를 넣는다.
-			PoseSE3 Tck; Tck << R10, t10, 0.0f, 0.0f, 0.0f, 1.0f;
-			frame_curr->setPose(Tck);
+			std::cout << "R10:\n" ;
+			std::cout << R10 << std::endl;
+			PoseSE3 T10; T10 << R10, t10, 0.0f, 0.0f, 0.0f, 1.0f;
+			PoseSE3 T01 = T10.inverse();
 
+			frame_curr->setPose(frame_prev_->getPose()*T01);			
+
+#ifdef RECORD_FRAME_STAT
+statcurr_frame.Twc = frame_curr->getPose();
+#endif
 			// tracking, 5p algorithm, newpoint 모두 합쳐서 살아남은 점만 frame_curr에 넣는다
 			PixelVec       pxvec0_final;
 			PixelVec       pxvec1_final;
@@ -606,7 +615,7 @@ void ScaleMonoVO::showTracking(const std::string& window_name, const cv::Mat& im
 	}
 	
 	cv::imshow(window_name, img_draw);
-	cv::waitKey(10);
+	cv::waitKey(3);
 };
 
 

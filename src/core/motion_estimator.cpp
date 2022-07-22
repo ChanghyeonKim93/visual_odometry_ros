@@ -25,7 +25,7 @@ bool MotionEstimator::calcPose5PointsAlgorithm(const PixelVec& pts0, const Pixel
 
     // Calculate essential matrix
     cv::Mat inlier_mat, essential;
-    essential = cv::findEssentialMat(pts0, pts1, cam->cvK(), cv::RANSAC, 0.999, 1.5, inlier_mat);
+    essential = cv::findEssentialMat(pts0, pts1, cam->cvK(), cv::RANSAC, 0.999, 1.0, inlier_mat);
     
     // Calculate fundamental matrix
     Eigen::Matrix3f E10, F10;
@@ -81,6 +81,9 @@ bool MotionEstimator::calcPose5PointsAlgorithm(const PixelVec& pts0, const Pixel
 
     success = findCorrectRT(R10_vec, t10_vec, pts0, pts1, cam, 
                             R10_verify, t10_verify, maskvec_verify, X0_true);
+
+    R10_true = R10_verify;
+    t10_true = t10_verify;
     
     uint32_t cnt_correctRT = 0;
     for( int i = 0; i < n_pts; ++i) {
@@ -88,7 +91,7 @@ bool MotionEstimator::calcPose5PointsAlgorithm(const PixelVec& pts0, const Pixel
         if(mask_inlier[i]) ++cnt_correctRT; 
     }
 
-    std::cout << "    5p: " << cnt_5p <<", correctRT: " << cnt_correctRT <<std::endl;
+    // std::cout << "    5p: " << cnt_5p <<", correctRT: " << cnt_correctRT <<std::endl;
     
     return success;
 };
@@ -244,9 +247,9 @@ float MotionEstimator::findInliers1PointHistogram(const PixelVec& pts0, const Pi
     }
 
     // Make theta histogram vector.
-    float hist_min = -0.4; // radian
-    float hist_max =  0.4; // radian
-    float n_bins   =  300;
+    float hist_min = -0.5; // radian
+    float hist_max =  0.5; // radian
+    float n_bins   =  400;
     std::vector<float> hist_centers;
     std::vector<int>   hist_counts;
     histogram::makeHistogram<float>(theta, hist_min, hist_max, n_bins, hist_centers, hist_counts);

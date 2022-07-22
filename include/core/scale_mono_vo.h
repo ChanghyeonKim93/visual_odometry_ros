@@ -90,7 +90,7 @@ private:
 			float radius            = 15.0; // NONMAX pixel threshold
 		};
 		struct MotionEstimatorParameters{
-			
+			float thres_5p_error    = 1.5; // sampson error threshold			
 		};
 		struct KeyframeUpdateParameters{
 			int thres_alive_ratio     = 0.7;
