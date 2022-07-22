@@ -71,6 +71,55 @@ private:
 		SystemFlags():flagFirstImageGot(false), flagVOInit(false), flagDoUndistortion(false) {};
 	};
 
+	struct AlgorithmStatistics {
+		struct LandmarkStatistics {
+			uint32_t n_total;
+
+			std::vector<uint32_t> n_initial; // the number of landmarks tracked on the current frame from the previous frame.
+			std::vector<uint32_t> n_pass_bidirection;
+			std::vector<uint32_t> n_pass_1p;
+			std::vector<uint32_t> n_pass_5p;
+			std::vector<uint32_t> n_new;
+			std::vector<uint32_t> n_final;   // remained number of landmarks on the current frame.
+
+			std::vector<uint32_t> n_max_age; // max. age of landmark observed in current frame
+			std::vector<uint32_t> n_min_age; // min. age of landmark observed in current frame
+			std::vector<uint32_t> n_avg_age; // avg. age of landmark observed in current frame
+
+			std::vector<uint32_t> n_ok_parallax;
+			std::vector<float> max_parallax;
+			std::vector<float> min_parallax;
+			std::vector<float> avg_parallax;
+
+			LandmarkStatistics() : n_total(0) {};
+		};
+
+		struct FrameStatistics {
+			uint32_t n_total;
+
+			std::vector<float>   steering_angles; // steering angle from prev to curr
+			std::vector<PoseSE3> Twc;
+			std::vector<PoseSE3> dT_01; // motion from prev to curr
+			std::vector<PoseSE3> dT_10; // motion from curr to prev
+
+			FrameStatistics() : n_total(0) {};
+		};
+
+		struct ExecutionStatistics{
+			std::vector<float> time_total; // execution time per frame
+			std::vector<float> time_track; // execution time per frame
+			std::vector<float> time_1p; // execution time per frame
+			std::vector<float> time_5p; // execution time per frame
+			std::vector<float> time_new; // execution time per frame
+
+			ExecutionStatistics() {};
+		};
+
+		LandmarkStatistics   landmark;
+		FrameStatistics      frame;
+		ExecutionStatistics  execution;
+	};
+
 	struct AlgorithmParameters{
 		struct FeatureTrackerParameters{
 			float thres_error       = 125.0; // KLT error threshold
@@ -101,11 +150,22 @@ private:
 		KeyframeUpdateParameters   keyframe_update;
 		MappingParameters          map_update;
 	};
+	
+// Parameters
+private:
 	AlgorithmParameters params_;
+
+// Statistics
+private:
+	AlgorithmStatistics stat_;
+
+
+// For algorithm state
+private:
+	SystemFlags    system_flags_;
 
 // For tracker
 private:
-	SystemFlags    system_flags_;
 	FramePtr       frame_prev_;
 	FramePtr       keyframe_;
 
@@ -121,7 +181,6 @@ public:
 	~ScaleMonoVO();
 
 	void trackImage(const cv::Mat& img, const double& timestamp);
-	void trackImageMy(const cv::Mat& img, const double& timestamp);
 
 private:
 	void updateKeyframe(const FramePtr& frame);

@@ -91,13 +91,9 @@ void MonoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
     }    
     // update camera pose.
     double time_now = cv_ptr->header.stamp.toSec();
-    timer::tic();
-    // scale_mono_vo_->trackImage(cv_ptr->image, time_now);
-    scale_mono_vo_->trackImageMy(cv_ptr->image, time_now);
+    scale_mono_vo_->trackImage(cv_ptr->image, time_now);
 
     // Get odometry results
-    
-    ROS_INFO_STREAM( "execution time: " << timer::toc(0) << " msec.");
 };
 
 /**
