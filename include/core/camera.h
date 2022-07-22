@@ -9,6 +9,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
+#include "core/image_processing.h"
 #include "core/type_defines.h"
 
 class Camera {
@@ -25,9 +26,13 @@ private:
 	float distortion_[5];
 	float k1_, k2_, k3_, p1_, p2_;
 
-	// undistortion maps
-	cv::Mat undist_map_x_; // CV_32FC1
-	cv::Mat undist_map_y_; // CV_32FC1
+	// image undistortion maps
+	cv::Mat distorted_map_u_; // CV_32FC1
+	cv::Mat distorted_map_v_; // CV_32FC1
+
+	// Pixel undistortion maps
+	cv::Mat undistorted_pixel_map_u_; //CV_32FC1
+	cv::Mat undistorted_pixel_map_v_; //CV_32FC1
 
 public:
 	Camera();
@@ -51,7 +56,8 @@ public:
 	const cv::Mat cvK() const { return cvK_; };
 
 private:
-	void generateUndistortMaps();
+	void generateImageUndistortMaps();
+	void generatePixelUndistortMaps();
 };
 
 #endif

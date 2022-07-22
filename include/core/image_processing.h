@@ -7,5 +7,7 @@
 
 namespace image_processing {
 	std::string type2str(cv::Mat img);
+	void interpImage(const cv::Mat& img, const PixelVec& pts,
+		std::vector<float>& interp_values, MaskVec& mask_valid);
 };
 #endif
