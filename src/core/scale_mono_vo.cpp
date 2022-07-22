@@ -236,7 +236,12 @@ void ScaleMonoVO::loadCameraIntrinsicAndUserParameters(const std::string& dir) {
  * @date 10-July-2022
  */
 void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
+	// Generate statistics
+	AlgorithmStatistics::LandmarkStatistics  statcurr_landmark;
+	AlgorithmStatistics::FrameStatistics     statcurr_frame;
+	AlgorithmStatistics::ExecutionStatistics statcurr_execution;
 
+			
 	// 현재 이미지에 대한 새로운 Frame 생성
 	FramePtr frame_curr = std::make_shared<Frame>();
 	this->saveFrames(frame_curr);
@@ -263,7 +268,35 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 
 			extractor_->resetWeightBin();
 			extractor_->extractORBwithBinning(I0, pxvec0);
-			
+#ifdef RECORD_EXECUTION_STAT
+	statcurr_execution.time_new = 0;
+#endif
+
+#ifdef RECORD_LANDMARK_STAT
+	// get statistics
+	uint32_t n_pts = pxvec0.size();
+	statcurr_landmark.n_initial = n_pts;
+	statcurr_landmark.n_pass_bidirection = n_pts;
+	statcurr_landmark.n_pass_1p = n_pts;
+	statcurr_landmark.n_pass_5p = n_pts;
+	statcurr_landmark.n_new = n_pts;
+	statcurr_landmark.n_final = n_pts;
+	
+	// statcurr_landmark.max_age = 1;
+	// statcurr_landmark.min_age = 1;
+	statcurr_landmark.avg_age = 1.0f;
+
+	statcurr_landmark.n_ok_parallax = 0;
+	// statcurr_landmark.min_parallax  = 0.0;
+	// statcurr_landmark.max_parallax  = 0.0;
+	statcurr_landmark.avg_parallax  = 0.0;
+#endif
+
+#ifdef RECORD_EXECUTION_STAT
+	statcurr_execution.time_track = statcurr_execution.time_new;
+	statcurr_execution.time_1p = statcurr_execution.time_new;
+	statcurr_execution.time_5p = statcurr_execution.time_new;
+#endif
 			// 초기 landmark 생성
 			lmvec0.reserve(pxvec0.size());
 			for(auto p : pxvec0) 
@@ -290,14 +323,24 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 			const LandmarkPtrVec& lmvec0 = frame_prev_->getRelatedLandmarkPtr();
 			const cv::Mat&        I0     = frame_prev_->getImage();
 			const cv::Mat&        I1     = frame_curr->getImage();
-			
+
+#ifdef RECORD_LANDMARK_STAT
+	statcurr_landmark.n_initial = pxvec0.size();
+#endif
+
+#ifdef RECORD_EXECUTION_STAT
+	timer::tic();
+#endif
 			// frame_prev_ 의 lms 를 현재 이미지로 track.
 			PixelVec pxvec1_track;
 			MaskVec  maskvec1_track;
 			tracker_->trackBidirection(I0, I1, pxvec0, params_.feature_tracker.thres_error, params_.feature_tracker.thres_bidirection,
 							           pxvec1_track, maskvec1_track);
+#ifdef RECORD_EXECUTION_STAT
+	statcurr_execution.time_track = timer::toc(false);
+#endif
 
-			// // Tracking 결과를 반영하여 pxvec1_alive, lmvec1_alive를 정리한다.
+			// Tracking 결과를 반영하여 pxvec1_alive, lmvec1_alive를 정리한다.
 			PixelVec       pxvec0_alive;
 			PixelVec       pxvec1_alive;
 			LandmarkPtrVec lmvec1_alive;
@@ -311,12 +354,24 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 				}
 				else lmvec0[i]->setDead(); // track failed. Dead point.
 			}
-			std::cout << "# of alive : " << cnt_alive << " / " << maskvec1_track.size() << std::endl;
 		
+#ifdef RECORD_LANDMARK_STAT
+statcurr_landmark.n_pass_bidirection = cnt_alive;
+#endif
+
+
+#ifdef RECORD_EXECUTION_STAT 
+timer::tic(); 
+#endif
 			// 1-point RANSAC 을 이용하여 outlier를 제거한다.
 			MaskVec maskvec_1p;
-			motion_estimator_->fineInliers1PointHistogram(pxvec0_alive, pxvec1_alive, cam_, maskvec_1p);
-
+			float steering_curr = motion_estimator_->findInliers1PointHistogram(pxvec0_alive, pxvec1_alive, cam_, maskvec_1p);
+#ifdef RECORD_EXECUTION_STAT
+statcurr_execution.time_1p = timer::toc(false);
+#endif
+#ifdef RECORD_FRAME_STAT
+statcurr_frame.steering_angle = steering_curr;
+#endif
 			PixelVec       pxvec0_1p;
 			PixelVec       pxvec1_1p;
 			LandmarkPtrVec lmvec1_1p;
@@ -331,6 +386,14 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 				else lmvec1_alive[i]->setDead(); // track failed. Dead point.
 			}
 
+#ifdef RECORD_LANDMARK_STAT
+statcurr_landmark.n_pass_1p = cnt_1p;
+#endif
+
+
+#ifdef RECORD_EXECUTION_STAT
+timer::tic();
+#endif
 			// pts0 와 pts1을 이용, 5-point algorithm 으로 모션 & X0 를 구한다.
 			// 만약 mean optical flow의 중간값이 약 1 px 이하인 경우, 정지 상태로 가정하고 스킵.
 			MaskVec maskvec_inlier(pxvec0_1p.size());
@@ -340,7 +403,9 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 			if( !motion_estimator_->calcPose5PointsAlgorithm(pxvec0_1p, pxvec1_1p, cam_, R10, t10, X0_inlier, maskvec_inlier) ) {
 				throw std::runtime_error("calcPose5PointsAlgorithm() is failed.");
 			}
-			
+#ifdef RECORD_EXECUTION_STAT
+statcurr_execution.time_5p = timer::toc(false);
+#endif			
 			// Frame_curr의 자세를 넣는다.
 			PoseSE3 Tck; Tck << R10, t10, 0.0f, 0.0f, 0.0f, 1.0f;
 			frame_curr->setPose(Tck);
@@ -365,16 +430,31 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 				}
 				else lmvec1_1p[i]->setDead(); // 5p algorithm failed. Dead point.
 			}
-			std::cout << "size check (5p): " << pxvec0_final.size() << ", " << pxvec1_final.size() << ", " << lmvec1_final.size() <<std::endl;
 
+#ifdef RECORD_LANDMARK_STAT
+statcurr_landmark.n_pass_5p = cnt_alive;
+#endif
 			// lmvec1_final 중, depth가 복원되지 않은 경우 복원해준다.
-			std::cout <<" parallax ok : " << cnt_parallax_ok << " / " << cnt_alive << std::endl;
 
+#ifdef RECORD_LANDMARK_STAT
+statcurr_landmark.n_ok_parallax = cnt_parallax_ok;
+#endif
+
+#ifdef RECORD_EXECUTION_STAT
+timer::tic();
+#endif
 			// 빈 곳에 특징점 pts1_new 를 추출한다.
 			PixelVec pxvec1_new;
 			extractor_->updateWeightBin(pxvec1_final); // 이미 pts1가 있는 곳은 제외.
 			extractor_->extractORBwithBinning(frame_curr->getImage(), pxvec1_new);
+#ifdef RECORD_EXECUTION_STAT
+statcurr_execution.time_new = timer::toc(false);
+statcurr_execution.time_total = statcurr_execution.time_new + statcurr_execution.time_track + statcurr_execution.time_1p + statcurr_execution.time_5p;
+#endif		
 
+#ifdef RECORD_LANDMARK_STAT
+statcurr_landmark.n_new = pxvec1_new.size();
+#endif
 			if( true )
 				this->showTracking("img_features", frame_curr->getImage(), pxvec0_final, pxvec1_final, pxvec1_new);
 			
@@ -391,23 +471,38 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 			// lms1와 pts1을 frame_curr에 넣는다.
 			frame_curr->setPtsSeen(pxvec1_final);
 			frame_curr->setRelatedLandmarks(lmvec1_final);
+#ifdef RECORD_LANDMARK_STAT
+	statcurr_landmark.n_final = pxvec1_final.size();
+#endif
 
-			std::cout << "mean age : " << calcLandmarksMeanAge(lmvec1_final) << std::endl;
+			float avg_age = calcLandmarksMeanAge(lmvec1_final);
+#ifdef RECORD_LANDMARK_STAT
+	statcurr_landmark.avg_age = avg_age;
+#endif
 
 			// 초기화를 완료할지 판단
 			// lmvec1_final가 최초 관측되었던 (keyframe) 
 			bool initialization_done = false;
 			int n_lms_keyframe  = keyframe_->getRelatedLandmarkPtr().size();
 			int n_lms_alive     = 0;
+			int n_lms_parallax_ok = 0;
 			float mean_parallax = 0;
 			for(int i = 0; i < lmvec1_final.size(); ++i){
 				const LandmarkPtr& lm = lmvec1_final[i];
 				if( lm->getRelatedFramePtr().front()->getID() == 0 ) {
 					++n_lms_alive;
 					mean_parallax += lm->getMaxParallax();
+					if(lm->getMaxParallax() >= params_.map_update.thres_parallax){
+						++n_lms_parallax_ok;
+					}
 				}
 			}
 			mean_parallax /= (float)n_lms_alive;
+
+#ifdef RECORD_LANDMARK_STAT
+	statcurr_landmark.avg_parallax = mean_parallax;
+	statcurr_landmark.n_ok_parallax = n_lms_parallax_ok;
+#endif
 
 			if(mean_parallax > params_.keyframe_update.thres_mean_parallax*110000)
 				initialization_done = true;
@@ -423,6 +518,12 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 	else { // VO initialized. Do track the new image.
 
 	}
+
+	// Update statistics
+	stat_.stats_landmark.push_back(statcurr_landmark);
+	stat_.stats_frame.push_back(statcurr_frame);
+	stat_.stats_execution.push_back(statcurr_execution);
+	std::cout << "Statistics Updated. size: " << stat_.stats_landmark.size() << "\n";
 
 	// Replace the 'frame_prev_' with 'frame_curr'
 	frame_prev_ = frame_curr;
@@ -506,4 +607,9 @@ void ScaleMonoVO::showTracking(const std::string& window_name, const cv::Mat& im
 	
 	cv::imshow(window_name, img_draw);
 	cv::waitKey(10);
+};
+
+
+ScaleMonoVO::AlgorithmStatistics ScaleMonoVO::getStatistics() const{
+	return stat_;
 };

@@ -1,6 +1,10 @@
 #ifndef _SCALE_MONO_VO_H_
 #define _SCALE_MONO_VO_H_
 
+#define RECORD_LANDMARK_STAT  // Recording the statistics
+#define RECORD_FRAME_STAT     // Recording the statistics
+#define RECORD_EXECUTION_STAT // Recording the statistics
+
 #include <iostream>
 #include <exception>
 #include <string>
@@ -71,55 +75,6 @@ private:
 		SystemFlags():flagFirstImageGot(false), flagVOInit(false), flagDoUndistortion(false) {};
 	};
 
-	struct AlgorithmStatistics {
-		struct LandmarkStatistics {
-			uint32_t n_total;
-
-			std::vector<uint32_t> n_initial; // the number of landmarks tracked on the current frame from the previous frame.
-			std::vector<uint32_t> n_pass_bidirection;
-			std::vector<uint32_t> n_pass_1p;
-			std::vector<uint32_t> n_pass_5p;
-			std::vector<uint32_t> n_new;
-			std::vector<uint32_t> n_final;   // remained number of landmarks on the current frame.
-
-			std::vector<uint32_t> n_max_age; // max. age of landmark observed in current frame
-			std::vector<uint32_t> n_min_age; // min. age of landmark observed in current frame
-			std::vector<uint32_t> n_avg_age; // avg. age of landmark observed in current frame
-
-			std::vector<uint32_t> n_ok_parallax;
-			std::vector<float> max_parallax;
-			std::vector<float> min_parallax;
-			std::vector<float> avg_parallax;
-
-			LandmarkStatistics() : n_total(0) {};
-		};
-
-		struct FrameStatistics {
-			uint32_t n_total;
-
-			std::vector<float>   steering_angles; // steering angle from prev to curr
-			std::vector<PoseSE3> Twc;
-			std::vector<PoseSE3> dT_01; // motion from prev to curr
-			std::vector<PoseSE3> dT_10; // motion from curr to prev
-
-			FrameStatistics() : n_total(0) {};
-		};
-
-		struct ExecutionStatistics{
-			std::vector<float> time_total; // execution time per frame
-			std::vector<float> time_track; // execution time per frame
-			std::vector<float> time_1p; // execution time per frame
-			std::vector<float> time_5p; // execution time per frame
-			std::vector<float> time_new; // execution time per frame
-
-			ExecutionStatistics() {};
-		};
-
-		LandmarkStatistics   landmark;
-		FrameStatistics      frame;
-		ExecutionStatistics  execution;
-	};
-
 	struct AlgorithmParameters{
 		struct FeatureTrackerParameters{
 			float thres_error       = 125.0; // KLT error threshold
@@ -150,6 +105,69 @@ private:
 		KeyframeUpdateParameters   keyframe_update;
 		MappingParameters          map_update;
 	};
+
+public:
+	struct AlgorithmStatistics {
+		struct LandmarkStatistics {
+			uint32_t n_initial; // the number of landmarks tracked on the current frame from the previous frame.
+			uint32_t n_pass_bidirection; // bidirectional KLT tracking
+			uint32_t n_pass_1p;
+			uint32_t n_pass_5p;
+			uint32_t n_new;
+			uint32_t n_final;   // remained number of landmarks on the current frame.
+
+			uint32_t max_age; // max. age of landmark observed in current frame
+			uint32_t min_age; // min. age of landmark observed in current frame
+			float avg_age; // avg. age of landmark observed in current frame
+
+			uint32_t n_ok_parallax;
+			float min_parallax;
+			float max_parallax;
+			float avg_parallax;
+
+			LandmarkStatistics() : 
+				n_initial(0), n_pass_bidirection(0), n_pass_1p(0), n_pass_5p(0), n_new(0), n_final(0),
+				max_age(0), min_age(0), avg_age(0.0f),
+				n_ok_parallax(0), min_parallax(0.0f), max_parallax(0.0f), avg_parallax(0.0f) { };
+		};
+
+		struct FrameStatistics {
+			float   steering_angle; // steering angle from prev to curr
+			PoseSE3 Twc;
+			PoseSE3 Tcw;
+			PoseSE3 dT_01; // motion from prev to curr
+			PoseSE3 dT_10; // motion from curr to prev
+
+			FrameStatistics() : steering_angle(0.0f) { 
+				Twc   = PoseSE3::Identity();
+				Tcw   = PoseSE3::Identity();
+				dT_01 = PoseSE3::Identity();
+				dT_10 = PoseSE3::Identity();
+			};
+		};
+
+		struct ExecutionStatistics{
+			float time_track; // execution time per frame
+			float time_1p; // execution time per frame
+			float time_5p; // execution time per frame
+			float time_new; // execution time per frame
+			float time_total; // execution time per frame
+
+			ExecutionStatistics() : time_total(0.0f),
+			time_track(0.0f), time_1p(0.0f), time_5p(0.0f), time_new(0.0f) {};
+		};
+
+		std::vector<LandmarkStatistics>  stats_landmark;
+		std::vector<FrameStatistics>     stats_frame;
+		std::vector<ExecutionStatistics> stats_execution;
+
+		AlgorithmStatistics() {
+			stats_landmark.reserve(5000);
+			stats_frame.reserve(5000);
+			stats_execution.reserve(5000);
+		};
+	};
+
 	
 // Parameters
 private:
@@ -181,6 +199,8 @@ public:
 	~ScaleMonoVO();
 
 	void trackImage(const cv::Mat& img, const double& timestamp);
+
+	AlgorithmStatistics getStatistics() const;
 
 private:
 	void updateKeyframe(const FramePtr& frame);

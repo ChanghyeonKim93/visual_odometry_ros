@@ -32,7 +32,7 @@ public:
         Rot3& R10_true, Pos3& t10_true, PointVec& X0_true, MaskVec& mask_inlier);
     bool calcPosePnPAlgorithm(const PointVec& Xw, const PixelVec& pts_c, const std::shared_ptr<Camera>& cam, 
         Rot3& Rwc, Pos3& twc, MaskVec& maskvec_inlier);
-    bool fineInliers1PointHistogram(const PixelVec& pts0, const PixelVec& pts1, const std::shared_ptr<Camera>& cam,
+    float findInliers1PointHistogram(const PixelVec& pts0, const PixelVec& pts1, const std::shared_ptr<Camera>& cam,
         MaskVec& maskvec_inlier);
 
     void calcSampsonDistance(const PixelVec& pts0, const PixelVec& pts1, const std::shared_ptr<Camera>& cam, 

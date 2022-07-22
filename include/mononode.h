@@ -20,6 +20,8 @@
 
 #include "util/timer.h"
 
+#include "scale_mono_vo_ros/statisticsStamped.h"
+
 class MonoNode{
 public:
     MonoNode(ros::NodeHandle& nh);
@@ -48,6 +50,9 @@ private:
 
     ros::Publisher pub_map_points_;
     std::string topicname_map_points_;
+
+    ros::Publisher pub_statistics_;
+    std::string topicname_statistics_;
 
 private:
     std::string directory_intrinsic_;

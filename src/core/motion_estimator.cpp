@@ -25,7 +25,7 @@ bool MotionEstimator::calcPose5PointsAlgorithm(const PixelVec& pts0, const Pixel
 
     // Calculate essential matrix
     cv::Mat inlier_mat, essential;
-    essential = cv::findEssentialMat(pts0, pts1, cam->cvK(), cv::RANSAC, 0.999, 2.0, inlier_mat);
+    essential = cv::findEssentialMat(pts0, pts1, cam->cvK(), cv::RANSAC, 0.999, 1.5, inlier_mat);
     
     // Calculate fundamental matrix
     Eigen::Matrix3f E10, F10;
@@ -213,10 +213,8 @@ bool MotionEstimator::findCorrectRT(
 	return success;
 };
 
-bool MotionEstimator::fineInliers1PointHistogram(const PixelVec& pts0, const PixelVec& pts1, const std::shared_ptr<Camera>& cam,
+float MotionEstimator::findInliers1PointHistogram(const PixelVec& pts0, const PixelVec& pts1, const std::shared_ptr<Camera>& cam,
     MaskVec& maskvec_inlier){
-
-    bool success = true;
     
     if(pts0.size() != pts1.size()) {
         throw std::runtime_error("Error in 'fineInliers1PointHistogram()': pts0.size() != pts1.size()");
@@ -248,13 +246,13 @@ bool MotionEstimator::fineInliers1PointHistogram(const PixelVec& pts0, const Pix
     // Make theta histogram vector.
     float hist_min = -0.4; // radian
     float hist_max =  0.4; // radian
-    float n_bins   =  200;
+    float n_bins   =  300;
     std::vector<float> hist_centers;
     std::vector<int>   hist_counts;
     histogram::makeHistogram<float>(theta, hist_min, hist_max, n_bins, hist_centers, hist_counts);
     float th_opt = histogram::medianHistogram(hist_centers, hist_counts);
 
-    std::cout << "theta_optimal: " << th_opt << " rad\n";
+    // std::cout << "theta_optimal: " << th_opt << " rad\n";
 
     Rot3 R10;
     Pos3 t10;
@@ -266,7 +264,7 @@ bool MotionEstimator::fineInliers1PointHistogram(const PixelVec& pts0, const Pix
     std::vector<float> sampson_dist;
     this->calcSampsonDistance(pts0, pts1, cam, R10, t10, sampson_dist);
 
-    float thres_sampson = 15.0; // 15.0 px
+    float thres_sampson = 10.0; // 15.0 px
     thres_sampson *= thres_sampson;
     for(int i = 0; i < n_pts; ++i){
         if(sampson_dist[i] <= thres_sampson) maskvec_inlier[i] = true;
@@ -275,8 +273,7 @@ bool MotionEstimator::fineInliers1PointHistogram(const PixelVec& pts0, const Pix
     }
 
 
-    return success;
-
+    return th_opt;
 };
 
 

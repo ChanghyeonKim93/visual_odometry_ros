@@ -26,6 +26,9 @@ MonoNode::MonoNode(ros::NodeHandle& nh) : nh_(nh)
     pub_trajectory_ = nh_.advertise<nav_msgs::Path>(topicname_trajectory_, 1);
     pub_map_points_ = nh_.advertise<sensor_msgs::PointCloud2>(topicname_map_points_, 1);
 
+    topicname_statistics_ = "/scale_mono_vo/statistics";
+    pub_statistics_ = nh_.advertise<scale_mono_vo_ros::statisticsStamped>(topicname_statistics_,1);
+
     ROS_INFO_STREAM("MonoNode - generate Scale Mono VO object. Starts.");
 
     // spin .
@@ -94,6 +97,54 @@ void MonoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
     scale_mono_vo_->trackImage(cv_ptr->image, time_now);
 
     // Get odometry results
+    ScaleMonoVO::AlgorithmStatistics stat;
+    stat = scale_mono_vo_->getStatistics();
+    
+    std::cout << "====================================================\n";
+    std::cout << "----------------------------\n";
+    std::cout << "total time: " << stat.stats_execution.back().time_total <<" ms\n";
+    std::cout << "     track: " << stat.stats_execution.back().time_track <<" ms\n";
+    std::cout << "        1p: " << stat.stats_execution.back().time_1p <<" ms\n";
+    std::cout << "        5p: " << stat.stats_execution.back().time_5p <<" ms\n";
+    std::cout << "       new: " << stat.stats_execution.back().time_new <<" ms\n";
+
+    std::cout << "----------------------------\n";
+    std::cout << "landmark init.: " << stat.stats_landmark.back().n_initial <<"\n";
+    std::cout << "         track: " << stat.stats_landmark.back().n_pass_bidirection <<"\n";
+    std::cout << "            1p: " << stat.stats_landmark.back().n_pass_1p <<"\n";
+    std::cout << "            5p: " << stat.stats_landmark.back().n_pass_5p <<"\n";
+    std::cout << "           new: " << stat.stats_landmark.back().n_new <<"\n";
+    std::cout << "         final: " << stat.stats_landmark.back().n_final <<"\n";
+    std::cout << "   parallax ok: " << stat.stats_landmark.back().n_ok_parallax <<"\n\n";
+
+    std::cout << " avg. parallax: " << stat.stats_landmark.back().avg_parallax <<" rad \n";
+    std::cout << " avg.      age: " << stat.stats_landmark.back().avg_age <<" frames \n";
+
+    std::cout << "----------------------------\n";
+    std::cout << "      steering: " << stat.stats_frame.back().steering_angle << " rad\n";
+    std::cout << "====================================================\n";
+
+    scale_mono_vo_ros::statisticsStamped msg_statistics;
+    
+    msg_statistics.time_total = stat.stats_execution.back().time_total; 
+    msg_statistics.time_track = stat.stats_execution.back().time_track; 
+    msg_statistics.time_1p = stat.stats_execution.back().time_1p;    
+    msg_statistics.time_5p = stat.stats_execution.back().time_5p;
+    msg_statistics.time_new = stat.stats_execution.back().time_new;
+
+    msg_statistics.n_initial = stat.stats_landmark.back().n_initial;
+    msg_statistics.n_pass_bidirection = stat.stats_landmark.back().n_pass_bidirection;
+    msg_statistics.n_pass_1p = stat.stats_landmark.back().n_pass_1p;
+    msg_statistics.n_pass_5p = stat.stats_landmark.back().n_pass_5p;
+    msg_statistics.n_new = stat.stats_landmark.back().n_new;
+    msg_statistics.n_final = stat.stats_landmark.back().n_final;
+    msg_statistics.n_ok_parallax = stat.stats_landmark.back().n_ok_parallax;
+
+    msg_statistics.avg_parallax = stat.stats_landmark.back().avg_parallax;
+    msg_statistics.avg_age = stat.stats_landmark.back().avg_age;
+
+    msg_statistics.steering_angle = stat.stats_frame.back().steering_angle;
+    pub_statistics_.publish(msg_statistics);
 };
 
 /**
@@ -104,7 +155,7 @@ void MonoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
  * @date 10-July-2022
  */
 void MonoNode::run(){
-    ros::Rate rate(100);
+    ros::Rate rate(200);
     while(ros::ok()){
         ros::spinOnce();
         rate.sleep();

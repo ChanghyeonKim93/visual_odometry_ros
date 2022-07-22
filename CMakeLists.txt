@@ -12,14 +12,29 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   cv_bridge
   
+  message_generation
+
   geometry_msgs
   sensor_msgs
   nav_msgs
 )
 
+#messages
+add_message_files(
+  FILES
+  statisticsStamped.msg 
+)
+
+## Generate added messages and services with any dependencies listed here
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
+
+
 catkin_package(
   DEPENDS Eigen
-  CATKIN_DEPENDS roscpp
+  CATKIN_DEPENDS roscpp message_runtime
   INCLUDE_DIRS include
 )
 
