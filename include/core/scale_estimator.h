@@ -20,6 +20,7 @@
 #include "core/type_defines.h"
 #include "core/camera.h"
 #include "core/mapping.h"
+#include "core/landmark.h"
 
 class ScaleEstimator{
 public:
@@ -28,7 +29,7 @@ public:
         const std::shared_ptr<bool> flag_do_ASR);
     ~ScaleEstimator();
 
-    void module_ScaleForwardPropagation( LandmarkPtrVec& lmvec, const FramePtrVec& framevec, const PoseSE3 dT10); // SFP module return : scale of the current motion.
+    void module_ScaleForwardPropagation(const LandmarkPtrVec& lmvec, const FramePtrVec& framevec, const PoseSE3 dT10); // SFP module return : scale of the current motion.
     void module_AbsoluteScaleRecovery(); // SFP module return : scale of the current motion.
 
 private:

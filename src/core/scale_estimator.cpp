@@ -63,7 +63,7 @@ void ScaleEstimator::process(std::shared_future<void> terminate_signal){
 };
 
 
-void ScaleEstimator::module_ScaleForwardPropagation(LandmarkPtrVec& lmvec, const FramePtrVec& framevec, const PoseSE3 dT10)
+void ScaleEstimator::module_ScaleForwardPropagation(const LandmarkPtrVec& lmvec, const FramePtrVec& framevec, const PoseSE3 dT10)
 {
     // Pixels tracked in this frame
 
@@ -84,7 +84,7 @@ void ScaleEstimator::module_ScaleForwardPropagation(LandmarkPtrVec& lmvec, const
     for(int m = 0; m < lmvec.size(); ++m){
 
         if(lmvec[m]->getAge() > 1) {
-            std::cout<<"ok\n";
+            
         }
     }
     
