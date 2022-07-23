@@ -61,3 +61,32 @@ void ScaleEstimator::process(std::shared_future<void> terminate_signal){
     }
     std::cerr << "SCALE_ESTIMATOR - thread receives termination signal.\n";
 };
+
+
+void ScaleEstimator::module_ScaleForwardPropagation(LandmarkPtrVec& lmvec, const FramePtrVec& framevec, const PoseSE3 dT10)
+{
+    // Pixels tracked in this frame
+
+    // Get relative motion
+    // dT10
+
+    // Get rotation of this frame w.r.t. world frame
+    // Rwj
+    // Rjw = Rwj.transpose();
+    
+    // dRj = dT10(1:3,1:3);
+    // uj = dT10(1:3,4);
+    
+    // Find age > 1 && parallax > 0.5 degrees
+    // lms_nodepth
+    // lms_depth
+    
+    for(int m = 0; m < lmvec.size(); ++m){
+
+        if(lmvec[m]->getAge() > 1) {
+            std::cout<<"ok\n";
+        }
+    }
+    
+
+};
