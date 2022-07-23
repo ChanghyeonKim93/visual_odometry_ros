@@ -34,7 +34,7 @@ void FeatureTracker::track(const cv::Mat& img0, const cv::Mat& img1, const Pixel
     printf(" - FEATURE_TRACKER - 'track()'\n");
 };
 
-void FeatureTracker::trackBidirection(const cv::Mat& img0, const cv::Mat& img1, const PixelVec& pts0, float thres_err, float thres_bidirection,
+void FeatureTracker::trackBidirection(const cv::Mat& img0, const cv::Mat& img1, const PixelVec& pts0, uint32_t window_size, uint32_t max_pyr_lvl, float thres_err, float thres_bidirection,
                 PixelVec& pts_track, MaskVec& mask_valid)
 {
 
@@ -50,14 +50,14 @@ void FeatureTracker::trackBidirection(const cv::Mat& img0, const cv::Mat& img1, 
     pts_track.resize(0);
     pts_track.reserve(n_pts);
 
-    int maxLevel = 5;
+    int maxLevel = max_pyr_lvl;
 
     // forward tracking
     std::vector<uchar> status_forward;
     std::vector<float> err_forward;
     cv::calcOpticalFlowPyrLK(img0, img1, 
         pts0, pts_track, 
-        status_forward, err_forward, cv::Size(11,11), maxLevel+1);
+        status_forward, err_forward, cv::Size(window_size,window_size), maxLevel+1);
     
     // backward tracking
     PixelVec pts0_backward(n_pts);
@@ -66,7 +66,7 @@ void FeatureTracker::trackBidirection(const cv::Mat& img0, const cv::Mat& img1, 
     std::vector<float> err_backward;
     cv::calcOpticalFlowPyrLK(img1, img0, 
         pts_track, pts0_backward,
-        status_backward, err_backward, cv::Size(11,11), maxLevel-2, {}, cv::OPTFLOW_USE_INITIAL_FLOW, {});
+        status_backward, err_backward, cv::Size(window_size,window_size), maxLevel-2, {}, cv::OPTFLOW_USE_INITIAL_FLOW, {});
 
     // Check validity.
     for(int i = 0; i < n_pts; ++i){
@@ -90,7 +90,7 @@ void FeatureTracker::trackBidirection(const cv::Mat& img0, const cv::Mat& img1, 
 };
 
 
-void FeatureTracker::trackBidirectionWithPrior(const cv::Mat& img0, const cv::Mat& img1, const PixelVec& pts0, const PixelVec& pts1_prior, float thres_err, float thres_bidirection,
+void FeatureTracker::trackBidirectionWithPrior(const cv::Mat& img0, const cv::Mat& img1, const PixelVec& pts0, uint32_t window_size, const PixelVec& pts1_prior, float thres_err, float thres_bidirection,
                 PixelVec& pts_track, MaskVec& mask_valid)
 {
 

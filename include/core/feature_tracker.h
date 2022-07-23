@@ -29,9 +29,9 @@ public:
 
     void track(const cv::Mat& img0, const cv::Mat& img1, const PixelVec& pts0, 
                 PixelVec& pts_track, MaskVec& mask_valid);
-    void trackBidirection(const cv::Mat& img0, const cv::Mat& img1, const PixelVec& pts0, float thres_err, float thres_bidirection, 
+    void trackBidirection(const cv::Mat& img0, const cv::Mat& img1, const PixelVec& pts0, uint32_t window_size, uint32_t max_pyr_lvl, float thres_err, float thres_bidirection, 
                 PixelVec& pts_track, MaskVec& mask_valid);
-    void trackBidirectionWithPrior(const cv::Mat& img0, const cv::Mat& img1, const PixelVec& pts0, const PixelVec& pts1_prior, float thres_err, float thres_bidirection, 
+    void trackBidirectionWithPrior(const cv::Mat& img0, const cv::Mat& img1, const PixelVec& pts0, uint32_t window_size, const PixelVec& pts1_prior, float thres_err, float thres_bidirection, 
                 PixelVec& pts_track, MaskVec& mask_valid);
     void trackWithPrior(const cv::Mat& img0, const cv::Mat& img1, const PixelVec& pts0, const PixelVec& pts1_prior,
                 PixelVec& pts_track, MaskVec& mask_valid);

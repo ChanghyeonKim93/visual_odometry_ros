@@ -26,7 +26,7 @@ Camera.height: 376
 # User setting Parameters
 #--------------------------------------------------------------------------------------------
 
-feature_tracker.thres_error: 200.0       
+feature_tracker.thres_error: 50.0       
 feature_tracker.thres_bidirection: 1.0
 feature_tracker.window_size: 13
 feature_tracker.max_level: 5
@@ -34,7 +34,7 @@ feature_tracker.max_level: 5
 feature_extractor.n_features: 100
 feature_extractor.n_bins_u: 20
 feature_extractor.n_bins_v: 12
-feature_extractor.thres_fastscore: 40.0
+feature_extractor.thres_fastscore: 50.0
 feature_extractor.radius: 15.0
 
 keyframe_update.thres_alive_ratio: 0.7

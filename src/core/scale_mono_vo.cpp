@@ -11,10 +11,7 @@
 ScaleMonoVO::ScaleMonoVO(std::string mode, std::string directory_intrinsic)
 : cam_(nullptr), system_flags_(), dataset_(), frame_prev_(nullptr) {
 	std::cout << "Scale mono VO starts\n";
-	
-	unsigned short a =0;
-	printf("%0x\n",a);
-	
+		
 	// Initialize camera
 	cam_ = std::make_shared<Camera>();
 	Landmark::cam_ = cam_;
@@ -336,7 +333,7 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 			// frame_prev_ 의 lms 를 현재 이미지로 track.
 			PixelVec pxvec1_track;
 			MaskVec  maskvec1_track;
-			tracker_->trackBidirection(I0, I1, pxvec0, params_.feature_tracker.thres_error, params_.feature_tracker.thres_bidirection,
+			tracker_->trackBidirection(I0, I1, pxvec0, params_.feature_tracker.window_size, params_.feature_tracker.max_level, params_.feature_tracker.thres_error, params_.feature_tracker.thres_bidirection,
 							           pxvec1_track, maskvec1_track);
 #ifdef RECORD_EXECUTION_STAT
 	statcurr_execution.time_track = timer::toc(false);
