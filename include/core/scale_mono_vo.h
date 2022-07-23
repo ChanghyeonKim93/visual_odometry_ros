@@ -36,6 +36,8 @@
 #include "core/feature_tracker.h"
 #include "core/motion_estimator.h"
 
+#include "core/scale_estimator.h"
+
 #include "core/image_processing.h"
 #include "core/dataset_loader.h"
 
@@ -60,19 +62,20 @@ private:
 	std::shared_ptr<FeatureExtractor> extractor_;
 	std::shared_ptr<FeatureTracker>   tracker_;
 	std::shared_ptr<MotionEstimator>  motion_estimator_;
+	std::shared_ptr<ScaleEstimator>   scale_estimator_;
 
 // For scale recovery thread
 private:
-	// std::thread thread_scale_recovery_;
-	// std::mutex mut_;
-	// std::condition_variable convar_dataready_;
+	std::shared_ptr<std::mutex> mut_scale_estimator_;
+	std::shared_ptr<std::condition_variable> cond_var_scale_estimator_;
+	std::shared_ptr<bool> flag_do_ASR_;
 
 private:
 	struct SystemFlags{
 		bool flagFirstImageGot;
 		bool flagVOInit;
 		bool flagDoUndistortion;
-		SystemFlags():flagFirstImageGot(false), flagVOInit(false), flagDoUndistortion(false) {};
+		SystemFlags() : flagFirstImageGot(false), flagVOInit(false), flagDoUndistortion(false) {};
 	};
 
 	struct AlgorithmParameters{

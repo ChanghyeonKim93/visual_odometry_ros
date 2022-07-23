@@ -14,8 +14,9 @@ ScaleMonoVO::ScaleMonoVO(std::string mode, std::string directory_intrinsic)
 		
 	// Initialize camera
 	cam_ = std::make_shared<Camera>();
-	Landmark::cam_ = cam_;
-	Frame::cam_    = cam_;
+	Landmark::cam_       = cam_;
+	Frame::cam_          = cam_;
+	ScaleEstimator::cam_ = cam_;
 
 	if(mode == "dataset"){
 		std::cout <<"ScaleMonoVO - 'dataset' mode.\n";
@@ -52,6 +53,11 @@ ScaleMonoVO::ScaleMonoVO(std::string mode, std::string directory_intrinsic)
 	// Initialize motion estimator
 	motion_estimator_ = std::make_shared<MotionEstimator>();
 
+	// Initialize scale estimator
+	mut_scale_estimator_      = std::make_shared<std::mutex>();
+	cond_var_scale_estimator_ = std::make_shared<std::condition_variable>(); // New pose 가 도
+	flag_do_ASR_              = std::make_shared<bool>(false);
+	scale_estimator_          = std::make_shared<ScaleEstimator>(mut_scale_estimator_, cond_var_scale_estimator_, flag_do_ASR_);
 };
 
 /**
@@ -533,6 +539,13 @@ statcurr_landmark.n_new = pxvec1_new.size();
 
 	// Replace the 'frame_prev_' with 'frame_curr'
 	frame_prev_ = frame_curr;
+
+	// Notify a thread.
+
+	mut_scale_estimator_->lock();
+	*flag_do_ASR_ = true;
+	mut_scale_estimator_->unlock();
+	cond_var_scale_estimator_->notify_all();
 };
 
 /**
