@@ -13,26 +13,27 @@ ScaleEstimator::ScaleEstimator(const std::shared_ptr<std::mutex> mut,
     terminate_future_ = terminate_promise_.get_future();
     runThread();
 
-    printf(" - ScaleEstimator is constructed.\n");
+    printf(" - SCALE_ESTIMATOR is constructed.\n");
 };  
 ScaleEstimator::~ScaleEstimator(){
     // Terminate signal .
-    std::cerr << "ScaleEstimator - terminate signal published...\n";
+    std::cerr << "SCALE_ESTIMATOR - terminate signal published...\n";
     terminate_promise_.set_value();
-    
+
+    // Notify the thread to run the while loop.
     mut_->lock();
     *flag_do_ASR_ = true;
     mut_->unlock();
     cond_var_->notify_all();
 
     // wait for TX & RX threads to terminate ...
-    std::cerr << "                   - waiting 1 second to join TX / RX threads ...\n";
+    std::cerr << "                   - waiting 1 second to join a thread ...\n";
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
     if(thread_.joinable()) thread_.join();
-    std::cerr << "                   - scale estimator thread joins successfully.\n";
+    std::cerr << "                   - SCALE_ESTIMATOR thread joins successfully.\n";
 
-    printf(" - ScaleEstimator is destructed.\n");
+    printf(" - SCALE_ESTIMATOR is destructed.\n");
 };
 
 
@@ -58,5 +59,5 @@ void ScaleEstimator::process(std::shared_future<void> terminate_signal){
             break;
         }
     }
-    std::cerr << "ScaleEstimator - thread receives termination signal.\n";
+    std::cerr << "SCALE_ESTIMATOR - thread receives termination signal.\n";
 };
