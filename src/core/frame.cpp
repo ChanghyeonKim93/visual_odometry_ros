@@ -14,6 +14,10 @@ void Frame::setPose(const PoseSE3& Twc) {
     Twc_ = Twc; 
     Tcw_ = Twc_.inverse();
 };
+void Frame::setPoseDiff10(const Eigen::Matrix4f& dT10){
+    dT10_ = dT10;
+    dT01_ = dT10.inverse();
+};
 void Frame::setSteeringAngle(float st_angle){
     steering_angle_ = st_angle;
 };
@@ -45,6 +49,14 @@ const uint32_t& Frame::getID() const {
 const PoseSE3& Frame::getPose() const { 
     return Twc_; 
 };
+    
+const PoseSE3& Frame::getPoseDiff10() const{
+    return dT10_;
+};
+const PoseSE3& Frame::getPoseDiff01() const{
+    return dT01_;
+};
+
 const float& Frame::getSteeringAngle() const{
     return steering_angle_;
 };

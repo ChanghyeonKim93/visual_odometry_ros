@@ -57,15 +57,16 @@ private:
     nav_msgs::Path msg_trajectory_;
     std::string topicname_trajectory_;
 
-    ros::Publisher pub_turns_;
-    sensor_msgs::PointCloud2 msg_turns_;
-    std::string topicname_turns_;
-
     ros::Publisher pub_map_points_;
     std::string topicname_map_points_;
 
     ros::Publisher pub_statistics_;
     std::string topicname_statistics_;
+
+    // Publishers for turn region detections
+    ros::Publisher pub_turns_;
+    sensor_msgs::PointCloud2 msg_turns_;
+    std::string topicname_turns_;
 
     // Publishers for ground truth
     ros::Publisher pub_trajectory_gt_;

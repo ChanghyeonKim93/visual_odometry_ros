@@ -15,6 +15,12 @@
 #include <condition_variable>
 
 #include <Eigen/Dense>
+#include <Eigen/Sparse>
+#include <Eigen/SparseCore>
+#include <Eigen/SparseCholesky>
+#include <Eigen/SparseLU>
+#include <Eigen/SparseQR>
+
 #include <opencv2/core.hpp>
 
 #include "core/type_defines.h"
@@ -30,7 +36,7 @@ public:
         const std::shared_ptr<bool> flag_do_ASR);
     ~ScaleEstimator();
 
-    void module_ScaleForwardPropagation(const LandmarkPtrVec& lmvec, const FramePtrVec& framevec, const PoseSE3 dT10); // SFP module return : scale of the current motion.
+    void module_ScaleForwardPropagation(const LandmarkPtrVec& lmvec, const FramePtrVec& framevec, const PoseSE3& dT10); // SFP module return : scale of the current motion.
     void module_AbsoluteScaleRecovery(); // SFP module return : scale of the current motion.
 
     bool detectTurnRegions(const FramePtr& frame);
@@ -39,6 +45,14 @@ public:
 private:
     void runThread();
     void process(std::shared_future<void> terminate_signal);
+
+private:
+    inline void fillTriplet(SpTripletList& Tri,  
+        const int& idx_row0, const int& idx_row1,
+        const int& idx_col0, const int& idx_col1, const Eigen::MatrixXf& mat);
+    inline void addTriplet(SpTripletList& Tri,  
+        const int& idx_row0, const int& idx_row1,
+        const int& idx_col0, const int& idx_col1, const Eigen::MatrixXf& mat);
 
 public:
     static std::shared_ptr<Camera> cam_;
@@ -61,6 +75,9 @@ private:
     FramePtrVec frames_u_;
 
     FramePtrVec frames_all_t_;
+
+private:
+    uint32_t N_max_past_; // SFP parameter
 
 // Variables to elegantly terminate TX & RX threads
 private:

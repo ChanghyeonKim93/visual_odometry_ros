@@ -17,3 +17,6 @@ float64 avg_parallax
 float64 avg_age
 
 float64 steering_angle
+
+float64 scale_gt
+float64 scale_est

@@ -154,6 +154,10 @@ void MonoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
     msg_statistics.avg_age = stat.stats_landmark.back().avg_age;
 
     msg_statistics.steering_angle = stat.stats_frame.back().steering_angle;
+
+    msg_statistics.scale_est = stat.stats_frame.back().dT_01.block<3,1>(0,3).norm();
+    // msg_statistics.scale_gt  = ;
+
     pub_statistics_.publish(msg_statistics);
 
     // Pose publish

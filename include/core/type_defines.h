@@ -5,6 +5,11 @@
 #include <vector>
 
 #include <Eigen/Dense>
+#include <Eigen/Sparse>
+#include <Eigen/SparseCore>
+#include <Eigen/SparseCholesky>
+#include <Eigen/SparseLU>
+#include <Eigen/SparseQR>
 
 #include <opencv2/core.hpp>
 #include <opencv2/core/eigen.hpp>
@@ -33,5 +38,11 @@ typedef std::vector<LandmarkPtr>  LandmarkPtrVec;
 typedef Eigen::Vector3f           Pos3;
 typedef Eigen::Matrix3f           Rot3;
 typedef Eigen::Matrix4f           PoseSE3;
+
+// For large matrix
+typedef Eigen::SparseMatrix<double> SpMat;
+typedef Eigen::SparseVector<double> SpVec;
+typedef Eigen::Triplet<double>      SpTriplet; 
+typedef std::vector<SpTriplet>      SpTripletList;
 
 #endif

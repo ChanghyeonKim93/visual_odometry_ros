@@ -26,6 +26,10 @@ private:
 
     PoseSE3 Twc_;
     PoseSE3 Tcw_;
+
+    PoseSE3 dT10_;
+    PoseSE3 dT01_;
+
     float steering_angle_;
 
     cv::Mat image_;
@@ -47,6 +51,7 @@ public:
 
     // Set
     void setPose(const Eigen::Matrix4f& Twc);
+    void setPoseDiff10(const Eigen::Matrix4f& dT10);
     void setSteeringAngle(float st_angle);
     void setImageAndTimestamp(const cv::Mat& img, const double& timestamp); 
     void setRelatedLandmarks(const LandmarkPtrVec& landmarks);
@@ -56,6 +61,8 @@ public:
     // Get
     const uint32_t& getID() const;
     const PoseSE3& getPose() const;
+    const PoseSE3& getPoseDiff10() const;
+    const PoseSE3& getPoseDiff01() const;
     const float& getSteeringAngle() const;
     const cv::Mat& getImage() const ; 
     const LandmarkPtrVec& getRelatedLandmarkPtr() const;

@@ -310,7 +310,8 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 			frame_curr->setRelatedLandmarks(lmvec0);
 
 			frame_curr->setPose(PoseSE3::Identity());
-
+			frame_curr->setPoseDiff10(PoseSE3::Identity());
+			
 			this->saveLandmarks(lmvec0);	
 
 			if( true )
@@ -427,9 +428,13 @@ statcurr_execution.time_5p = timer::toc(false);
 			PoseSE3 T01 = T10.inverse();
 
 			frame_curr->setPose(frame_prev_->getPose()*T01);		
+			frame_curr->setPoseDiff10(T10);		
 
 #ifdef RECORD_FRAME_STAT
 statcurr_frame.Twc = frame_curr->getPose();
+statcurr_frame.Tcw = frame_curr->getPose().inverse();
+statcurr_frame.dT_10 = T10;
+statcurr_frame.dT_01 = T01;
 #endif
 			// tracking, 5p algorithm, newpoint 모두 합쳐서 살아남은 점만 frame_curr에 넣는다
 			PixelVec       pxvec0_final;
