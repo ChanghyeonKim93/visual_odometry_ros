@@ -5,10 +5,10 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
-        - /pose_groundtruth1
         - /VO_pose1/Status1
         - /VO_pose1/Shape1
-      Splitter Ratio: 0.5382353067398071
+        - /GT_path1
+      Splitter Ratio: 0.5371286869049072
     Tree Height: 354
   - Class: rviz/Selection
     Name: Selection
@@ -28,7 +28,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: ""
+    SyncSource: image_left
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -181,6 +181,30 @@ Visualization Manager:
       Use Fixed Frame: true
       Use rainbow: true
       Value: true
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz/Path
+      Color: 239; 41; 41
+      Enabled: true
+      Head Diameter: 0.30000001192092896
+      Head Length: 0.20000000298023224
+      Length: 0.30000001192092896
+      Line Style: Lines
+      Line Width: 0.029999999329447746
+      Name: GT_path
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Pose Color: 255; 85; 255
+      Pose Style: None
+      Queue Size: 1
+      Radius: 0.029999999329447746
+      Shaft Diameter: 0.10000000149011612
+      Shaft Length: 0.10000000149011612
+      Topic: /kitti_odometry/groundtruth_path
+      Unreliable: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -209,7 +233,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 1646.3863525390625
+      Distance: 1495.708251953125
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -217,17 +241,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 81.35540771484375
-        Y: 84.95892333984375
-        Z: 18.0034122467041
+        X: -177.1312255859375
+        Y: 135.66433715820312
+        Z: 234.1475830078125
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.015001612715423107
+      Pitch: 0.04500168561935425
       Target Frame: <Fixed Frame>
-      Yaw: 4.707463264465332
+      Yaw: 4.6424641609191895
     Saved: ~
 Window Geometry:
   Displays:

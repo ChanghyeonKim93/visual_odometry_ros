@@ -10,6 +10,12 @@ ScaleEstimator::ScaleEstimator(const std::shared_ptr<std::mutex> mut,
     cond_var_ = cond_var;
     flag_do_ASR_ = flag_do_ASR;
 
+    // Detecting turn region variables
+    cnt_turn_ = 0;
+
+    thres_cnt_turn_ = 10;
+    thres_psi_ = 1.0 * M_PI / 180.0;
+
     terminate_future_ = terminate_promise_.get_future();
     runThread();
 
@@ -89,4 +95,31 @@ void ScaleEstimator::module_ScaleForwardPropagation(const LandmarkPtrVec& lmvec,
     }
     
 
+};
+
+
+void ScaleEstimator::detectTurnRegions(float psi, const FramePtr& frame){
+    if( fabs(psi) > thres_psi_ ) { // Current psi is over the threshold
+        frames_t1_.push_back(frame); // Stack the 
+        ++cnt_turn_;
+    }
+    else { // end of array of turn regions
+        if(cnt_turn_ >= thres_cnt_turn_){ // sufficient frames
+            // Do Scale Forward Propagation
+            frames_t0_; // Ft0
+            frames_t1_; // Ft1
+            frames_u_; // Fu
+
+            std::cout << " TURN REGION IS DETECTED!\n";
+            
+            // Update turn regions
+            frames_t0_ = frames_t1_;
+        }
+        else { // insufficient frames. The stacked frames are not of the turning region.
+            for(auto f : frames_t1_)
+                frames_u_.push_back(f);
+        }
+        frames_t1_.resize(0);
+        cnt_turn_ = 0;
+    }
 };

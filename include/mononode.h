@@ -33,6 +33,7 @@ private:
 
 private:
     void imageCallback(const sensor_msgs::ImageConstPtr& msg);
+    void groundtruthCallback(const geometry_msgs::PoseStampedConstPtr& msg);
     void run();
 
 private:
@@ -41,6 +42,9 @@ private:
     // subscriber
     ros::Subscriber img_sub_;
     std::string topicname_image_;
+
+    ros::Subscriber gt_sub_;
+    std::string topicname_gt_;
 
     // publishers
     ros::Publisher pub_pose_;
@@ -53,9 +57,14 @@ private:
     ros::Publisher pub_map_points_;
     std::string topicname_map_points_;
 
-
     ros::Publisher pub_statistics_;
     std::string topicname_statistics_;
+
+    // Publishers for ground truth
+    ros::Publisher pub_trajectory_gt_;
+    nav_msgs::Path msg_trajectory_gt_;
+    std::string topicname_trajectory_gt_;
+
 
 private:
     std::string directory_intrinsic_;

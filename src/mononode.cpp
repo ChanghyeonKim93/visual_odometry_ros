@@ -20,11 +20,15 @@ MonoNode::MonoNode(ros::NodeHandle& nh) : nh_(nh)
 
     // Subscriber    
     img_sub_ = nh_.subscribe<sensor_msgs::Image>(topicname_image_, 1, &MonoNode::imageCallback, this);
+    gt_sub_ = nh_.subscribe<geometry_msgs::PoseStamped>(topicname_gt_, 1, &MonoNode::groundtruthCallback, this);
 
     // Publisher
     pub_pose_       = nh_.advertise<nav_msgs::Odometry>(topicname_pose_, 1);
     pub_trajectory_ = nh_.advertise<nav_msgs::Path>(topicname_trajectory_, 1);
     pub_map_points_ = nh_.advertise<sensor_msgs::PointCloud2>(topicname_map_points_, 1);
+
+    topicname_trajectory_gt_ = "/kitti_odometry/groundtruth_path";
+    pub_trajectory_gt_ = nh_.advertise<nav_msgs::Path>(topicname_trajectory_gt_,1);
 
     topicname_statistics_ = "/scale_mono_vo/statistics";
     pub_statistics_ = nh_.advertise<scale_mono_vo_ros::statisticsStamped>(topicname_statistics_,1);
@@ -56,6 +60,8 @@ MonoNode::~MonoNode(){
 void MonoNode::getParameters(){
     if(!ros::param::has("~topicname_image"))
         throw std::runtime_error("'topicname_image' is not set.");
+    if(!ros::param::has("~topicname_gt"))
+        throw std::runtime_error("'topicname_gt' is not set.");
     if(!ros::param::has("~topicname_pose"))
         throw std::runtime_error("'topicname_pose' is not set.");
     if(!ros::param::has("~topicname_map_points"))
@@ -66,6 +72,7 @@ void MonoNode::getParameters(){
         throw std::runtime_error("'directory_intrinsic' is not set.");
 
     ros::param::get("~topicname_image", topicname_image_);
+    ros::param::get("~topicname_gt", topicname_gt_);
 
     ros::param::get("~topicname_pose",       topicname_pose_);
     ros::param::get("~topicname_trajectory", topicname_trajectory_);
@@ -175,6 +182,19 @@ void MonoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
     msg_trajectory_.poses.push_back(p);
 
     pub_trajectory_.publish(msg_trajectory_);
+};
+
+void MonoNode::groundtruthCallback(const geometry_msgs::PoseStampedConstPtr& msg){
+    geometry_msgs::PoseStamped p;
+    p.header.frame_id = "map";
+    p.header.stamp = ros::Time::now();
+    p.pose = msg->pose;
+
+    msg_trajectory_gt_.header.frame_id = "map";
+    msg_trajectory_gt_.header.stamp = ros::Time::now();
+    msg_trajectory_gt_.poses.push_back(p);
+
+    pub_trajectory_gt_.publish(msg_trajectory_gt_);
 };
 
 /**

@@ -391,6 +391,7 @@ statcurr_frame.steering_angle = steering_curr;
 				else lmvec1_alive[i]->setDead(); // track failed. Dead point.
 			}
 
+			scale_estimator_->detectTurnRegions(steering_curr, frame_curr);
 #ifdef RECORD_LANDMARK_STAT
 statcurr_landmark.n_pass_1p = cnt_1p;
 #endif
@@ -412,12 +413,10 @@ timer::tic();
 statcurr_execution.time_5p = timer::toc(false);
 #endif			
 			// Frame_curr의 자세를 넣는다.
-			std::cout << "R10:\n" ;
-			std::cout << R10 << std::endl;
 			PoseSE3 T10; T10 << R10, t10, 0.0f, 0.0f, 0.0f, 1.0f;
 			PoseSE3 T01 = T10.inverse();
 
-			frame_curr->setPose(frame_prev_->getPose()*T01);			
+			frame_curr->setPose(frame_prev_->getPose()*T01);		
 
 #ifdef RECORD_FRAME_STAT
 statcurr_frame.Twc = frame_curr->getPose();
@@ -446,8 +445,8 @@ statcurr_frame.Twc = frame_curr->getPose();
 #ifdef RECORD_LANDMARK_STAT
 statcurr_landmark.n_pass_5p = cnt_alive;
 #endif
-			// lmvec1_final 중, depth가 복원되지 않은 경우 복원해준다.
 
+			// lmvec1_final 중, depth가 복원되지 않은 경우 복원해준다.
 #ifdef RECORD_LANDMARK_STAT
 statcurr_landmark.n_ok_parallax = cnt_parallax_ok;
 #endif
@@ -530,6 +529,8 @@ statcurr_landmark.n_new = pxvec1_new.size();
 	else { // VO initialized. Do track the new image.
 
 	}
+
+	// 
 
 	// Update statistics
 	stat_.stats_landmark.push_back(statcurr_landmark);
