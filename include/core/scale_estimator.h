@@ -33,7 +33,8 @@ public:
     void module_ScaleForwardPropagation(const LandmarkPtrVec& lmvec, const FramePtrVec& framevec, const PoseSE3 dT10); // SFP module return : scale of the current motion.
     void module_AbsoluteScaleRecovery(); // SFP module return : scale of the current motion.
 
-    void detectTurnRegions(float psi, const FramePtr& frame);
+    bool detectTurnRegions(const FramePtr& frame);
+    const FramePtrVec& getAllTurnRegions() const;
 
 private:
     void runThread();
@@ -58,6 +59,8 @@ private:
     FramePtrVec frames_t0_;
     FramePtrVec frames_t1_;
     FramePtrVec frames_u_;
+
+    FramePtrVec frames_all_t_;
 
 // Variables to elegantly terminate TX & RX threads
 private:

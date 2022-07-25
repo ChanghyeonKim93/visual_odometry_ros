@@ -37,6 +37,9 @@ private:
     void run();
 
 private:
+    void convertPointVecToPointCloud2(const PointVec& X, sensor_msgs::PointCloud2& dst, std::string frame_id);
+
+private:
     ros::NodeHandle nh_;
     
     // subscriber
@@ -53,6 +56,10 @@ private:
     ros::Publisher pub_trajectory_;
     nav_msgs::Path msg_trajectory_;
     std::string topicname_trajectory_;
+
+    ros::Publisher pub_turns_;
+    sensor_msgs::PointCloud2 msg_turns_;
+    std::string topicname_turns_;
 
     ros::Publisher pub_map_points_;
     std::string topicname_map_points_;

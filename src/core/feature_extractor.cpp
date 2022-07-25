@@ -59,13 +59,13 @@ void FeatureExtractor::initParams(int n_cols, int n_rows, int n_bins_u, int n_bi
 };
 
 void FeatureExtractor::resetWeightBin() {
-	printf(" - FEATURE_EXTRACTOR - 'resetWeightBin'\n");
+	// printf(" - FEATURE_EXTRACTOR - 'resetWeightBin'\n");
 
 	weight_bin_->reset();
 };
 
 void FeatureExtractor::updateWeightBin(const PixelVec& fts) {
-	std::cout << " - FEATURE_EXTRACTOR - 'updateWeightBin'\n";
+	// std::cout << " - FEATURE_EXTRACTOR - 'updateWeightBin'\n";
 
 	weight_bin_->reset();
 	weight_bin_->update(fts);
@@ -165,7 +165,7 @@ void FeatureExtractor::extractORBwithBinning(const cv::Mat& img, PixelVec& pts_e
 	}
 
 	// Final result
-	std::cout << " - FEATURE_EXTRACTOR - 'extractORBwithBinning' - # detected pts : " << pts_extracted.size() << std::endl;
+	// std::cout << " - FEATURE_EXTRACTOR - 'extractORBwithBinning' - # detected pts : " << pts_extracted.size() << std::endl;
 };
 
 void FeatureExtractor::extractHarriswithBinning(const cv::Mat& img, PixelVec& pts_extracted){
@@ -265,5 +265,5 @@ void FeatureExtractor::extractHarriswithBinning(const cv::Mat& img, PixelVec& pt
 		}
 	}
 
-	std::cout << " - FEATURE_EXTRACTOR - 'extractORBwithBinning' - # detected pts : " << pts_extracted.size() << std::endl;
+	// std::cout << " - FEATURE_EXTRACTOR - 'extractORBwithBinning' - # detected pts : " << pts_extracted.size() << std::endl;
 };

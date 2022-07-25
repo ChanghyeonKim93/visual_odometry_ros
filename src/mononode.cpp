@@ -20,12 +20,15 @@ MonoNode::MonoNode(ros::NodeHandle& nh) : nh_(nh)
 
     // Subscriber    
     img_sub_ = nh_.subscribe<sensor_msgs::Image>(topicname_image_, 1, &MonoNode::imageCallback, this);
-    gt_sub_ = nh_.subscribe<geometry_msgs::PoseStamped>(topicname_gt_, 1, &MonoNode::groundtruthCallback, this);
+    gt_sub_  = nh_.subscribe<geometry_msgs::PoseStamped>(topicname_gt_, 1, &MonoNode::groundtruthCallback, this);
 
     // Publisher
     pub_pose_       = nh_.advertise<nav_msgs::Odometry>(topicname_pose_, 1);
     pub_trajectory_ = nh_.advertise<nav_msgs::Path>(topicname_trajectory_, 1);
     pub_map_points_ = nh_.advertise<sensor_msgs::PointCloud2>(topicname_map_points_, 1);
+
+    topicname_turns_ = "/kitti_odometry/turns";
+    pub_turns_ = nh_.advertise<sensor_msgs::PointCloud2>(topicname_turns_,1);
 
     topicname_trajectory_gt_ = "/kitti_odometry/groundtruth_path";
     pub_trajectory_gt_ = nh_.advertise<nav_msgs::Path>(topicname_trajectory_gt_,1);
@@ -107,29 +110,29 @@ void MonoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
     ScaleMonoVO::AlgorithmStatistics stat;
     stat = scale_mono_vo_->getStatistics();
     
-    std::cout << "====================================================\n";
-    std::cout << "----------------------------\n";
-    std::cout << "total time: " << stat.stats_execution.back().time_total <<" ms\n";
-    std::cout << "     track: " << stat.stats_execution.back().time_track <<" ms\n";
-    std::cout << "        1p: " << stat.stats_execution.back().time_1p <<" ms\n";
-    std::cout << "        5p: " << stat.stats_execution.back().time_5p <<" ms\n";
-    std::cout << "       new: " << stat.stats_execution.back().time_new <<" ms\n";
+    // std::cout << "====================================================\n";
+    // std::cout << "----------------------------\n";
+    // std::cout << "total time: " << stat.stats_execution.back().time_total <<" ms\n";
+    // std::cout << "     track: " << stat.stats_execution.back().time_track <<" ms\n";
+    // std::cout << "        1p: " << stat.stats_execution.back().time_1p <<" ms\n";
+    // std::cout << "        5p: " << stat.stats_execution.back().time_5p <<" ms\n";
+    // std::cout << "       new: " << stat.stats_execution.back().time_new <<" ms\n";
 
-    std::cout << "----------------------------\n";
-    std::cout << "landmark init.: " << stat.stats_landmark.back().n_initial <<"\n";
-    std::cout << "         track: " << stat.stats_landmark.back().n_pass_bidirection <<"\n";
-    std::cout << "            1p: " << stat.stats_landmark.back().n_pass_1p <<"\n";
-    std::cout << "            5p: " << stat.stats_landmark.back().n_pass_5p <<"\n";
-    std::cout << "           new: " << stat.stats_landmark.back().n_new <<"\n";
-    std::cout << "         final: " << stat.stats_landmark.back().n_final <<"\n";
-    std::cout << "   parallax ok: " << stat.stats_landmark.back().n_ok_parallax <<"\n\n";
+    // std::cout << "----------------------------\n";
+    // std::cout << "landmark init.: " << stat.stats_landmark.back().n_initial <<"\n";
+    // std::cout << "         track: " << stat.stats_landmark.back().n_pass_bidirection <<"\n";
+    // std::cout << "            1p: " << stat.stats_landmark.back().n_pass_1p <<"\n";
+    // std::cout << "            5p: " << stat.stats_landmark.back().n_pass_5p <<"\n";
+    // std::cout << "           new: " << stat.stats_landmark.back().n_new <<"\n";
+    // std::cout << "         final: " << stat.stats_landmark.back().n_final <<"\n";
+    // std::cout << "   parallax ok: " << stat.stats_landmark.back().n_ok_parallax <<"\n\n";
 
-    std::cout << " avg. parallax: " << stat.stats_landmark.back().avg_parallax <<" rad \n";
-    std::cout << " avg.      age: " << stat.stats_landmark.back().avg_age <<" frames \n";
+    // std::cout << " avg. parallax: " << stat.stats_landmark.back().avg_parallax <<" rad \n";
+    // std::cout << " avg.      age: " << stat.stats_landmark.back().avg_age <<" frames \n";
 
-    std::cout << "----------------------------\n";
-    std::cout << "      steering: " << stat.stats_frame.back().steering_angle << " rad\n";
-    std::cout << "====================================================\n";
+    // std::cout << "----------------------------\n";
+    // std::cout << "      steering: " << stat.stats_frame.back().steering_angle << " rad\n";
+    // std::cout << "====================================================\n";
 
     scale_mono_vo_ros::statisticsStamped msg_statistics;
     
@@ -182,6 +185,18 @@ void MonoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
     msg_trajectory_.poses.push_back(p);
 
     pub_trajectory_.publish(msg_trajectory_);
+
+
+    // Turn region display
+    msg_turns_.header.frame_id = "map";
+    msg_turns_.header.stamp = ros::Time::now();
+    PointVec X;
+    for(auto f : stat.stat_turn.turn_regions){
+        X.push_back(f->getPose().block<3,1>(0,3));
+    }
+    convertPointVecToPointCloud2(X,msg_turns_, "map");
+    pub_turns_.publish(msg_turns_);
+    
 };
 
 void MonoNode::groundtruthCallback(const geometry_msgs::PoseStampedConstPtr& msg){
@@ -209,5 +224,58 @@ void MonoNode::run(){
     while(ros::ok()){
         ros::spinOnce();
         rate.sleep();
+    }
+};
+
+void MonoNode::convertPointVecToPointCloud2(const PointVec& X, sensor_msgs::PointCloud2& dst, std::string frame_id){
+    int n_pts = X.size();
+    
+    // intensity mapping (-3 m ~ 3 m to 0~255)
+    float z_min = -3.0;
+    float z_max = 3.0;
+    float intensity_min = 30;
+    float intensity_max = 255;
+    float slope = (intensity_max-intensity_min)/(z_max-z_min);
+
+    dst.header.frame_id = frame_id;
+    dst.header.stamp    = ros::Time::now();
+    // ROS_INFO_STREAM(dst.header.stamp << endl);
+    dst.width            = n_pts;
+    dst.height           = 1;
+
+    sensor_msgs::PointField f_tmp;
+    f_tmp.offset = 0;    f_tmp.name="x"; f_tmp.datatype = sensor_msgs::PointField::FLOAT32; dst.fields.push_back(f_tmp);
+    f_tmp.offset = 4;    f_tmp.name="y"; f_tmp.datatype = sensor_msgs::PointField::FLOAT32; dst.fields.push_back(f_tmp);
+    f_tmp.offset = 8;    f_tmp.name="z"; f_tmp.datatype = sensor_msgs::PointField::FLOAT32; dst.fields.push_back(f_tmp);
+    f_tmp.offset = 12;   f_tmp.name="intensity"; f_tmp.datatype = sensor_msgs::PointField::FLOAT32;  dst.fields.push_back(f_tmp);
+    f_tmp.offset = 16;   f_tmp.name="ring"; f_tmp.datatype = sensor_msgs::PointField::UINT16;  dst.fields.push_back(f_tmp);
+    f_tmp.offset = 18;   f_tmp.name="time"; f_tmp.datatype = sensor_msgs::PointField::FLOAT32; dst.fields.push_back(f_tmp);
+    dst.point_step = 22; // x 4 + y 4 + z 4 + i 4 + r 2 + t 4 
+
+    dst.data.resize(dst.point_step * dst.width);
+    for(int i = 0; i < dst.width; ++i){
+        int i_ptstep = i*dst.point_step;
+        int arrayPosX = i_ptstep + dst.fields[0].offset; // X has an offset of 0
+        int arrayPosY = i_ptstep + dst.fields[1].offset; // Y has an offset of 4
+        int arrayPosZ = i_ptstep + dst.fields[2].offset; // Z has an offset of 8
+
+        int ind_intensity = i_ptstep + dst.fields[3].offset; // 12
+        int ind_ring      = i_ptstep + dst.fields[4].offset; // 16
+        int ind_time      = i_ptstep + dst.fields[5].offset; // 18
+
+        float height_intensity = slope*(X[i](2)-z_min)+intensity_min;
+        if(height_intensity >= intensity_max) height_intensity = intensity_max;
+        if(height_intensity <= intensity_min) height_intensity = intensity_min;
+
+        float x = X[i](0);
+        float y = X[i](1);
+        float z = X[i](2);
+        
+        memcpy(&dst.data[arrayPosX],     &(x),          sizeof(float));
+        memcpy(&dst.data[arrayPosY],     &(y),          sizeof(float));
+        memcpy(&dst.data[arrayPosZ],     &(z),          sizeof(float));
+        memcpy(&dst.data[ind_intensity], &(height_intensity),  sizeof(float));
+        memcpy(&dst.data[ind_ring],      &(x),          sizeof(unsigned short));
+        memcpy(&dst.data[ind_time],      &(x),          sizeof(float));
     }
 };

@@ -160,9 +160,18 @@ public:
 			time_track(0.0f), time_1p(0.0f), time_5p(0.0f), time_new(0.0f) {};
 		};
 
+		struct TurnRegionStatistics{
+			FramePtrVec turn_regions;
+
+			TurnRegionStatistics() {
+				turn_regions.resize(0);
+			};
+		};
+
 		std::vector<LandmarkStatistics>  stats_landmark;
 		std::vector<FrameStatistics>     stats_frame;
 		std::vector<ExecutionStatistics> stats_execution;
+		TurnRegionStatistics stat_turn;
 
 		AlgorithmStatistics() {
 			stats_landmark.reserve(5000);

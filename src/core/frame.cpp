@@ -4,6 +4,7 @@ std::shared_ptr<Camera> Frame::cam_ = nullptr;
 Frame::Frame() : is_keyframe_(false) {
     Twc_ = PoseSE3::Identity();
     Tcw_ = PoseSE3::Identity();
+    steering_angle_ = 0.0f;
     id_  = frame_counter_;
     timestamp_ = 0;
     ++frame_counter_;
@@ -12,6 +13,9 @@ Frame::Frame() : is_keyframe_(false) {
 void Frame::setPose(const PoseSE3& Twc) { 
     Twc_ = Twc; 
     Tcw_ = Twc_.inverse();
+};
+void Frame::setSteeringAngle(float st_angle){
+    steering_angle_ = st_angle;
 };
 
 void Frame::setImageAndTimestamp(const cv::Mat& img, const double& timestamp) { 
@@ -40,6 +44,9 @@ const uint32_t& Frame::getID() const {
 
 const PoseSE3& Frame::getPose() const { 
     return Twc_; 
+};
+const float& Frame::getSteeringAngle() const{
+    return steering_angle_;
 };
 
 const cv::Mat& Frame::getImage() const {

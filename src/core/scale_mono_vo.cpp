@@ -368,14 +368,24 @@ statcurr_landmark.n_pass_bidirection = cnt_alive;
 #ifdef RECORD_EXECUTION_STAT 
 timer::tic(); 
 #endif
-			// 1-point RANSAC 을 이용하여 outlier를 제거한다.
+			// 1-point RANSAC 을 이용하여 outlier를 제거 & tentative steering angle 구함.
 			MaskVec maskvec_1p;
-			float steering_curr = motion_estimator_->findInliers1PointHistogram(pxvec0_alive, pxvec1_alive, cam_, maskvec_1p);
+			float steering_angle_curr = motion_estimator_->findInliers1PointHistogram(pxvec0_alive, pxvec1_alive, cam_, maskvec_1p);
+			frame_curr->setSteeringAngle(steering_angle_curr);
+
+			// Scale estimator
+			if(scale_estimator_->detectTurnRegions(frame_curr)){
+				FramePtrVec frames_turn_tmp;
+				frames_turn_tmp = scale_estimator_->getAllTurnRegions();
+				for(auto f :frames_turn_tmp)
+					stat_.stat_turn.turn_regions.push_back(f);
+			}
+
 #ifdef RECORD_EXECUTION_STAT
 statcurr_execution.time_1p = timer::toc(false);
 #endif
 #ifdef RECORD_FRAME_STAT
-statcurr_frame.steering_angle = steering_curr;
+statcurr_frame.steering_angle = steering_angle_curr;
 #endif
 			PixelVec       pxvec0_1p;
 			PixelVec       pxvec1_1p;
@@ -391,7 +401,7 @@ statcurr_frame.steering_angle = steering_curr;
 				else lmvec1_alive[i]->setDead(); // track failed. Dead point.
 			}
 
-			scale_estimator_->detectTurnRegions(steering_curr, frame_curr);
+
 #ifdef RECORD_LANDMARK_STAT
 statcurr_landmark.n_pass_1p = cnt_1p;
 #endif

@@ -13,14 +13,16 @@ ScaleEstimator::ScaleEstimator(const std::shared_ptr<std::mutex> mut,
     // Detecting turn region variables
     cnt_turn_ = 0;
 
-    thres_cnt_turn_ = 10;
-    thres_psi_ = 1.0 * M_PI / 180.0;
+    thres_cnt_turn_ = 15;
+    // thres_psi_ = 1.0 * M_PI / 180.0;
+    thres_psi_ = 0.02;
 
     terminate_future_ = terminate_promise_.get_future();
     runThread();
 
     printf(" - SCALE_ESTIMATOR is constructed.\n");
 };  
+
 ScaleEstimator::~ScaleEstimator(){
     // Terminate signal .
     std::cerr << "SCALE_ESTIMATOR - terminate signal published...\n";
@@ -53,8 +55,6 @@ void ScaleEstimator::process(std::shared_future<void> terminate_signal){
 
         cond_var_->wait(lk, [=] { return (*flag_do_ASR_); });
         
-        std::cout << "THREAD GETS CONDITION VARIAVLE!\n";
-
         *flag_do_ASR_ = false;
         lk.unlock();
 
@@ -67,7 +67,6 @@ void ScaleEstimator::process(std::shared_future<void> terminate_signal){
     }
     std::cerr << "SCALE_ESTIMATOR - thread receives termination signal.\n";
 };
-
 
 void ScaleEstimator::module_ScaleForwardPropagation(const LandmarkPtrVec& lmvec, const FramePtrVec& framevec, const PoseSE3 dT10)
 {
@@ -98,8 +97,12 @@ void ScaleEstimator::module_ScaleForwardPropagation(const LandmarkPtrVec& lmvec,
 };
 
 
-void ScaleEstimator::detectTurnRegions(float psi, const FramePtr& frame){
-    if( fabs(psi) > thres_psi_ ) { // Current psi is over the threshold
+bool ScaleEstimator::detectTurnRegions(const FramePtr& frame){
+    bool flag_turn_detected = false;
+
+    float psi = frame->getSteeringAngle();
+    std::cout <<"psi : " << psi << ", threspsi: " << thres_psi_ << std::endl;
+    if( abs(psi) > thres_psi_ ) { // Current psi is over the threshold
         frames_t1_.push_back(frame); // Stack the 
         ++cnt_turn_;
     }
@@ -112,8 +115,16 @@ void ScaleEstimator::detectTurnRegions(float psi, const FramePtr& frame){
 
             std::cout << " TURN REGION IS DETECTED!\n";
             
+            flag_turn_detected = true;
+
             // Update turn regions
             frames_t0_ = frames_t1_;
+            std::cout << "TURN regions:\n";
+            for(int i = 0; i < frames_t0_.size(); ++i){
+                std::cout << frames_t0_[i]->getID() << " " ;
+                frames_all_t_.push_back(frames_t0_[i]);
+            }
+            std::cout << "\n";
         }
         else { // insufficient frames. The stacked frames are not of the turning region.
             for(auto f : frames_t1_)
@@ -122,4 +133,10 @@ void ScaleEstimator::detectTurnRegions(float psi, const FramePtr& frame){
         frames_t1_.resize(0);
         cnt_turn_ = 0;
     }
+
+    return flag_turn_detected;
+};
+
+const FramePtrVec& ScaleEstimator::getAllTurnRegions() const{
+    return frames_all_t_;
 };
