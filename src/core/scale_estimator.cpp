@@ -18,7 +18,10 @@ ScaleEstimator::ScaleEstimator(const std::shared_ptr<std::mutex> mut,
     thres_psi_ = 0.03;
 
     // SFP parameters
-    N_max_past_ = 20;
+    N_max_past_            = 40;
+    thres_age_             = 3;
+    thres_age_triangulate_ = 15;
+    thres_flow_            = 20.0;
 
     terminate_future_ = terminate_promise_.get_future();
     runThread();
@@ -73,11 +76,6 @@ void ScaleEstimator::process(std::shared_future<void> terminate_signal){
 
 void ScaleEstimator::module_ScaleForwardPropagation(const LandmarkPtrVec& lmvec, const FramePtrVec& framevec, const PoseSE3& dT10)
 {
-    // threshold values
-    uint32_t thres_age             = 10;
-    uint32_t thres_age_triangulate = 12;
-    float thres_flow = 15.0;
-
     // intrinsic parameters
     const float& fx = cam_->fx();
     const float& fy = cam_->fy();
@@ -116,8 +114,8 @@ void ScaleEstimator::module_ScaleForwardPropagation(const LandmarkPtrVec& lmvec,
     LandmarkPtrVec lms_depth;
     for(int m = 0; m < lmvec.size(); ++m){
         const LandmarkPtr& lm = lmvec[m];
-        if(lm->getAge() >= thres_age 
-        && lm->getAvgOptFlow() >= thres_flow
+        if(lm->getAge() >= thres_age_ 
+        && lm->getAvgOptFlow() >= thres_flow_
         && lm->getTriangulated() == false) 
             lms_no_depth.push_back(lm);    
 
@@ -312,7 +310,7 @@ void ScaleEstimator::module_ScaleForwardPropagation(const LandmarkPtrVec& lmvec,
         //     ++idx;
             
         //     const LandmarkPtr& lm = lms_no_depth[ii];
-        //     if(lm->getAge() >= thres_age_triangulate 
+        //     if(lm->getAge() >= thres_age_triangulate_ 
         //     && lm->getAvgParallax() >= 0.03){
         //         lm->set3DPoint(Xw);
         //     }

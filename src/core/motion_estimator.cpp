@@ -26,6 +26,7 @@ bool MotionEstimator::calcPose5PointsAlgorithm(const PixelVec& pts0, const Pixel
     // Calculate essential matrix
     cv::Mat inlier_mat, essential;
     essential = cv::findEssentialMat(pts0, pts1, cam->cvK(), cv::RANSAC, 0.999, 1.0, inlier_mat);
+    // essential = cv::findEssentialMat(pts0, pts1, cam->cvK(), cv::LMEDS, 0.999, 1.0, inlier_mat);
     
     // Calculate fundamental matrix
     Eigen::Matrix3f E10, F10;

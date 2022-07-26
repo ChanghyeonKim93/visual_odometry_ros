@@ -72,6 +72,10 @@ private:
     uint32_t thres_cnt_turn_;
     float thres_psi_;
 
+    uint32_t thres_age_;
+    uint32_t thres_age_triangulate_;
+    float thres_flow_;
+
     FramePtrVec frames_t0_;
     FramePtrVec frames_t1_;
     FramePtrVec frames_u_;

@@ -28,14 +28,16 @@ Camera.height: 376
 
 feature_tracker.thres_error: 100.0      
 feature_tracker.thres_bidirection: 1.0
-feature_tracker.window_size: 15
+feature_tracker.window_size: 11
 feature_tracker.max_level: 6
 
 feature_extractor.n_features: 100
-feature_extractor.n_bins_u: 60
-feature_extractor.n_bins_v: 30
-feature_extractor.thres_fastscore: 40.0
-feature_extractor.radius: 5.0
+# feature_extractor.n_bins_u: 30
+feature_extractor.n_bins_u: 40
+# feature_extractor.n_bins_v: 17
+feature_extractor.n_bins_v: 20
+feature_extractor.thres_fastscore: 50.0
+feature_extractor.radius: 1.0
 
 keyframe_update.thres_alive_ratio: 0.7
 keyframe_update.thres_mean_parallax: 3.0

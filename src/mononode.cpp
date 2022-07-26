@@ -36,6 +36,11 @@ MonoNode::MonoNode(ros::NodeHandle& nh) : nh_(nh)
     topicname_statistics_ = "/scale_mono_vo/statistics";
     pub_statistics_ = nh_.advertise<scale_mono_vo_ros::statisticsStamped>(topicname_statistics_,1);
 
+
+    // scale publisher
+    trans_prev_gt_ << 0,0,0;
+    scale_gt_ = 0;
+        
     ROS_INFO_STREAM("MonoNode - generate Scale Mono VO object. Starts.");
 
     // spin .
@@ -156,7 +161,7 @@ void MonoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
     msg_statistics.steering_angle = stat.stats_frame.back().steering_angle;
 
     msg_statistics.scale_est = stat.stats_frame.back().dT_01.block<3,1>(0,3).norm();
-    // msg_statistics.scale_gt  = ;
+    msg_statistics.scale_gt  = scale_gt_;
 
     pub_statistics_.publish(msg_statistics);
 
@@ -208,6 +213,9 @@ void MonoNode::groundtruthCallback(const geometry_msgs::PoseStampedConstPtr& msg
     p.header.frame_id = "map";
     p.header.stamp = ros::Time::now();
     p.pose = msg->pose;
+    trans_curr_gt_ << p.pose.position.x, p.pose.position.y, p.pose.position.z;
+    scale_gt_ = (trans_curr_gt_-trans_prev_gt_).norm();
+    trans_prev_gt_ = trans_curr_gt_;
 
     msg_trajectory_gt_.header.frame_id = "map";
     msg_trajectory_gt_.header.stamp = ros::Time::now();

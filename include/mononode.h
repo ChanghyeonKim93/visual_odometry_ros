@@ -8,6 +8,7 @@
 #include <Eigen/Dense>
 
 #include <ros/ros.h>
+#include <std_msgs/Float32.h>
 #include <sensor_msgs/Image.h>
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/Path.h>
@@ -74,6 +75,11 @@ private:
     std::string topicname_trajectory_gt_;
 
 
+    // Publishers for scales
+    Vec3 trans_prev_gt_;
+    Vec3 trans_curr_gt_;
+    float scale_gt_;
+    
 private:
     std::string directory_intrinsic_;
 

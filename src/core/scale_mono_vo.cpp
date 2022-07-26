@@ -426,7 +426,10 @@ timer::tic();
 statcurr_execution.time_5p = timer::toc(false);
 #endif			
 			// Frame_curr의 자세를 넣는다.
-			PoseSE3 dT10; dT10 << dR10, dt10, 0.0f, 0.0f, 0.0f, 1.0f;
+			float scale;
+			if(frame_curr->getID() > 300) scale = 0.33;
+			else scale = 0.88;
+			PoseSE3 dT10; dT10 << dR10, scale*dt10, 0.0f, 0.0f, 0.0f, 1.0f;
 			PoseSE3 dT01 = dT10.inverse();
 
 			frame_curr->setPose(frame_prev_->getPose()*dT01);		
@@ -457,14 +460,14 @@ statcurr_execution.time_5p = timer::toc(false);
 			avg_flow /= (float) cnt_alive;
 			std::cout << " AVERAGE FLOW : " << avg_flow << " px\n";
 			// Scale forward propagation
-			// if(frame_curr->getID() > 4 && avg_flow > 5.5)
-				// scale_estimator_->module_ScaleForwardPropagation(lmvec1_final, all_frames_,dT10);
+			if(frame_curr->getID() > 4 && avg_flow > 5.5)
+				scale_estimator_->module_ScaleForwardPropagation(lmvec1_final, all_frames_,dT10);
 
 #ifdef RECORD_FRAME_STAT
 statcurr_frame.Twc = frame_curr->getPose();
 statcurr_frame.Tcw = frame_curr->getPose().inverse();
-statcurr_frame.dT_10 = dT10;
-statcurr_frame.dT_01 = dT01;
+statcurr_frame.dT_10 = frame_curr->getPoseDiff10();
+statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 #endif
 
 #ifdef RECORD_LANDMARK_STAT
