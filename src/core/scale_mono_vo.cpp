@@ -417,28 +417,23 @@ timer::tic();
 			// 만약 mean optical flow의 중간값이 약 1 px 이하인 경우, 정지 상태로 가정하고 스킵.
 			MaskVec maskvec_inlier(pxvec0_1p.size());
 			PointVec X0_inlier(pxvec0_1p.size());
-			Rot3 R10;
-			Pos3 t10;
-			if( !motion_estimator_->calcPose5PointsAlgorithm(pxvec0_1p, pxvec1_1p, cam_, R10, t10, X0_inlier, maskvec_inlier) ) {
+			Rot3 dR10;
+			Pos3 dt10;
+			if( !motion_estimator_->calcPose5PointsAlgorithm(pxvec0_1p, pxvec1_1p, cam_, dR10, dt10, X0_inlier, maskvec_inlier) ) {
 				throw std::runtime_error("calcPose5PointsAlgorithm() is failed.");
 			}
 #ifdef RECORD_EXECUTION_STAT
 statcurr_execution.time_5p = timer::toc(false);
 #endif			
 			// Frame_curr의 자세를 넣는다.
-			PoseSE3 T10; T10 << R10, t10, 0.0f, 0.0f, 0.0f, 1.0f;
-			PoseSE3 T01 = T10.inverse();
+			PoseSE3 dT10; dT10 << dR10, dt10, 0.0f, 0.0f, 0.0f, 1.0f;
+			PoseSE3 dT01 = dT10.inverse();
 
-			frame_curr->setPose(frame_prev_->getPose()*T01);		
-			frame_curr->setPoseDiff10(T10);		
+			frame_curr->setPose(frame_prev_->getPose()*dT01);		
+			frame_curr->setPoseDiff10(dT10);		
 
-#ifdef RECORD_FRAME_STAT
-statcurr_frame.Twc = frame_curr->getPose();
-statcurr_frame.Tcw = frame_curr->getPose().inverse();
-statcurr_frame.dT_10 = T10;
-statcurr_frame.dT_01 = T01;
-#endif
 			// tracking, 5p algorithm, newpoint 모두 합쳐서 살아남은 점만 frame_curr에 넣는다
+			float avg_flow = 0.0f;
 			PixelVec       pxvec0_final;
 			PixelVec       pxvec1_final;
 			LandmarkPtrVec lmvec1_final;
@@ -447,6 +442,7 @@ statcurr_frame.dT_01 = T01;
 			for(int i = 0; i < pxvec0_1p.size(); ++i){
 				if( maskvec_inlier[i] ) {
 					lmvec1_1p[i]->addObservationAndRelatedFrame(pxvec1_1p[i], frame_curr);
+					avg_flow += lmvec1_1p[i]->getAvgOptFlow();
 					if(lmvec1_1p[i]->getMaxParallax() > params_.map_update.thres_parallax) {
 						++cnt_parallax_ok;
 						// lmvec1_1p[i]->set3DPoint(X0_inlier[i]);
@@ -458,10 +454,18 @@ statcurr_frame.dT_01 = T01;
 				}
 				else lmvec1_1p[i]->setDead(); // 5p algorithm failed. Dead point.
 			}
-
+			avg_flow /= (float) cnt_alive;
+			std::cout << " AVERAGE FLOW : " << avg_flow << " px\n";
 			// Scale forward propagation
-			if(frame_curr->getID() > 1)
-				scale_estimator_->module_ScaleForwardPropagation(lmvec1_final, all_frames_,T10);
+			// if(frame_curr->getID() > 4 && avg_flow > 5.5)
+				// scale_estimator_->module_ScaleForwardPropagation(lmvec1_final, all_frames_,dT10);
+
+#ifdef RECORD_FRAME_STAT
+statcurr_frame.Twc = frame_curr->getPose();
+statcurr_frame.Tcw = frame_curr->getPose().inverse();
+statcurr_frame.dT_10 = dT10;
+statcurr_frame.dT_01 = dT01;
+#endif
 
 #ifdef RECORD_LANDMARK_STAT
 statcurr_landmark.n_pass_5p = cnt_alive;
@@ -511,14 +515,13 @@ statcurr_landmark.n_new = pxvec1_new.size();
 #ifdef RECORD_LANDMARK_STAT
 	statcurr_landmark.avg_age = avg_age;
 #endif
-
 			// 초기화를 완료할지 판단
 			// lmvec1_final가 최초 관측되었던 (keyframe) 
 			bool initialization_done = false;
-			int n_lms_keyframe  = keyframe_->getRelatedLandmarkPtr().size();
-			int n_lms_alive     = 0;
+			int n_lms_keyframe    = keyframe_->getRelatedLandmarkPtr().size();
+			int n_lms_alive       = 0;
 			int n_lms_parallax_ok = 0;
-			float mean_parallax = 0;
+			float mean_parallax   = 0;
 			for(int i = 0; i < lmvec1_final.size(); ++i){
 				const LandmarkPtr& lm = lmvec1_final[i];
 				if( lm->getRelatedFramePtr().front()->getID() == 0 ) {

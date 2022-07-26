@@ -43,9 +43,10 @@ typedef Eigen::Matrix3f           Mat33;
 typedef Eigen::Vector3f           Vec3;
 
 // For large matrix
-typedef Eigen::SparseMatrix<double> SpMat;
-typedef Eigen::SparseVector<double> SpVec;
-typedef Eigen::Triplet<double>      SpTriplet; 
-typedef std::vector<SpTriplet>      SpTripletList;
+typedef Eigen::SparseMatrix<float> SpMat;
+typedef Eigen::SparseVector<float> SpVec;
+typedef Eigen::SparseMatrix<float>::Scalar SpScalar;
+typedef Eigen::Triplet<float>      SpTriplet; 
+typedef std::vector<SpTriplet>     SpTripletList;
 
 #endif

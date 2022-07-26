@@ -36,22 +36,12 @@ private:
     float min_parallax_;
     float max_parallax_;
     float avg_parallax_;
+    float last_parallax_;
 
     float min_optflow_;
     float max_optflow_;
     float avg_optflow_;
-
-
-// Used for tracking
-private:
-    // bool track_in_view_;
-    // float track_proj_u_;
-    // float track_proj_v_;
-    // uint32_t track_scale_level_;
-    // float track_view_cos_;
-
-    float max_possible_distance_;
-    float min_possible_distance_;
+    float last_optflow_;
 
     // Eigen::Vector3f normal_vector_;
 
@@ -85,9 +75,11 @@ public:
     float              getMinParallax() const;  
     float              getMaxParallax() const;  
     float              getAvgParallax() const;  
+    float              getLastParallax() const;  
 
     float              getMinOptFlow() const;
     float              getMaxOptFlow() const;
     float              getAvgOptFlow() const;
+    float              getLastOptFlow() const;
 };
 #endif

@@ -15,11 +15,10 @@ ScaleEstimator::ScaleEstimator(const std::shared_ptr<std::mutex> mut,
 
     thres_cnt_turn_ = 15;
     // thres_psi_ = 1.0 * M_PI / 180.0;
-    thres_psi_ = 0.02;
-
+    thres_psi_ = 0.03;
 
     // SFP parameters
-    N_max_past_ = 5;
+    N_max_past_ = 20;
 
     terminate_future_ = terminate_promise_.get_future();
     runThread();
@@ -75,8 +74,9 @@ void ScaleEstimator::process(std::shared_future<void> terminate_signal){
 void ScaleEstimator::module_ScaleForwardPropagation(const LandmarkPtrVec& lmvec, const FramePtrVec& framevec, const PoseSE3& dT10)
 {
     // threshold values
-    uint32_t thres_age             = 3;
-    uint32_t thres_age_triangulate = 8;
+    uint32_t thres_age             = 10;
+    uint32_t thres_age_triangulate = 12;
+    float thres_flow = 15.0;
 
     // intrinsic parameters
     const float& fx = cam_->fx();
@@ -91,7 +91,7 @@ void ScaleEstimator::module_ScaleForwardPropagation(const LandmarkPtrVec& lmvec,
     // Get current frame
     FramePtr frame_curr = framevec.back();
     uint32_t j = frame_curr->getID() ;
-    std::cout << "currente frame ID (j): " << j << std::endl;
+    // std::cout << "currente frame ID (j): " << j << std::endl;
 
     // Pixels tracked in this frame
     lmvec;
@@ -107,7 +107,7 @@ void ScaleEstimator::module_ScaleForwardPropagation(const LandmarkPtrVec& lmvec,
     Rot3 dRj = dT.block<3,3>(0,0);
     Pos3 uj  = dT.block<3,1>(0,3);    
 
-    std::cout << "framevec.size(): " << framevec.size() << std::endl;
+    // std::cout << "framevec.size(): " << framevec.size() << std::endl;
     PoseSE3 Twjm1 = framevec[framevec.size()-2]->getPose();
     Pos3 twjm1 = Twjm1.block<3,1>(0,3);
     
@@ -117,7 +117,7 @@ void ScaleEstimator::module_ScaleForwardPropagation(const LandmarkPtrVec& lmvec,
     for(int m = 0; m < lmvec.size(); ++m){
         const LandmarkPtr& lm = lmvec[m];
         if(lm->getAge() >= thres_age 
-        && lm->getAvgOptFlow() >= 5.0
+        && lm->getAvgOptFlow() >= thres_flow
         && lm->getTriangulated() == false) 
             lms_no_depth.push_back(lm);    
 
@@ -126,9 +126,9 @@ void ScaleEstimator::module_ScaleForwardPropagation(const LandmarkPtrVec& lmvec,
     }
 
     uint32_t M_tmp = lms_no_depth.size();
-    std::cout << "No  depth size: " << lms_no_depth.size() << std::endl;
-    std::cout << "Yes depth size: " << lms_depth.size() << std::endl;
-    std::cout << frame_curr->getID() <<" -th frame, Mtmp : " << M_tmp << std::endl;
+    // std::cout << "No  depth size: " << lms_no_depth.size() << std::endl;
+    // std::cout << "Yes depth size: " << lms_depth.size() << std::endl;
+    // std::cout << frame_curr->getID() <<" -th frame, Mtmp : " << M_tmp << std::endl;
 
     // Generate Matrices
     uint32_t mat_size = 3*M_tmp + 1;
@@ -173,9 +173,9 @@ void ScaleEstimator::module_ScaleForwardPropagation(const LandmarkPtrVec& lmvec,
     tplist_tmp.emplace_back(idx_end, idx_end, 0);
 
     AtA.setFromTriplets(tplist_tmp.begin(),tplist_tmp.end());
-    std::cout << "# elems: " <<tplist_tmp.size() << ", total elems: " << mat_size* mat_size << std::endl;
-    std::cout << "size: " << 9*M_tmp + 6*M_tmp + 1 << "\n";
-    std::cout << "Mat inner size: " << AtA.innerSize() <<", " << AtA.outerSize() << ", total size: "<< mat_size << std::endl;
+    // std::cout << "# elems: " <<tplist_tmp.size() << ", total elems: " << mat_size* mat_size << std::endl;
+    // std::cout << "size: " << 9*M_tmp + 6*M_tmp + 1 << "\n";
+    // std::cout << "Mat inner size: " << AtA.innerSize() <<", " << AtA.outerSize() << ", total size: "<< mat_size << std::endl;
 
     // i-th landmark (with no depth)
     Eigen::Matrix<float,3,3> AtAlast_tmp = Eigen::Matrix<float,3,3>::Zero();
@@ -188,35 +188,29 @@ void ScaleEstimator::module_ScaleForwardPropagation(const LandmarkPtrVec& lmvec,
     idx_mat[0] = 0; idx_mat[1] = 1; idx_mat[2] = 2;
     for(int ii = 0; ii < M_tmp; ++ii){
         const LandmarkPtr& lm = lms_no_depth[ii];
-        if(ii == 546){
-            std::cout << lm->getID() <<" , age: " << lm->getAge() <<std::endl;
-            for(int ll = 0; ll < lm->getObservations().size(); ++ll){
-                std::cout << lm->getObservations()[ll] << " ";
-            }
-            std::cout << std::endl;
-        }
-
         PixelVec pts_history = lm->getObservations();
 
-        int j_end = lm->getRelatedFramePtr().front()->getID(); // 현재 랜드마크와 연관된 가장 오래된 FRAME ID를 추출한다.
-        if(j - j_end + 1 >= N_max_past_){
+        // 현재 랜드마크와 연관된 가장 오래된 FRAME ID를 추출한다.
+        int j_end = lm->getRelatedFramePtr().front()->getID(); 
+        if(j - j_end + 1 >= N_max_past_)
             j_end = j - N_max_past_ + 1;
-        }
 
-        if( j == j_end){
+        if( j == j_end)
             throw std::runtime_error("j == j_end");
-        }
+        
         // std::cout << "j and j_end : " << j << ", " << j_end << std::endl;
         // k-th frame relatd to i-th landmark
         int idx_p = pts_history.size()-1;
         for(int k = j; k >= j_end; --k){
+            const Pixel& p = pts_history[idx_p];
+            --idx_p;
+
             PoseSE3 Twk = framevec[k]->getPose();
             Rot3 Rwk = Twk.block<3,3>(0,0);
             Pos3 twk = Twk.block<3,1>(0,3);
 
             Point xik;
-            xik << fxinv*(pts_history[idx_p].x - cx), fyinv*(pts_history[idx_p].y - cy), 1.0f;
-            --idx_p;
+            xik << fxinv*(p.x - cx), fyinv*(p.y - cy), 1.0f;
 
             Point xik_p;
             xik_p = Rwk*xik;
@@ -298,31 +292,36 @@ void ScaleEstimator::module_ScaleForwardPropagation(const LandmarkPtrVec& lmvec,
     AtA.coeffRef(idx_end, idx_end) = uj.transpose()*Rjw*AtAlast_tmp*Rwj*uj;
 
     // Efficiently solve theta = AtA^-1* Atb;
-    std::cout << "Solve Theta...\n";
+    // std::cout << "Solve Theta...\n";
     SpVec theta;
     this->solveLeastSquares_SFP(AtA, Atb, M_tmp, theta);
 
-    std::cout << " Solve OK!\n";
+    // Update motion
+    float scale_est = theta.coeff(3*M_tmp);
+    if(!isnan(scale_est)){
+        PoseSE3 dT10_est;
+        dT10_est << dRj, uj*scale_est,0,0,0,1;
+        frame_curr->setPose(Twjm1*dT10_est.inverse());
+        frame_curr->setPoseDiff10(dT10_est);
 
-    // float scale_est = 2;
+        // Update points
+        // idx = 0;
+        // for(int ii = 0; ii < M_tmp; ++ii){
+        //     Point Xw;
+        //     Xw << theta.coeff(idx), theta.coeff(++idx), theta.coeff(++idx);
+        //     ++idx;
+            
+        //     const LandmarkPtr& lm = lms_no_depth[ii];
+        //     if(lm->getAge() >= thres_age_triangulate 
+        //     && lm->getAvgParallax() >= 0.03){
+        //         lm->set3DPoint(Xw);
+        //     }
+        // } 
+    }
+    
 
-    // // Update motion
-    // PoseSE3 dT_est;
-    // dT_est << dRj, (scale_est*uj), 0,0,0,1;
-    // frame_curr->setPoseDiff10(dT_est);
-    // frame_curr->setPose(Twjm1*dT_est.inverse());
+    // std::cout << " Solve OK!\n";
 
-    // // Update points
-    // idx = 0;
-    // for(int ii = 0; ii < M_tmp; ++ii){
-    //     const LandmarkPtr& lm = lms_no_depth[ii];
-    //     if(lm->getAge() >= thres_age_triangulate){
-    //         Point Xw;
-    //         Xw << theta.coeff(idx), theta.coeff(++idx), theta.coeff(++idx);
-    //         lm->set3DPoint(Xw);
-    //         ++idx;
-    //     }
-    // } 
 };
 
 
@@ -380,6 +379,7 @@ void ScaleEstimator::solveLeastSquares_SFP(const SpMat& AtA, const SpVec& Atb, u
     // theta = [x;y];
     SpMat A = AtA.block(0,0, 3*M_tmp, 3*M_tmp);
     SpMat B = AtA.block(0,3*M_tmp, 3*M_tmp,1);
+
     float C = AtA.coeff(3*M_tmp, 3*M_tmp);
 
     // SpVec a = Atb.block<3*M_tmp,1>(0,0);
@@ -390,34 +390,38 @@ void ScaleEstimator::solveLeastSquares_SFP(const SpMat& AtA, const SpVec& Atb, u
     std::vector<Mat33> Ainv_vec; Ainv_vec.reserve(M_tmp);
     this->calcAinvVec_SFP(A, Ainv_vec, M_tmp);
 
-    std::cout << "calcAinv Vec OK \n";
-
     // Calculate AinvB ( == BtAinv.transpose())
     SpVec AinvB(sz,1);
-    SpVec BtAinv(1,sz);
+    SpMat BtAinv(1,sz);
 
     this->calcAinvB_SFP(Ainv_vec, B, M_tmp, AinvB);
     BtAinv = AinvB.transpose();
+    // std::cout << "AinvB size: " << AinvB.innerSize() << " x " << AinvB.outerSize() <<std::endl;
+    // std::cout << "BtAinv size: " << BtAinv.innerSize() << " x " << BtAinv.outerSize() <<std::endl;
+    // std::cout << "B size: " << B.innerSize() << " x " << B.outerSize() <<std::endl;
+    // std::cout << "BtAinv B size: " << (BtAinv*B).innerSize() << " x " << (BtAinv*B).outerSize() <<std::endl;
+    
+    SpVec x;
+    float y;
+    SpMat BtAinvB = (BtAinv*B);
+    // std::cout << "BtAinvB size: " << BtAinvB.innerSize() << " x " << BtAinvB.outerSize() << std::endl;
+    
+    float CmBtAinvB = C-BtAinvB.coeff(0,0);
+    float inv_CmBtAinvB = 1.0f/CmBtAinvB;
+    SpMat BtAinv_a = BtAinv*a;
+    // std::cout << "BtAinv_a size: " << BtAinv_a.innerSize() << " x " << BtAinv_a.outerSize() << std::endl;
+    y = inv_CmBtAinvB*(b-BtAinv_a.coeff(0,0));
+    SpVec amBy = a-B*y;
+    SpVec Ainv_amBy;
+    this->calcAinvB_SFP(Ainv_vec, amBy, M_tmp, Ainv_amBy);
 
-    // Solve 
-    // Cholesky decomposition based solver. A should be a symmetric & positive definite.
+    x = Ainv_amBy;
+    std::cout << "SCALE : " << y << std::endl;
+    theta.coeffRef(3*M_tmp) = y;
+    for(int i = 0; i < M_tmp; ++i){
+        theta.coeffRef(i) = x.coeff(i);
+    }
 
-    // A in (blk_end x blk_end)
-    // B in (blk_end x blk_end + 1 ~ end)
-    // C in (blk_end + 1 ~ end x blk_end + 1 ~ end)
-    // a in (0~blk_end x 1)
-    // b in (blk_end+1~end x 1);
-
-    // Ainv = zeros(size(A));
-    // uint32_t idx[3] = {0,1,2};
-    // for(int i = 0; i < blk_num; ++i){
-    //     Ainv(idx[0], idx[0]) = A(idx[0],idx[0]).inverse();
-    // }
-
-    // BtAinv = B.transpose() * Ainv;
-    // y = (C - BtAinv*B).inverse() * (b - BtAinv*a);
-    // x = Ainv * (a - B*y);
-    // theta = [x;y];
 };
 
 void ScaleEstimator::calcAinvVec_SFP(const SpMat& AA, std::vector<Mat33>& Ainv_vec, uint32_t M_tmp){
@@ -426,41 +430,47 @@ void ScaleEstimator::calcAinvVec_SFP(const SpMat& AA, std::vector<Mat33>& Ainv_v
     uint32_t idx[3] = {0,1,2};
     for(int i = 0; i < M_tmp; ++i){
         Mat33 Ainv_tmp = Mat33::Zero();
+        Mat33 A_tmp = Mat33::Zero();
 
-        float C = AA.coeff(idx[0],idx[0]);
-        float invC = 1.0f/C;
-        float A = AA.coeff(idx[0],idx[2]);
-        float B = AA.coeff(idx[1],idx[2]);
-        float D = AA.coeff(idx[2],idx[2]);
+        A_tmp << AA.coeff(idx[0],idx[0]), AA.coeff(idx[0],idx[1]), AA.coeff(idx[0],idx[2]),
+                    AA.coeff(idx[1],idx[0]), AA.coeff(idx[1],idx[1]), AA.coeff(idx[1],idx[2]),
+                    AA.coeff(idx[2],idx[0]), AA.coeff(idx[2],idx[1]), AA.coeff(idx[2],idx[2]);
+        Ainv_tmp = A_tmp.inverse();
 
-        float CD = C*D;
-        float AB = A*B;
-        float AC = A*C;
-        float BC = B*C;
-        float AA = A*A;
-        float BB = B*B;
-        float CC = C*C;
+        // float C = AA.coeff(idx[0],idx[0]);
+        // float invC = 1.0f/C;
+        // float A = AA.coeff(idx[0],idx[2]);
+        // float B = AA.coeff(idx[1],idx[2]);
+        // float D = AA.coeff(idx[2],idx[2]);
 
-        float den = C*(AA + BB - CD);
-        // std::cout <<i <<" -th den: " << den << std::endl;
-        if(abs(den) < 1e-10 ) {
-            std::cout << i << "-th point: " << C <<", " << AA <<", " << BB << ", " << CD << std::endl;
-            throw std::runtime_error("denominator is too small.");
-        }
+        // float CD = C*D;
+        // float AB = A*B;
+        // float AC = A*C;
+        // float BC = B*C;
+        // float AA = A*A;
+        // float BB = B*B;
+        // float CC = C*C;
 
-        den = 1.0f / den;
+        // float den = C*(AA + BB - CD);
+        // // std::cout <<i <<" -th den: " << den << std::endl;
+        // if(abs(den) < 1e-16 ) {
+        //     std::cout << i << "-th point: " << C <<", " << AA <<", " << BB << ", " << CD << ":, den: " << abs(den) << std::endl;
+        //     throw std::runtime_error("denominator is too small.");
+        // }
 
-        Ainv_tmp(0,0) = BB - CD;
-        Ainv_tmp(1,1) = AA - CD;
-        Ainv_tmp(2,2) = -CC;
+        // den = 1.0f / den;
 
-        Ainv_tmp(0,1) = -AB;
-        Ainv_tmp(0,2) = AC;
-        Ainv_tmp(1,2) = BC;
+        // Ainv_tmp(0,0) = (BB - CD)*den;
+        // Ainv_tmp(1,1) = (AA - CD)*den;
+        // Ainv_tmp(2,2) = (-CC)*den;
 
-        Ainv_tmp(1,0) = Ainv_tmp(0,1);
-        Ainv_tmp(2,0) = Ainv_tmp(0,2);
-        Ainv_tmp(2,1) = Ainv_tmp(1,2);
+        // Ainv_tmp(0,1) = (-AB)*den;
+        // Ainv_tmp(0,2) = AC*den;
+        // Ainv_tmp(1,2) = BC*den;
+
+        // Ainv_tmp(1,0) = Ainv_tmp(0,1);
+        // Ainv_tmp(2,0) = Ainv_tmp(0,2);
+        // Ainv_tmp(2,1) = Ainv_tmp(1,2);
         
         Ainv_vec.push_back(Ainv_tmp);
 
