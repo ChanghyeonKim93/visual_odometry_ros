@@ -39,6 +39,9 @@ typedef Eigen::Vector3f           Pos3;
 typedef Eigen::Matrix3f           Rot3;
 typedef Eigen::Matrix4f           PoseSE3;
 
+typedef Eigen::Matrix3f           Mat33;
+typedef Eigen::Vector3f           Vec3;
+
 // For large matrix
 typedef Eigen::SparseMatrix<double> SpMat;
 typedef Eigen::SparseVector<double> SpVec;

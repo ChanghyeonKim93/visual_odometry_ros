@@ -320,9 +320,10 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 			// 첫 이미지 업데이트 완료
 			system_flags_.flagFirstImageGot = true;
 		}
-		else { // 최초 첫 이미지는 들어왔으나, 아직 초기화가 되지 않은 상태.
-			   // 초기화는 맨 첫 이미지 (첫 키프레임) 대비, 제대로 추적 된 landmark가 60 퍼센트 이상이며, 
-			   // 추적된 landmark 각각의 최대 parallax 가 1도 이상인 경우 초기화 완료.	
+		else { 
+			// 최초 첫 이미지는 들어왔으나, 아직 초기화가 되지 않은 상태.
+			// 초기화는 맨 첫 이미지 (첫 키프레임) 대비, 제대로 추적 된 landmark가 60 퍼센트 이상이며, 
+			// 추적된 landmark 각각의 최대 parallax 가 1도 이상인 경우 초기화 완료.	
 
 			// 이전 프레임의 pixels 와 lmvec0을 가져온다.
 			const PixelVec&       pxvec0 = frame_prev_->getPtsSeen();
@@ -374,13 +375,14 @@ timer::tic();
 			float steering_angle_curr = motion_estimator_->findInliers1PointHistogram(pxvec0_alive, pxvec1_alive, cam_, maskvec_1p);
 			frame_curr->setSteeringAngle(steering_angle_curr);
 
-			// Scale estimator
+			// Detect turn region by a steering angle.
 			if(scale_estimator_->detectTurnRegions(frame_curr)){
 				FramePtrVec frames_turn_tmp;
 				frames_turn_tmp = scale_estimator_->getAllTurnRegions();
 				for(auto f :frames_turn_tmp)
 					stat_.stat_turn.turn_regions.push_back(f);
 			}
+
 
 #ifdef RECORD_EXECUTION_STAT
 statcurr_execution.time_1p = timer::toc(false);
@@ -447,7 +449,7 @@ statcurr_frame.dT_01 = T01;
 					lmvec1_1p[i]->addObservationAndRelatedFrame(pxvec1_1p[i], frame_curr);
 					if(lmvec1_1p[i]->getMaxParallax() > params_.map_update.thres_parallax) {
 						++cnt_parallax_ok;
-						lmvec1_1p[i]->set3DPoint(X0_inlier[i]);
+						// lmvec1_1p[i]->set3DPoint(X0_inlier[i]);
 					}
 					pxvec0_final.push_back(pxvec0_1p[i]);
 					pxvec1_final.push_back(pxvec1_1p[i]);
@@ -456,6 +458,10 @@ statcurr_frame.dT_01 = T01;
 				}
 				else lmvec1_1p[i]->setDead(); // 5p algorithm failed. Dead point.
 			}
+
+			// Scale forward propagation
+			if(frame_curr->getID() > 1)
+				scale_estimator_->module_ScaleForwardPropagation(lmvec1_final, all_frames_,T10);
 
 #ifdef RECORD_LANDMARK_STAT
 statcurr_landmark.n_pass_5p = cnt_alive;

@@ -46,13 +46,15 @@ private:
     void runThread();
     void process(std::shared_future<void> terminate_signal);
 
+// Functions related to the Scale Forward Propagation 
 private:
-    inline void fillTriplet(SpTripletList& Tri,  
-        const int& idx_row0, const int& idx_row1,
-        const int& idx_col0, const int& idx_col1, const Eigen::MatrixXf& mat);
-    inline void addTriplet(SpTripletList& Tri,  
-        const int& idx_row0, const int& idx_row1,
-        const int& idx_col0, const int& idx_col1, const Eigen::MatrixXf& mat);
+    void solveLeastSquares_SFP(const SpMat& AtA, const SpVec& Atb, uint32_t M_tmp,
+        SpVec& theta);
+
+    void calcAinvVec_SFP(const SpMat& AA, std::vector<Mat33>& Ainv_vec, uint32_t M_tmp);
+
+    void calcAinvB_SFP(const std::vector<Mat33>& Ainv_vec, const SpVec& B, uint32_t M_tmp,
+        SpVec& AinvB);
 
 public:
     static std::shared_ptr<Camera> cam_;

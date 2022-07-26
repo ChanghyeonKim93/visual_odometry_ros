@@ -74,15 +74,24 @@ void ScaleEstimator::process(std::shared_future<void> terminate_signal){
 
 void ScaleEstimator::module_ScaleForwardPropagation(const LandmarkPtrVec& lmvec, const FramePtrVec& framevec, const PoseSE3& dT10)
 {
+    // threshold values
+    uint32_t thres_age             = 3;
+    uint32_t thres_age_triangulate = 8;
+
     // intrinsic parameters
-    float fx = cam_->fx();
-    float fy = cam_->fy();
-    float fxinv = cam_->fxinv();
-    float fyinv = cam_->fyinv();
-    float cx = cam_->cx();
-    float cy = cam_->cy();
-    Eigen::Matrix3f K    = cam_->K();
-    Eigen::Matrix3f Kinv = cam_->Kinv();
+    const float& fx = cam_->fx();
+    const float& fy = cam_->fy();
+    const float& fxinv = cam_->fxinv();
+    const float& fyinv = cam_->fyinv();
+    const float& cx = cam_->cx();
+    const float& cy = cam_->cy();
+    const Eigen::Matrix3f& K    = cam_->K();
+    const Eigen::Matrix3f& Kinv = cam_->Kinv();
+
+    // Get current frame
+    FramePtr frame_curr = framevec.back();
+    uint32_t j = frame_curr->getID() ;
+    std::cout << "currente frame ID (j): " << j << std::endl;
 
     // Pixels tracked in this frame
     lmvec;
@@ -91,51 +100,105 @@ void ScaleEstimator::module_ScaleForwardPropagation(const LandmarkPtrVec& lmvec,
     PoseSE3 dT = dT10;
     
     // Get rotation of this frame w.r.t. world frame
-    PoseSE3 Twj = framevec.back()->getPose();
+    PoseSE3 Twj = frame_curr->getPose();
     Rot3 Rwj = Twj.block<3,3>(0,0);
     Rot3 Rjw = Rwj.transpose();
     
     Rot3 dRj = dT.block<3,3>(0,0);
-    Pos3 uj  = dT.block<3,1>(0,3);
+    Pos3 uj  = dT.block<3,1>(0,3);    
 
-    FramePtr frame_curr = framevec.back();
-    int j = frame_curr->getID() ;
-
+    std::cout << "framevec.size(): " << framevec.size() << std::endl;
     PoseSE3 Twjm1 = framevec[framevec.size()-2]->getPose();
     Pos3 twjm1 = Twjm1.block<3,1>(0,3);
     
     // Find age > 1 && parallax > 0.5 degrees
     LandmarkPtrVec lms_no_depth;
     LandmarkPtrVec lms_depth;
-    
     for(int m = 0; m < lmvec.size(); ++m){
         const LandmarkPtr& lm = lmvec[m];
-        if(lm->getAge() > 1 && lm->getTriangulated() == false) {
+        if(lm->getAge() >= thres_age 
+        && lm->getAvgOptFlow() >= 5.0
+        && lm->getTriangulated() == false) 
             lms_no_depth.push_back(lm);    
-        }
-        if(lm->getTriangulated()){
+
+        if(lm->getTriangulated()) 
             lms_depth.push_back(lm);
-        }
     }
 
     uint32_t M_tmp = lms_no_depth.size();
-    std::cout << "No depth size: " << M_tmp << std::endl;
+    std::cout << "No  depth size: " << lms_no_depth.size() << std::endl;
+    std::cout << "Yes depth size: " << lms_depth.size() << std::endl;
     std::cout << frame_curr->getID() <<" -th frame, Mtmp : " << M_tmp << std::endl;
 
     // Generate Matrices
     uint32_t mat_size = 3*M_tmp + 1;
-    SpMat AtA(3*M_tmp+1, 3*M_tmp+1);
-    SpVec Atb(3*M_tmp+1, 1); Atb.coeffRef(mat_size,0) = 0.0f;
-    SpTripletList Tplist;
-    AtA.reserve(Eigen::VectorXi::Constant(3*M_tmp+1, 20)); // 한 행에 4개의 원소밖에 없을거다.
+    uint32_t idx_end = mat_size - 1;
+    SpMat AtA(mat_size, mat_size);
+    SpVec Atb(mat_size, 1);
+    Atb.coeffRef(idx_end,0) = 0.0f;
+
+    // Initialize AtA matrix with zeros
+    AtA.reserve(Eigen::VectorXf::Constant(mat_size, 4)); // 한 행에 4개의 원소밖에 없을거다.
+    int idx = 0;
+    SpTripletList tplist_tmp;
+    tplist_tmp.resize(0);
+
+    uint32_t idx_mat[3]={0,1,2};
+    for(int i = 0; i < M_tmp; ++i){
+        // block initialization
+        tplist_tmp.emplace_back(idx_mat[0],idx_mat[0], 0.0f);
+        tplist_tmp.emplace_back(idx_mat[0],idx_mat[1], 0.0f);
+        tplist_tmp.emplace_back(idx_mat[0],idx_mat[2], 0.0f);
+
+        tplist_tmp.emplace_back(idx_mat[1],idx_mat[0], 0.0f);
+        tplist_tmp.emplace_back(idx_mat[1],idx_mat[1], 0.0f);
+        tplist_tmp.emplace_back(idx_mat[1],idx_mat[2], 0.0f);
+
+        tplist_tmp.emplace_back(idx_mat[2],idx_mat[0], 0.0f);
+        tplist_tmp.emplace_back(idx_mat[2],idx_mat[1], 0.0f);
+        tplist_tmp.emplace_back(idx_mat[2],idx_mat[2], 0.0f);
+
+        tplist_tmp.emplace_back(idx_mat[0], idx_end, 0.0f);
+        tplist_tmp.emplace_back(idx_mat[1], idx_end, 0.0f);
+        tplist_tmp.emplace_back(idx_mat[2], idx_end, 0.0f);
+
+        tplist_tmp.emplace_back(idx_end, idx_mat[0], 0.0f);
+        tplist_tmp.emplace_back(idx_end, idx_mat[1], 0.0f);
+        tplist_tmp.emplace_back(idx_end, idx_mat[2], 0.0f);
+        
+        idx_mat[0] += 3;
+        idx_mat[1] += 3;
+        idx_mat[2] += 3;
+    }
+    tplist_tmp.emplace_back(idx_end, idx_end, 0);
+
+    AtA.setFromTriplets(tplist_tmp.begin(),tplist_tmp.end());
+    std::cout << "# elems: " <<tplist_tmp.size() << ", total elems: " << mat_size* mat_size << std::endl;
+    std::cout << "size: " << 9*M_tmp + 6*M_tmp + 1 << "\n";
+    std::cout << "Mat inner size: " << AtA.innerSize() <<", " << AtA.outerSize() << ", total size: "<< mat_size << std::endl;
 
     // i-th landmark (with no depth)
+    Eigen::Matrix<float,3,3> AtAlast_tmp = Eigen::Matrix<float,3,3>::Zero();
+    
+    Eigen::Matrix<float,2,3> Fik;
+    Eigen::Matrix<float,3,3> FiktFik;
+    Eigen::Matrix<float,3,1> FiktFik_Rwk_uj;
+    Eigen::Matrix<float,3,1> FiktFik_twjm1;
+    Eigen::Matrix<float,3,1> FiktFik_twk;
+    idx_mat[0] = 0; idx_mat[1] = 1; idx_mat[2] = 2;
     for(int ii = 0; ii < M_tmp; ++ii){
-        int idx_mat[2] = {3*ii, 3*ii+2};
+        const LandmarkPtr& lm = lms_no_depth[ii];
+        if(ii == 546){
+            std::cout << lm->getID() <<" , age: " << lm->getAge() <<std::endl;
+            for(int ll = 0; ll < lm->getObservations().size(); ++ll){
+                std::cout << lm->getObservations()[ll] << " ";
+            }
+            std::cout << std::endl;
+        }
 
-        PixelVec pts_history = lmvec[ii]->getObservations();
+        PixelVec pts_history = lm->getObservations();
 
-        int j_end = lmvec[ii]->getRelatedFramePtr().front()->getID();
+        int j_end = lm->getRelatedFramePtr().front()->getID(); // 현재 랜드마크와 연관된 가장 오래된 FRAME ID를 추출한다.
         if(j - j_end + 1 >= N_max_past_){
             j_end = j - N_max_past_ + 1;
         }
@@ -143,69 +206,123 @@ void ScaleEstimator::module_ScaleForwardPropagation(const LandmarkPtrVec& lmvec,
         if( j == j_end){
             throw std::runtime_error("j == j_end");
         }
-
+        // std::cout << "j and j_end : " << j << ", " << j_end << std::endl;
         // k-th frame relatd to i-th landmark
-        for(int k = j; j >= j_end; --j){
-            PoseSE3 Twk = framevec[j]->getPose();
+        int idx_p = pts_history.size()-1;
+        for(int k = j; k >= j_end; --k){
+            PoseSE3 Twk = framevec[k]->getPose();
             Rot3 Rwk = Twk.block<3,3>(0,0);
             Pos3 twk = Twk.block<3,1>(0,3);
 
             Point xik;
             xik << fxinv*(pts_history[idx_p].x - cx), fyinv*(pts_history[idx_p].y - cy), 1.0f;
+            --idx_p;
 
             Point xik_p;
             xik_p = Rwk*xik;
-            Eigen::Matrix<float,2,3> Fik;
             Fik << -xik_p(2), 0.0f, xik_p(0),
                     0.0f,-xik_p(2), xik_p(1);
 
-            Eigen::Matrix<float,3,3> FiktFik = Fik.transpose()*Fik;
-            Eigen::Matrix<float,3,3> AtAlast_tmp = Eigen::Matrix<float,3,3>::Zero();
+            FiktFik = Fik.transpose()*Fik;
             if(k == j){
                 // AtA (side)
-                Eigen::Matrix<float,3,1> FiktFik_Rwk_uj = FiktFik*Rwk*uj;
+                FiktFik_Rwk_uj = FiktFik*Rwk*uj; // 3x1
 
-                this->fillTriplet(Tplist, 
-                    idx_mat[0], idx_mat[1], 
-                    mat_size - 1, mat_size - 1, FiktFik_Rwk_uj);
-                this->fillTriplet(Tplist, 
-                    mat_size - 1, mat_size - 1, 
-                    idx_mat[0], idx_mat[1], FiktFik_Rwk_uj.transpose());
+                AtA.coeffRef(idx_mat[0], idx_end) = FiktFik_Rwk_uj(0);
+                AtA.coeffRef(idx_mat[1], idx_end) = FiktFik_Rwk_uj(1);
+                AtA.coeffRef(idx_mat[2], idx_end) = FiktFik_Rwk_uj(2);
+
+                AtA.coeffRef(idx_end, idx_mat[0]) = FiktFik_Rwk_uj(0);
+                AtA.coeffRef(idx_end, idx_mat[1]) = FiktFik_Rwk_uj(1);
+                AtA.coeffRef(idx_end, idx_mat[2]) = FiktFik_Rwk_uj(2);
 
                 // AtA (last, 3x3)
                 AtAlast_tmp += FiktFik;
 
                 // Atb
-                Eigen::Matrix<float,3,1> FiktFik_twjm1 = FiktFik*twjm1;
-                Atb.coeffRef(idx_mat[0],   0) += FiktFik_twjm1(0);
-                Atb.coeffRef(idx_mat[0]+1, 0) += FiktFik_twjm1(1);
-                Atb.coeffRef(idx_mat[0]+2, 0) += FiktFik_twjm1(2);
+                FiktFik_twjm1 = FiktFik*twjm1;
+                Atb.coeffRef(idx_mat[0], 0) += FiktFik_twjm1(0);
+                Atb.coeffRef(idx_mat[1], 0) += FiktFik_twjm1(1);
+                Atb.coeffRef(idx_mat[2], 0) += FiktFik_twjm1(2);
 
                 // Atb (end)
                 float ujt_Rjw_FiktFik_twjm1 = uj.transpose()*Rjw*FiktFik*twjm1;
-                Atb.coeffRef(mat_size,0) += ujt_Rjw_FiktFik_twjm1;
+                Atb.coeffRef(idx_end,0) += ujt_Rjw_FiktFik_twjm1;
             }
             else{
                 // Atb
-                Eigen::Matrix<float,3,1> FiktFik_twk = FiktFik*twk;
-                Atb.coeffRef(idx_mat[0],   0) += FiktFik_twk(0);
-                Atb.coeffRef(idx_mat[0]+1, 0) += FiktFik_twk(1);
-                Atb.coeffRef(idx_mat[0]+2, 0) += FiktFik_twk(2);
+                FiktFik_twk = FiktFik*twk;
+                Atb.coeffRef(idx_mat[0], 0) += FiktFik_twk(0);
+                Atb.coeffRef(idx_mat[1], 0) += FiktFik_twk(1);
+                Atb.coeffRef(idx_mat[2], 0) += FiktFik_twk(2);
             }
-            // AtA (block)
-            this->addTriplet(Tplist, 
-                    idx_mat[0], idx_mat[1], 
-                    idx_mat[0], idx_mat[1], FiktFik_Rwk_uj);
-            AtA(idx_mat,idx_mat) = AtA(idx_mat,idx_mat) + FiktFik;
+            // AtA (block) (Symmetric, zeros can be ignored.)
+            AtA.coeffRef(idx_mat[0], idx_mat[0]) += FiktFik(0,0);
+            AtA.coeffRef(idx_mat[0], idx_mat[1]) += FiktFik(0,1);
+            AtA.coeffRef(idx_mat[0], idx_mat[2]) += FiktFik(0,2);
 
-        }
-    }
+            AtA.coeffRef(idx_mat[1], idx_mat[0]) += FiktFik(1,0);
+            AtA.coeffRef(idx_mat[1], idx_mat[1]) += FiktFik(1,1);
+            AtA.coeffRef(idx_mat[1], idx_mat[2]) += FiktFik(1,2);
+
+            AtA.coeffRef(idx_mat[2], idx_mat[0]) += FiktFik(2,0);
+            AtA.coeffRef(idx_mat[2], idx_mat[1]) += FiktFik(2,1);
+            AtA.coeffRef(idx_mat[2], idx_mat[2]) += FiktFik(2,2);
+        } // END k
+
+        idx_mat[0] += 3; idx_mat[1] += 3; idx_mat[2] += 3;
+    } // END ii
 
     // i-th landmark with depth
     for(int ii = 0; ii < lms_depth.size(); ++ii){
+        const LandmarkPtr& lm = lms_depth[ii];
 
+        Pixel pj  = lm->getObservations().back();
+        Point Xwi = lm->get3DPoint();
+
+        Eigen::Matrix<float,3,1> xij;
+        xij << fxinv*(pj.x-cx), fyinv*(pj.y-cy), 1.0f;
+
+        Eigen::Matrix<float,3,1> xij_p = Rwj*xij;
+        Eigen::Matrix<float,2,3> Fij;
+        Fij << -xij_p(2), 0.0f, xij_p(0),
+               0.0f, -xij_p(2), xij_p(1);
+        Eigen::Matrix<float,3,3> FijtFij = Fij.transpose()*Fij;
+        AtAlast_tmp += FijtFij;
+
+        float ujt_Rjw_Rij_FijgtFijg_twjm1_Xwi = uj.transpose()*Rjw*FijtFij*(twjm1-Xwi);
+        Atb.coeffRef(idx_end,0) += ujt_Rjw_Rij_FijgtFijg_twjm1_Xwi;
     }
-    
+
+    // AtA (last)
+    AtA.coeffRef(idx_end, idx_end) = uj.transpose()*Rjw*AtAlast_tmp*Rwj*uj;
+
+    // Efficiently solve theta = AtA^-1* Atb;
+    std::cout << "Solve Theta...\n";
+    SpVec theta;
+    this->solveLeastSquares_SFP(AtA, Atb, M_tmp, theta);
+
+    std::cout << " Solve OK!\n";
+
+    // float scale_est = 2;
+
+    // // Update motion
+    // PoseSE3 dT_est;
+    // dT_est << dRj, (scale_est*uj), 0,0,0,1;
+    // frame_curr->setPoseDiff10(dT_est);
+    // frame_curr->setPose(Twjm1*dT_est.inverse());
+
+    // // Update points
+    // idx = 0;
+    // for(int ii = 0; ii < M_tmp; ++ii){
+    //     const LandmarkPtr& lm = lms_no_depth[ii];
+    //     if(lm->getAge() >= thres_age_triangulate){
+    //         Point Xw;
+    //         Xw << theta.coeff(idx), theta.coeff(++idx), theta.coeff(++idx);
+    //         lm->set3DPoint(Xw);
+    //         ++idx;
+    //     }
+    // } 
 };
 
 
@@ -253,39 +370,126 @@ const FramePtrVec& ScaleEstimator::getAllTurnRegions() const{
     return frames_all_t_;
 };
 
-
-
-inline void ScaleEstimator::fillTriplet(SpTripletList& Tri,  
-    const int& idx_row0, const int& idx_row1,
-    const int& idx_col0, const int& idx_col1, const Eigen::MatrixXf& mat)
+void ScaleEstimator::solveLeastSquares_SFP(const SpMat& AtA, const SpVec& Atb, uint32_t M_tmp,
+    SpVec& theta)
 {
-    int dim_hori = idx_col1 - idx_col0 + 1;
-    int dim_vert = idx_row1 - idx_row0 + 1;
+    uint32_t sz = 3*M_tmp;
 
-    if(mat.cols() != dim_hori) throw std::runtime_error("ScaleEstimator::fillTriplet(...), mat.cols() != dim_hori\n");
-    if(mat.rows() != dim_vert) throw std::runtime_error("ScaleEstimator::fillTriplet(...), mat.rows() != dim_vert\n");
+    // AtA = [A, B; B.', C];
+    // Atb = [a;b];
+    // theta = [x;y];
+    SpMat A = AtA.block(0,0, 3*M_tmp, 3*M_tmp);
+    SpMat B = AtA.block(0,3*M_tmp, 3*M_tmp,1);
+    float C = AtA.coeff(3*M_tmp, 3*M_tmp);
 
-    for(int u = 0; u < dim_hori; ++u) {
-        for(int v = 0; v < dim_vert; ++v) {
-            Tri.push_back(SpTriplet(v + idx_row0, u + idx_col0, mat(v,u)));
+    // SpVec a = Atb.block<3*M_tmp,1>(0,0);
+    SpVec a = Atb.block(0,0, 3*M_tmp,1);
+    float b = Atb.coeff(3*M_tmp,1);
+
+    // Calculate 'Ainv_vec'
+    std::vector<Mat33> Ainv_vec; Ainv_vec.reserve(M_tmp);
+    this->calcAinvVec_SFP(A, Ainv_vec, M_tmp);
+
+    std::cout << "calcAinv Vec OK \n";
+
+    // Calculate AinvB ( == BtAinv.transpose())
+    SpVec AinvB(sz,1);
+    SpVec BtAinv(1,sz);
+
+    this->calcAinvB_SFP(Ainv_vec, B, M_tmp, AinvB);
+    BtAinv = AinvB.transpose();
+
+    // Solve 
+    // Cholesky decomposition based solver. A should be a symmetric & positive definite.
+
+    // A in (blk_end x blk_end)
+    // B in (blk_end x blk_end + 1 ~ end)
+    // C in (blk_end + 1 ~ end x blk_end + 1 ~ end)
+    // a in (0~blk_end x 1)
+    // b in (blk_end+1~end x 1);
+
+    // Ainv = zeros(size(A));
+    // uint32_t idx[3] = {0,1,2};
+    // for(int i = 0; i < blk_num; ++i){
+    //     Ainv(idx[0], idx[0]) = A(idx[0],idx[0]).inverse();
+    // }
+
+    // BtAinv = B.transpose() * Ainv;
+    // y = (C - BtAinv*B).inverse() * (b - BtAinv*a);
+    // x = Ainv * (a - B*y);
+    // theta = [x;y];
+};
+
+void ScaleEstimator::calcAinvVec_SFP(const SpMat& AA, std::vector<Mat33>& Ainv_vec, uint32_t M_tmp){
+    Ainv_vec.reserve(M_tmp);
+    Ainv_vec.resize(0);
+    uint32_t idx[3] = {0,1,2};
+    for(int i = 0; i < M_tmp; ++i){
+        Mat33 Ainv_tmp = Mat33::Zero();
+
+        float C = AA.coeff(idx[0],idx[0]);
+        float invC = 1.0f/C;
+        float A = AA.coeff(idx[0],idx[2]);
+        float B = AA.coeff(idx[1],idx[2]);
+        float D = AA.coeff(idx[2],idx[2]);
+
+        float CD = C*D;
+        float AB = A*B;
+        float AC = A*C;
+        float BC = B*C;
+        float AA = A*A;
+        float BB = B*B;
+        float CC = C*C;
+
+        float den = C*(AA + BB - CD);
+        // std::cout <<i <<" -th den: " << den << std::endl;
+        if(abs(den) < 1e-10 ) {
+            std::cout << i << "-th point: " << C <<", " << AA <<", " << BB << ", " << CD << std::endl;
+            throw std::runtime_error("denominator is too small.");
         }
+
+        den = 1.0f / den;
+
+        Ainv_tmp(0,0) = BB - CD;
+        Ainv_tmp(1,1) = AA - CD;
+        Ainv_tmp(2,2) = -CC;
+
+        Ainv_tmp(0,1) = -AB;
+        Ainv_tmp(0,2) = AC;
+        Ainv_tmp(1,2) = BC;
+
+        Ainv_tmp(1,0) = Ainv_tmp(0,1);
+        Ainv_tmp(2,0) = Ainv_tmp(0,2);
+        Ainv_tmp(2,1) = Ainv_tmp(1,2);
+        
+        Ainv_vec.push_back(Ainv_tmp);
+
+        idx[0] += 3; idx[1] +=3; idx[2] += 3;
     }
 };
-    
 
-inline void addTriplet(SpTripletList& Tri,  
-    const int& idx_row0, const int& idx_row1,
-    const int& idx_col0, const int& idx_col1, const Eigen::MatrixXf& mat)
+void ScaleEstimator::calcAinvB_SFP(const std::vector<Mat33>& Ainv_vec, const SpVec& B, uint32_t M_tmp,
+     SpVec& AinvB)
 {
-    int dim_hori = idx_col1 - idx_col0 + 1;
-    int dim_vert = idx_row1 - idx_row0 + 1;
+    if(Ainv_vec.size() != M_tmp ) 
+        throw std::runtime_error("Ainv_vec.size() != M_tmp.");
 
-    if(mat.cols() != dim_hori) throw std::runtime_error("ScaleEstimator::addTriplet(...), mat.cols() != dim_hori\n");
-    if(mat.rows() != dim_vert) throw std::runtime_error("ScaleEstimator::addTriplet(...), mat.rows() != dim_vert\n");
+    AinvB.resize(3*M_tmp);
 
-    for(int u = 0; u < dim_hori; ++u) {
-        for(int v = 0; v < dim_vert; ++v) {
-            Tri.push_back(SpTriplet(v + idx_row0, u + idx_col0, mat(v,u)));
-        }
+    int idx[3] = {0,1,2};
+    for(int i = 0; i < M_tmp; ++i){
+        const Eigen::Matrix3f& Ainv_part = Ainv_vec[i];
+
+        Eigen::Vector3f B_part;
+        B_part << B.coeff(idx[0],0), B.coeff(idx[1],0), B.coeff(idx[2],0);
+
+        Eigen::Vector3f res_part;
+        res_part = Ainv_part*B_part;
+        
+        AinvB.coeffRef(idx[0],0) = res_part(0);
+        AinvB.coeffRef(idx[1],0) = res_part(1);
+        AinvB.coeffRef(idx[2],0) = res_part(2);
+
+        idx[0] += 3; idx[1] += 3; idx[2] += 3;
     }
 }

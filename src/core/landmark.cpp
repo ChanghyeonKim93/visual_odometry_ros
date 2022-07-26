@@ -5,12 +5,25 @@ std::shared_ptr<Camera> Landmark::cam_ = nullptr;
 Landmark::Landmark()
 : Xw_(0,0,0), id_(landmark_counter_++), max_possible_distance_(0),min_possible_distance_(0), age_(1), is_alive_(true), is_triangulated_(false), max_parallax_(0.0)
 {
-    
+    min_optflow_ = 1000.0f;
+    max_optflow_ = 0.0f;
+    avg_optflow_ = 0.0f;
+
+    min_parallax_ = 1000.0f;
+    max_parallax_ = 0.0f;
+    avg_parallax_ = 0.0f;
 };  
 Landmark::Landmark(const Pixel& p, const FramePtr& frame)
 : Xw_(0,0,0), id_(landmark_counter_++), max_possible_distance_(0),min_possible_distance_(0), age_(1), is_alive_(true), is_triangulated_(false), max_parallax_(0.0)
 {
     addObservationAndRelatedFrame(p, frame);
+    min_optflow_ = 1000.0f;
+    max_optflow_ = 0.0f;
+    avg_optflow_ = 0.0f;
+
+    min_parallax_ = 1000.0f;
+    max_parallax_ = 0.0f;
+    avg_parallax_ = 0.0f;
 };  
 
 Landmark::~Landmark(){
@@ -37,9 +50,25 @@ void Landmark::addObservationAndRelatedFrame(const Pixel& p, const FramePtr& fra
     float costheta = x0.dot(x1)/(x0.norm()*x1.norm());
     if(costheta >  1) costheta =  0.999f;
     if(costheta < -1) costheta = -0.999f;
+
+    float invage = 1.0f/(float)age_;
     
     float parallax_curr = acos(costheta);
-    if(max_parallax_ < parallax_curr) max_parallax_ = parallax_curr;
+    avg_parallax_ = avg_parallax_*(float)(age_-1.0f);
+    avg_parallax_ += parallax_curr;
+    avg_parallax_ *= invage;
+    if(max_parallax_ <= parallax_curr) max_parallax_ = parallax_curr;
+    if(min_parallax_ >= parallax_curr) min_parallax_ = parallax_curr;
+
+    // Calculate optical flow 
+    Pixel dp = p1-p0;
+    float optflow_now = sqrt(dp.x*dp.x + dp.y*dp.y);
+    avg_optflow_ = avg_optflow_*(float)(age_-1.0f);
+    avg_optflow_ += optflow_now;
+    avg_optflow_ *= invage;
+    if(optflow_now >= max_optflow_) max_optflow_ = optflow_now;
+    if(optflow_now <= min_optflow_) min_optflow_ = optflow_now; 
+
 };    
 
 // void Landmark::setTrackInView(Mask value){
@@ -59,9 +88,16 @@ void               Landmark::setDead() { is_alive_ = false; };
 
 uint32_t           Landmark::getID() const   { return id_; };
 uint32_t           Landmark::getAge() const  { return age_; };
-float              Landmark::getMaxParallax() const  { return max_parallax_; };
 const Point&       Landmark::get3DPoint() const { return Xw_; };
 const PixelVec&    Landmark::getObservations() const { return observations_; };
 const FramePtrVec& Landmark::getRelatedFramePtr() const { return related_frames_; };
 const bool&        Landmark::getAlive() const { return is_alive_; };
 const bool&        Landmark::getTriangulated() const { return is_triangulated_; };
+
+float              Landmark::getMinParallax() const  { return min_parallax_; };
+float              Landmark::getMaxParallax() const  { return max_parallax_; };
+float              Landmark::getAvgParallax() const  { return avg_parallax_; };
+
+float              Landmark::getMinOptFlow() const { return min_optflow_; };
+float              Landmark::getMaxOptFlow() const { return max_optflow_; };
+float              Landmark::getAvgOptFlow() const { return avg_optflow_; };

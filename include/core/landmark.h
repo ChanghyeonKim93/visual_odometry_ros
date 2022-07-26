@@ -33,7 +33,14 @@ private:
 
     uint32_t age_;
 
+    float min_parallax_;
     float max_parallax_;
+    float avg_parallax_;
+
+    float min_optflow_;
+    float max_optflow_;
+    float avg_optflow_;
+
 
 // Used for tracking
 private:
@@ -69,11 +76,18 @@ public:
     
     uint32_t           getID() const;
     uint32_t           getAge() const;
-    float              getMaxParallax() const;       
     const Point&       get3DPoint() const;
     const PixelVec&    getObservations() const;
     const FramePtrVec& getRelatedFramePtr() const;
     const bool&        getAlive() const;
     const bool&        getTriangulated() const;
+
+    float              getMinParallax() const;  
+    float              getMaxParallax() const;  
+    float              getAvgParallax() const;  
+
+    float              getMinOptFlow() const;
+    float              getMaxOptFlow() const;
+    float              getAvgOptFlow() const;
 };
 #endif
