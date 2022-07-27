@@ -301,6 +301,7 @@ void ScaleEstimator::module_ScaleForwardPropagation(const LandmarkPtrVec& lmvec,
     // Update motion
     float scale_est = theta.coeff(3*M_tmp);
     if(!isnan(scale_est)){
+        // if(scale_est <0 ) scale_est = -scale_est;
         PoseSE3 dT10_est;
         dT10_est << dRj, uj*scale_est,0,0,0,1;
         frame_curr->setPose(Twjm1*dT10_est.inverse());

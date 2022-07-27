@@ -457,7 +457,7 @@ statcurr_execution.time_5p = timer::toc(false);
 			// Steering angle을 계산한다.
 			steering_angle_curr = motion_estimator_->calcSteeringAngleFromRotationMat(dR10.transpose());
 			frame_curr->setSteeringAngle(steering_angle_curr);
-			
+
 			// Detect turn region by a steering angle.
 			if(scale_estimator_->detectTurnRegions(frame_curr)){
 				FramePtrVec frames_turn_tmp;
@@ -480,7 +480,7 @@ statcurr_frame.steering_angle = steering_angle_curr;
 			for(int i = 0; i < pxvec0_1p.size(); ++i){
 				if( maskvec_inlier[i] ) {
 					lmvec1_1p[i]->addObservationAndRelatedFrame(pxvec1_1p[i], frame_curr);
-					avg_flow += lmvec1_1p[i]->getAvgOptFlow();
+					avg_flow += lmvec1_1p[i]->getLastOptFlow();
 					if(lmvec1_1p[i]->getMaxParallax() > params_.map_update.thres_parallax) {
 						++cnt_parallax_ok;
 						// lmvec1_1p[i]->set3DPoint(X0_inlier[i]);
@@ -496,7 +496,7 @@ statcurr_frame.steering_angle = steering_angle_curr;
 			std::cout << " AVERAGE FLOW : " << avg_flow << " px\n";
 			std::cout << " Parallax OK : " << cnt_parallax_ok << std::endl;
 			// Scale forward propagation
-			if(frame_curr->getID() > 5 && avg_flow > 1.5)
+			if(frame_curr->getID() > 3 && avg_flow > 0.5)
 				scale_estimator_->module_ScaleForwardPropagation(lmvec1_final, all_frames_,dT10);
 
 #ifdef RECORD_FRAME_STAT
