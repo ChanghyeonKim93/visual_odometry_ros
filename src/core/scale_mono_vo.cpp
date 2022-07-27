@@ -345,9 +345,9 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 			
 			this->saveLandmarks(lmvec0);	
 
-			if( true )
+			if( true ){
 				this->showTracking("img_features", frame_curr->getImage(), pxvec0, PixelVec(), PixelVec());
-
+			}
 			// 첫 이미지 업데이트 완료
 			system_flags_.flagFirstImageGot = true;
 		}
@@ -404,22 +404,10 @@ timer::tic();
 			// 1-point RANSAC 을 이용하여 outlier를 제거 & tentative steering angle 구함.
 			MaskVec maskvec_1p;
 			float steering_angle_curr = motion_estimator_->findInliers1PointHistogram(pxvec0_alive, pxvec1_alive, cam_, maskvec_1p);
-			frame_curr->setSteeringAngle(steering_angle_curr);
-
-			// Detect turn region by a steering angle.
-			if(scale_estimator_->detectTurnRegions(frame_curr)){
-				FramePtrVec frames_turn_tmp;
-				frames_turn_tmp = scale_estimator_->getAllTurnRegions();
-				for(auto f :frames_turn_tmp)
-					stat_.stat_turn.turn_regions.push_back(f);
-			}
-
+			
 
 #ifdef RECORD_EXECUTION_STAT
 statcurr_execution.time_1p = timer::toc(false);
-#endif
-#ifdef RECORD_FRAME_STAT
-statcurr_frame.steering_angle = steering_angle_curr;
 #endif
 			PixelVec       pxvec0_1p;
 			PixelVec       pxvec1_1p;
@@ -459,12 +447,28 @@ statcurr_execution.time_5p = timer::toc(false);
 			// Frame_curr의 자세를 넣는다.
 			float scale;
 			if(frame_curr->getID() > 300) scale = 0.33;
-			else scale = 0.88;
+			else scale = 0.90;
 			PoseSE3 dT10; dT10 << dR10, scale*dt10, 0.0f, 0.0f, 0.0f, 1.0f;
 			PoseSE3 dT01 = dT10.inverse();
 
 			frame_curr->setPose(frame_prev_->getPose()*dT01);		
 			frame_curr->setPoseDiff10(dT10);		
+
+			// Steering angle을 계산한다.
+			steering_angle_curr = motion_estimator_->calcSteeringAngleFromRotationMat(dR10.transpose());
+			frame_curr->setSteeringAngle(steering_angle_curr);
+			
+			// Detect turn region by a steering angle.
+			if(scale_estimator_->detectTurnRegions(frame_curr)){
+				FramePtrVec frames_turn_tmp;
+				frames_turn_tmp = scale_estimator_->getAllTurnRegions();
+				for(auto f :frames_turn_tmp)
+					stat_.stat_turn.turn_regions.push_back(f);
+			}
+
+#ifdef RECORD_FRAME_STAT
+statcurr_frame.steering_angle = steering_angle_curr;
+#endif
 
 			// tracking, 5p algorithm, newpoint 모두 합쳐서 살아남은 점만 frame_curr에 넣는다
 			float avg_flow = 0.0f;
@@ -492,7 +496,7 @@ statcurr_execution.time_5p = timer::toc(false);
 			std::cout << " AVERAGE FLOW : " << avg_flow << " px\n";
 			std::cout << " Parallax OK : " << cnt_parallax_ok << std::endl;
 			// Scale forward propagation
-			if(frame_curr->getID() > 3 && avg_flow > 2.5)
+			if(frame_curr->getID() > 5 && avg_flow > 1.5)
 				scale_estimator_->module_ScaleForwardPropagation(lmvec1_final, all_frames_,dT10);
 
 #ifdef RECORD_FRAME_STAT
@@ -526,9 +530,11 @@ statcurr_execution.time_total = statcurr_execution.time_new + statcurr_execution
 #ifdef RECORD_LANDMARK_STAT
 statcurr_landmark.n_new = pxvec1_new.size();
 #endif
-			if( true )
-				this->showTracking("img_features", frame_curr->getImage(), pxvec0_final, pxvec1_final, pxvec1_new);
-			
+			if( true ){
+				// this->showTracking("img_features", frame_curr->getImage(), pxvec0_final, pxvec1_final, pxvec1_new);
+				this->showTracking("img_features", frame_curr->getImage(), lmvec1_final);
+			}
+
 			if( pxvec1_new.size() > 0 ){
 				// 새로운 특징점은 새로운 landmark가 된다.
 				for(auto p1_new : pxvec1_new) {
@@ -684,6 +690,33 @@ void ScaleMonoVO::showTracking(const std::string& window_name, const cv::Mat& im
 		cv::circle(img_draw, pts1_new[i], 2.0, cv::Scalar(255,0,0),1); // blue new points
 	}
 	
+	cv::imshow(window_name, img_draw);
+	cv::waitKey(3);
+};
+
+
+void ScaleMonoVO::showTracking(const std::string& window_name, const cv::Mat& img, const LandmarkPtrVec& lms){
+	cv::namedWindow(window_name);
+	cv::Mat img_draw;
+	img.copyTo(img_draw);
+	cv::cvtColor(img_draw, img_draw, CV_GRAY2RGB);
+
+	for(int i = 0; i < lms.size(); ++i){
+		const LandmarkPtr& lm = lms[i];
+		const PixelVec& pts = lm->getObservations();
+		// std::cout <<"track size: " << pts.size() <<std::endl;
+		uint32_t n_past = pts.size();
+		if(n_past > 5) n_past = 5;
+		for(int j = pts.size()-1; j >= pts.size()-n_past+1; --j){
+			const Pixel& p1 = pts[j];
+			const Pixel& p0 = pts[j-1];
+			cv::line(img_draw, p0,p1, cv::Scalar(0,255,255),1);
+			cv::circle(img_draw, p0, 3.0, cv::Scalar(0,0,0),2); // green tracked points
+			cv::circle(img_draw, p0, 2.0, cv::Scalar(0,255,0),1); // green tracked points
+			cv::circle(img_draw, p1, 3.0, cv::Scalar(0,0,0),2); // green tracked points
+			cv::circle(img_draw, p1, 2.0, cv::Scalar(0,255,0),1); // green tracked points
+		}
+	}
 	cv::imshow(window_name, img_draw);
 	cv::waitKey(3);
 };

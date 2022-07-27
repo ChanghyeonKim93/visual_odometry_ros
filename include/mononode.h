@@ -59,6 +59,7 @@ private:
     std::string topicname_trajectory_;
 
     ros::Publisher pub_map_points_;
+    PointVec mappoints_;
     std::string topicname_map_points_;
 
     ros::Publisher pub_statistics_;

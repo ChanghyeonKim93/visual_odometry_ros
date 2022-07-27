@@ -110,6 +110,8 @@ void MonoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
     // update camera pose.
     double time_now = cv_ptr->header.stamp.toSec();
     scale_mono_vo_->trackImage(cv_ptr->image, time_now);
+    // scale_mono_vo_->trackImageLocalBundle(cv_ptr->image, time_now);
+    // scale_mono_vo_->trackImageAP3P(cv_ptr->image, time_now);
 
     // Get odometry results
     ScaleMonoVO::AlgorithmStatistics stat;
@@ -176,7 +178,6 @@ void MonoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
     msg_pose.pose.pose.position.z = Twc(2,3);
     
     Eigen::Vector4f q = geometry::r2q_f(Twc.block<3,3>(0,0));
-
     msg_pose.pose.pose.orientation.w = q(0);
     msg_pose.pose.pose.orientation.x = q(1);
     msg_pose.pose.pose.orientation.y = q(2);
@@ -184,6 +185,8 @@ void MonoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
 
     pub_pose_.publish(msg_pose);
 
+
+    // Publish estimated path
     geometry_msgs::PoseStamped p;
     p.header.frame_id = "map";
     p.header.stamp = ros::Time::now();
@@ -195,6 +198,15 @@ void MonoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
 
     pub_trajectory_.publish(msg_trajectory_);
 
+
+    // Publish mappoints
+    sensor_msgs::PointCloud2 msg_mappoint;
+    for(auto x : stat.stats_frame.back().mappoints){
+        mappoints_.push_back(x);
+    }
+    convertPointVecToPointCloud2(mappoints_,msg_mappoint, "map");
+    pub_map_points_.publish(msg_mappoint);
+    
 
     // Turn region display
     msg_turns_.header.frame_id = "map";

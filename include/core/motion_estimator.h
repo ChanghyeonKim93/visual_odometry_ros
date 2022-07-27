@@ -20,6 +20,7 @@
 #include "core/mapping.h"
 
 #include "util/histogram.h"
+#include "util/geometry_library.h"
 
 class MotionEstimator;
 
@@ -35,20 +36,31 @@ public:
     float findInliers1PointHistogram(const PixelVec& pts0, const PixelVec& pts1, const std::shared_ptr<Camera>& cam,
         MaskVec& maskvec_inlier);
 
+    bool calcPoseLocalBundleAdjustment(const PointVec& X, const PixelVec& pts1, const std::shared_ptr<Camera>& cam,
+        Rot3& R01_true, Pos3& t01_true, MaskVec& mask_inlier);
+
+    float calcSteeringAngleFromRotationMat(const Rot3& R);
+
+public:
     void calcSampsonDistance(const PixelVec& pts0, const PixelVec& pts1, const std::shared_ptr<Camera>& cam, 
                             const Rot3& R10, const Pos3& t10, std::vector<float>& sampson_dist);
+
+    void calcSymmetricEpipolarDistance(const PixelVec& pts0, const PixelVec& pts1, const std::shared_ptr<Camera>& cam, 
+                            const Rot3& R10, const Pos3& t10, std::vector<float>& sym_epi_dist);
 
 public:
     void setThres1p(float thres_1p);
     void setThres5p(float thres_5p);
 
 private:
- 
     bool findCorrectRT(
         const std::vector<Eigen::Matrix3f>& R10_vec, const std::vector<Eigen::Vector3f>& t10_vec, 
         const PixelVec& pxvec0, const PixelVec& pxvec1, const std::shared_ptr<Camera>& cam,
         Rot3& R10_true, Pos3& t10_true, 
         MaskVec& maskvec_true, PointVec& X0);
+
+    void refineEssentialMat(const PixelVec& pts0, const PixelVec& pts1, const MaskVec& mask, const std::shared_ptr<Camera>& cam,
+        Mat33& E);
 
 private:
     float thres_1p_;

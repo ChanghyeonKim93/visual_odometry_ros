@@ -12,7 +12,7 @@ MotionEstimator::~MotionEstimator(){
 bool MotionEstimator::calcPose5PointsAlgorithm(const PixelVec& pts0, const PixelVec& pts1, const std::shared_ptr<Camera>& cam,
     Rot3& R10_true, Pos3& t10_true, PointVec& X0_true, MaskVec& mask_inlier)
 {
-    std::cout <<" - MotionEstimator - 'calcPose5PointsAlgorithm()'\n";
+    // std::cout <<" - MotionEstimator - 'calcPose5PointsAlgorithm()'\n";
     if(pts0.size() != pts1.size()) {
         throw std::runtime_error("calcPose5PointsAlgorithm(): pts0.size() != pts1.size()");
         return false;
@@ -29,11 +29,6 @@ bool MotionEstimator::calcPose5PointsAlgorithm(const PixelVec& pts0, const Pixel
     essential = cv::findEssentialMat(pts0, pts1, cam->cvK(), cv::RANSAC, 0.999, thres_5p_, inlier_mat);
     // essential = cv::findEssentialMat(pts0, pts1, cam->cvK(), cv::LMEDS, 0.999, 1.0, inlier_mat);
     
-    // Calculate fundamental matrix
-    Eigen::Matrix3f E10, F10;
-    cv::cv2eigen(essential, E10);
-    F10 = cam->Kinv().transpose() * E10 * cam->Kinv();
-
     // Check inliers
     uint32_t cnt_5p = 0;
     bool* ptr_inlier = inlier_mat.ptr<bool>(0);
@@ -45,6 +40,16 @@ bool MotionEstimator::calcPose5PointsAlgorithm(const PixelVec& pts0, const Pixel
         } 
         else maskvec_5p[i] = false;
     }
+
+    // Calculate fundamental matrix
+    Mat33 E10, F10;
+    cv::cv2eigen(essential, E10);
+
+    // Refine essential matrix
+    refineEssentialMat(pts0,pts1, maskvec_5p, cam, E10);
+
+    F10 = cam->Kinv().transpose() * E10 * cam->Kinv();
+
 
     // Extract R, t
     Eigen::Matrix3f U,V;
@@ -136,16 +141,24 @@ bool MotionEstimator::calcPosePnPAlgorithm(const PointVec& Xw, const PixelVec& p
     cv::Rodrigues(R_cv, r_vec);
 
     std::vector<int> idx_inlier;
-    float pnp_reprojection_error = 0.5; // pixels
+    float pnp_reprojection_error = 1.5; // pixels
+    // bool flag = cv::solvePnPRansac(object_pts, pts_c, cam->cvK(), cv::noArray(),
+    //                                 r_vec, t_vec, true, 1e3,
+    //                                 pnp_reprojection_error,     0.99, idx_inlier, cv::SOLVEPNP_AP3P);
+    // if (!flag){
+    //     flag = cv::solvePnPRansac(object_pts, pts_c, cam->cvK(), cv::noArray(),
+    //                                 r_vec, t_vec, true, 1e3,
+    //                                 2.0*pnp_reprojection_error, 0.99, idx_inlier, cv::SOLVEPNP_AP3P);
+    // }
     bool flag = cv::solvePnPRansac(object_pts, pts_c, cam->cvK(), cv::noArray(),
                                     r_vec, t_vec, true, 1e3,
-                                    pnp_reprojection_error,     0.99, idx_inlier, cv::SOLVEPNP_AP3P);
+                                    pnp_reprojection_error, 0.99, idx_inlier, cv::SOLVEPNP_EPNP);
     if (!flag){
         flag = cv::solvePnPRansac(object_pts, pts_c, cam->cvK(), cv::noArray(),
                                     r_vec, t_vec, true, 1e3,
-                                    2.0*pnp_reprojection_error, 0.99, idx_inlier, cv::SOLVEPNP_AP3P);
+                                    2 * pnp_reprojection_error, 0.99, idx_inlier, cv::SOLVEPNP_EPNP);
     }
-    
+
     // change format
     cv::Rodrigues(r_vec, R_cv);
     cv::cv2eigen(R_cv, Rwc);
@@ -159,6 +172,8 @@ bool MotionEstimator::calcPosePnPAlgorithm(const PointVec& Xw, const PixelVec& p
     }
 
     std::cout << "PnP inliers: " << num_inliers << " / " << n_pts << std::endl;
+
+    if((float)num_inliers/(float)idx_inlier.size() < 0.6f) flag = false;
 
     return flag;
 };
@@ -218,6 +233,95 @@ bool MotionEstimator::findCorrectRT(
 	return success;
 };
 
+
+void MotionEstimator::refineEssentialMat(const PixelVec& pts0, const PixelVec& pts1, const MaskVec& mask, const std::shared_ptr<Camera>& cam,
+    Mat33& E)
+{
+
+    if(pts0.size() != pts1.size() )
+        throw std::runtime_error("Error in 'refineEssentialMat()': pts0.size() != pts1.size()");
+
+    int n_pts = pts0.size(); 
+    int n_pts_valid = 0;
+    for(int i = 0; i < n_pts; ++i){
+        if(mask[i]) ++n_pts_valid;
+    }
+
+    Eigen::MatrixXf M,M_weight;
+    M = Eigen::MatrixXf(n_pts_valid,9);
+    M_weight = Eigen::MatrixXf(n_pts_valid,9);
+
+    std::cout <<"size: " << M.rows() << ", " <<  M.cols() <<std::endl;
+
+    int idx = 0;
+    float fx = cam->fx();
+    float fy = cam->fy();
+    float fxinv = cam->fxinv();
+    float fyinv = cam->fyinv();
+    float cx = cam->cx();
+    float cy = cam->cy();
+
+    for(int i = 0; i < n_pts; ++i) {
+        if(mask[i]){
+            float x0 = fxinv*(pts0[i].x-cx);
+            float y0 = fyinv*(pts0[i].y-cy);
+            float x1 = fxinv*(pts1[i].x-cx);
+            float y1 = fyinv*(pts1[i].y-cy);
+            M(idx,0) = x0*x1;
+            M(idx,1) = y0*x1;
+            M(idx,2) = x1;
+            M(idx,3) = x0*y1;
+            M(idx,4) = y0*y1;
+            M(idx,5) = y1;
+            M(idx,6) = x0;
+            M(idx,7) = y0;
+            M(idx,8) = 1.0f;
+            ++idx;
+        }
+    }
+
+    // solve!
+    Eigen::MatrixXf U,V;
+    Eigen::JacobiSVD<Eigen::MatrixXf> svd(M, Eigen::ComputeFullU | Eigen::ComputeFullV);
+    U = svd.matrixU();
+    V = svd.matrixV();
+
+    Eigen::Matrix<float,9,1> e_vec;
+    e_vec(0) = V(0,8);
+    e_vec(1) = V(1,8);
+    e_vec(2) = V(2,8);
+    e_vec(3) = V(3,8);
+    e_vec(4) = V(4,8);
+    e_vec(5) = V(5,8);
+    e_vec(6) = V(6,8);
+    e_vec(7) = V(7,8);
+    e_vec(8) = V(8,8);
+
+    float inv_last = 1.0f/e_vec(8);
+    for(int i = 0; i < 9; ++i){
+        e_vec(i) *= inv_last;
+    }
+    Mat33 E_est ;
+    E_est << e_vec(0),e_vec(1),e_vec(2),
+            e_vec(3),e_vec(4),e_vec(5),
+            e_vec(6),e_vec(7),e_vec(8);
+    Eigen::Matrix3f U3, V3, S3;
+    Eigen::Vector3f s3;
+    Eigen::JacobiSVD<Eigen::Matrix3f> svd3(E_est, Eigen::ComputeFullU | Eigen::ComputeFullV);
+    U3 = svd3.matrixU();
+    s3 = svd3.singularValues();
+    V3 = svd3.matrixV();
+    S3 << 1,0,0,0,1,0,0,0,0;
+    E_est = U3*S3*V3.transpose();
+
+    // std::cout << " e_vec:\n" << (E_est /= E_est(2,2)) << std::endl;
+    // std::cout << " Essential : \n" << (E /=E(2,2)) << std::endl;
+
+    E = E_est;
+
+};
+
+
 float MotionEstimator::findInliers1PointHistogram(const PixelVec& pts0, const PixelVec& pts1, const std::shared_ptr<Camera>& cam,
     MaskVec& maskvec_inlier){
     
@@ -267,7 +371,8 @@ float MotionEstimator::findInliers1PointHistogram(const PixelVec& pts0, const Pi
     t10 << sin(th_opt*0.5f), 0.0f, cos(th_opt*0.5f);
 
     std::vector<float> sampson_dist;
-    this->calcSampsonDistance(pts0, pts1, cam, R10, t10, sampson_dist);
+    // this->calcSampsonDistance(pts0, pts1, cam, R10, t10, sampson_dist);
+    this->calcSymmetricEpipolarDistance(pts0, pts1, cam, R10, t10, sampson_dist);
 
     float thres_sampson = thres_1p_; // 15.0 px
     thres_sampson *= thres_sampson;
@@ -315,9 +420,204 @@ void MotionEstimator::calcSampsonDistance(const PixelVec& pts0, const PixelVec& 
 };
 
 
+void MotionEstimator::calcSymmetricEpipolarDistance(const PixelVec& pts0, const PixelVec& pts1, const std::shared_ptr<Camera>& cam, 
+    const Rot3& R10, const Pos3& t10, std::vector<float>& sym_epi_dist)
+{
+    if(pts0.size() != pts1.size()) 
+        throw std::runtime_error("Error in 'fineInliers1PointHistogram()': pts0.size() != pts1.size()");
+    
+    int n_pts = pts0.size();
+    
+    sym_epi_dist.resize(n_pts);
+
+    Eigen::Matrix3f E10,F10, F10t;
+
+    E10 = Mapping::skew(t10)*R10;
+    F10 = cam->Kinv().transpose()*E10*cam->Kinv();
+    F10t = F10.transpose();
+
+    for(int i = 0; i < n_pts; ++i){
+        Point p0,p1;
+        p0 << pts0[i].x, pts0[i].y, 1.0f;
+        p1 << pts1[i].x, pts1[i].y, 1.0f;
+
+        Point F10p0  = F10*p0;
+        Point F10tp1 = F10t*p1;
+        
+        float numerator = p1.transpose()*F10p0;
+        numerator *= numerator;
+        float denominator = 1.0f/(F10p0(0)*F10p0(0) + F10p0(1)*F10p0(1)) + 1.0f*(F10tp1(0)*F10tp1(0) + F10tp1(1)*F10tp1(1));
+        float dist_tmp = numerator * denominator;
+        sym_epi_dist[i] = dist_tmp;
+    }
+};
+
+
 void MotionEstimator::setThres1p(float thres_1p){
     thres_1p_ = thres_1p; // pixels
 };
 void MotionEstimator::setThres5p(float thres_5p){
     thres_5p_ = thres_5p; // pixels
+};
+
+
+
+bool MotionEstimator::calcPoseLocalBundleAdjustment(const PointVec& X, const PixelVec& pts1, const std::shared_ptr<Camera>& cam,
+    Rot3& R01_true, Pos3& t01_true, MaskVec& mask_inlier)
+{
+    // X is represented in the world frame.
+    if(X.size() != pts1.size()) 
+        throw std::runtime_error("In 'calcPoseLocalBundleAdjustment()': Xw.size() != pts1.size().");
+    
+    bool is_success = true;
+
+    int n_pts = X.size();
+    mask_inlier.resize(n_pts);
+    
+    int MAX_ITER = 500;
+    float THRES_HUBER = 1.0f; // pixels
+
+    float lambda = 0.0001f;
+    float step_size = 1.0f;
+    float thres_reproj_error = 4.0; // pixels
+    
+    float fx = cam->fx();
+    float fy = cam->fy();
+    float cx = cam->cx();
+    float cy = cam->cy();
+    float fxinv = cam->fxinv();
+    float fyinv = cam->fyinv();
+
+    PoseSE3 T10_init;
+    T10_init << R01_true.transpose(), -R01_true.transpose()*t01_true,0,0,0,1;
+    
+    PoseSE3Tangent xi10; // se3
+    geometry::SE3Log_f(T10_init,xi10);
+    
+    for(uint32_t iter = 0; iter < MAX_ITER; ++iter){
+        PoseSE3 T10;
+        geometry::se3Exp_f(xi10,T10);
+
+        Rot3 R10 = T10.block<3,3>(0,0);
+        Pos3 t10 = T10.block<3,1>(0,3);
+
+        Eigen::Matrix<float,6,6> JtWJ;
+        Eigen::Matrix<float,6,1> mJtWr;
+        JtWJ.setZero();
+        mJtWr.setZero();
+
+        float err_prev = 1e15f;
+        float err_curr = 0.0f;
+        float inv_npts = 1.0f/(float)n_pts;
+        // Warp and project point & calculate error...
+        for(int i = 0; i < n_pts; ++i) {
+            const Pixel& pt = pts1[i];
+            Point Xw = R10*X[i] + t10;
+
+            float iz = 1.0f/Xw(2);
+            float xiz = Xw(0)*iz;
+            float yiz = Xw(1)*iz;
+            float fxxiz = fx*xiz;
+            float fyyiz = fy*yiz;
+
+            Pixel pt_warp;
+            pt_warp.x = fxxiz+cx;
+            pt_warp.y = fyyiz+cy;
+
+            float rx = pt_warp.x - pt.x;
+            float ry = pt_warp.y - pt.y;
+            
+            // Huber weight calculation by the Manhattan distance
+            float weight     = 1.0f;
+            bool flag_weight = false;
+
+            float absrxry = abs(rx)+abs(ry);
+            if(absrxry >= THRES_HUBER){
+                weight = THRES_HUBER/absrxry; 
+                flag_weight = true;
+            } 
+
+            if(absrxry >= thres_reproj_error)
+                mask_inlier[i] = false;
+            else 
+                mask_inlier[i] = true;
+
+            // JtWJ, JtWr for x
+            Eigen::Matrix<float,6,1> Jt;
+            Jt(0,0) = fx*iz;
+            Jt(1,0) = 0.0f;
+            Jt(2,0) = -fxxiz*iz;
+            Jt(3,0) = -fxxiz*yiz;
+            Jt(4,0) = fx*(1.0f+xiz*xiz);
+            Jt(5,0) = -fx*yiz;
+
+            if(flag_weight) {
+                JtWJ += weight*(Jt*Jt.transpose());
+                float w_rx = weight*rx;
+                mJtWr -= (w_rx)*Jt;
+                err_curr += w_rx*rx;
+            }
+            else {
+                JtWJ += Jt*Jt.transpose();
+                mJtWr -= rx*Jt;
+                err_curr += rx*rx;
+            }
+
+            // JtWJ, JtWr for y
+            Jt(0,0) = 0.0f;
+            Jt(1,0) = fy*iz;
+            Jt(2,0) =-fyyiz*iz;
+            Jt(3,0) =-fy*(1.0f+yiz*yiz);
+            Jt(4,0) = fyyiz*xiz;
+            Jt(5,0) = fy*xiz;
+
+             if(flag_weight) {
+                JtWJ += weight*(Jt*Jt.transpose());
+                float w_ry = weight*ry;
+                mJtWr -= (w_ry)*Jt;
+                err_curr += w_ry*ry;
+            }
+            else {
+                JtWJ += Jt*Jt.transpose();
+                mJtWr -= ry*Jt;
+                err_curr += ry*ry;
+            }
+        } // END FOR
+
+        // Solve H^-1*Jtr;
+        for(int i = 0; i < 6; ++i) JtWJ(i,i) += lambda*JtWJ(i,i); // lambda 
+        PoseSE3Tangent delta_xi = JtWJ.ldlt().solve(mJtWr);
+        delta_xi *= step_size; 
+        xi10 += delta_xi;
+        std::cout << "reproj. err. (avg): " << err_curr*inv_npts*0.5f << ", step: " << delta_xi.transpose() << std::endl;
+        if(delta_xi.norm() < 1e-6){
+            std::cout << "pose estimation stops at : " << iter <<"\n";
+            break;
+        }
+    }
+
+    PoseSE3 T01_update;
+    geometry::se3Exp_f(-xi10, T01_update);
+    R01_true = T01_update.block<3,3>(0,0);
+    t01_true = T01_update.block<3,1>(0,3);
+
+    std::cout <<"BA result:\n";
+    std::cout << "R01_ba:\n" << R01_true <<"\n";
+    std::cout << "t01_ba:\n" << t01_true <<"\n";
+
+    return is_success;
+};
+
+float MotionEstimator::calcSteeringAngleFromRotationMat(const Rot3& R){
+    float psi = 0;
+    Mat33 S = R-R.transpose();
+    Vec3 v;
+    v << -S(1,2),S(0,2),-S(0,1);
+
+    Vec3 j_vec; j_vec << 0,1,0;
+    float vjdot = v.dot(j_vec);
+
+    psi = acos(0.5*(R.trace()-1.0f));
+    if(vjdot < 0) psi = -psi;
+    return psi;
 };

@@ -58,6 +58,9 @@ private:
     void runThread();
     void process(std::shared_future<void> terminate_signal);
 
+private:
+    float calcScaleByKinematics(float psi, const Pos3& u01, float L);
+    
 // Functions related to the Scale Forward Propagation 
 private:
     void solveLeastSquares_SFP(const SpMat& AtA, const SpVec& Atb, uint32_t M_tmp,

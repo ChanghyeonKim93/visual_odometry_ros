@@ -57,7 +57,7 @@ void FeatureTracker::trackBidirection(const cv::Mat& img0, const cv::Mat& img1, 
     std::vector<float> err_forward;
     cv::calcOpticalFlowPyrLK(img0, img1, 
         pts0, pts_track, 
-        status_forward, err_forward, cv::Size(window_size,window_size), maxLevel+1);
+        status_forward, err_forward, cv::Size(window_size,window_size), maxLevel);
     
     // backward tracking
     PixelVec pts0_backward(n_pts);
@@ -81,7 +81,7 @@ void FeatureTracker::trackBidirection(const cv::Mat& img0, const cv::Mat& img1, 
             && status_forward[i]
             && status_backward[i]
             && err_forward[i]  <= thres_err
-            && err_backward[i] <= thres_err
+            && err_backward[i] <= thres_err*0.5
             && dist2 <= thres_bidirection2
         );
     }

@@ -21,7 +21,7 @@ ScaleEstimator::ScaleEstimator(const std::shared_ptr<std::mutex> mut,
     thres_age_past_horizon_ = 20;
     thres_age_use_          = 2;
     thres_age_recon_        = 15;
-    thres_flow_             = 10.0;
+    thres_flow_             = 5.0;
 
     thres_parallax_use_   = 0.5*D2R;
     thres_parallax_recon_ = 60*D2R;
@@ -30,7 +30,7 @@ ScaleEstimator::ScaleEstimator(const std::shared_ptr<std::mutex> mut,
     runThread();
 
     printf(" - SCALE_ESTIMATOR is constructed.\n");
-};  
+};
 
 ScaleEstimator::~ScaleEstimator(){
     // Terminate signal .
@@ -120,10 +120,10 @@ void ScaleEstimator::module_ScaleForwardPropagation(const LandmarkPtrVec& lmvec,
         if(    lm->getAge()          >= thres_age_use_ 
             // && lm->getAvgOptFlow()   >= thres_flow_
             && lm->getLastParallax() >= thres_parallax_use_
-            && lm->getTriangulated() == false) 
+            && lm->isTriangulated() == false) 
                 lms_no_depth.push_back(lm);    
 
-        if(lm->getTriangulated()) 
+        if(lm->isTriangulated()) 
             lms_depth.push_back(lm);
     }
 
@@ -305,6 +305,8 @@ void ScaleEstimator::module_ScaleForwardPropagation(const LandmarkPtrVec& lmvec,
         dT10_est << dRj, uj*scale_est,0,0,0,1;
         frame_curr->setPose(Twjm1*dT10_est.inverse());
         frame_curr->setPoseDiff10(dT10_est);
+        frame_curr->setScale(scale_est);
+
 
         // Update points
         idx = 0;
@@ -332,7 +334,6 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame){
     bool flag_turn_detected = false;
 
     float psi = frame->getSteeringAngle();
-    std::cout <<"psi : " << psi << ", threspsi: " << thres_psi_ << std::endl;
     if( abs(psi) > thres_psi_ ) { // Current psi is over the threshold
         frames_t1_.push_back(frame); // Stack the 
         ++cnt_turn_;
@@ -347,7 +348,19 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame){
             std::cout << " TURN REGION IS DETECTED!\n";
 
             // Calculate scale of the Turn regions.
-            
+            float L = 1.05;
+            float mean_scale = 0.0f;
+            for(auto f : frames_t1_){
+                Pos3 u01 = f->getPoseDiff01().block<3,1>(0,3);
+                float s = calcScaleByKinematics(f->getSteeringAngle(), u01, L);
+                // PoseSE3 dT10_est;
+                // dT10_est << dRj, uj*scale_est,0,0,0,1;
+                // frame_curr->setPose(Twjm1*dT10_est.inverse());
+                // frame_curr->setPoseDiff10(dT10_est);
+                std::cout << f->getID() << "-th image scale : " << s << std::endl;
+                f->setScale(s);
+                f->makeThisTurningFrame();
+            }
             flag_turn_detected = true;
 
             // Update turn regions
@@ -530,4 +543,19 @@ void ScaleEstimator::setSFP_ThresParallaxUse(float thres_parallax_use){
 };
 void ScaleEstimator::setSFP_ThresParallaxRecon(float thres_parallax_recon){
     thres_parallax_recon_ = thres_parallax_recon;
+};
+
+float ScaleEstimator::calcScaleByKinematics(float psi, const Pos3& u01, float L){
+    
+    float costheta = u01(2)/u01.norm();
+    if(costheta >= 0.99999f) costheta = 0.99999f;
+    if(costheta <= -0.99999f) costheta = -0.99999f;
+
+    float theta = acos(costheta);
+
+    psi = abs(psi);
+    theta = abs(theta);
+
+    float s = L*2.0f*(sin(psi)/(sin(theta)-sin(psi-theta)));
+    return s;
 };

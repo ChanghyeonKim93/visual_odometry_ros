@@ -31,6 +31,7 @@ private:
     PoseSE3 dT01_;
 
     float steering_angle_;
+    float scale_;
 
     cv::Mat image_;
 
@@ -41,6 +42,7 @@ private:
     double timestamp_;
 
     bool is_keyframe_;
+    bool is_turning_frame_;
     
 public: // static counter.
     inline static uint32_t frame_counter_ = 0;
@@ -53,6 +55,8 @@ public:
     void setPose(const Eigen::Matrix4f& Twc);
     void setPoseDiff10(const Eigen::Matrix4f& dT10);
     void setSteeringAngle(float st_angle);
+    void setScale(float scale);
+    void makeThisTurningFrame();
     void setImageAndTimestamp(const cv::Mat& img, const double& timestamp); 
     void setRelatedLandmarks(const LandmarkPtrVec& landmarks);
     void setPtsSeen(const PixelVec& pts);
@@ -64,11 +68,13 @@ public:
     const PoseSE3& getPoseDiff10() const;
     const PoseSE3& getPoseDiff01() const;
     const float& getSteeringAngle() const;
+    const float& getScale() const;
     const cv::Mat& getImage() const ; 
     const LandmarkPtrVec& getRelatedLandmarkPtr() const;
     const PixelVec& getPtsSeen() const;
     const double& getTimestamp() const;
     bool isKeyframe() const;
+    bool isTurningFrame() const;
 };
 
 #endif

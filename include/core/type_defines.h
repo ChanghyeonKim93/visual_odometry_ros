@@ -42,6 +42,8 @@ typedef Eigen::Matrix4f           PoseSE3;
 typedef Eigen::Matrix3f           Mat33;
 typedef Eigen::Vector3f           Vec3;
 
+typedef Eigen::Matrix<float,6,1>  PoseSE3Tangent;
+
 // For large matrix
 typedef Eigen::SparseMatrix<float> SpMat;
 typedef Eigen::SparseVector<float> SpVec;

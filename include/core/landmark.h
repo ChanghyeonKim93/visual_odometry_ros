@@ -69,8 +69,9 @@ public:
     const Point&       get3DPoint() const;
     const PixelVec&    getObservations() const;
     const FramePtrVec& getRelatedFramePtr() const;
-    const bool&        getAlive() const;
-    const bool&        getTriangulated() const;
+    
+    const bool&        isAlive() const;
+    const bool&        isTriangulated() const;
 
     float              getMinParallax() const;  
     float              getMaxParallax() const;  

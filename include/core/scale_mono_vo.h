@@ -154,24 +154,28 @@ public:
 			PoseSE3 Tcw;
 			PoseSE3 dT_01; // motion from prev to curr
 			PoseSE3 dT_10; // motion from curr to prev
+			PointVec mappoints;
 
 			FrameStatistics() : steering_angle(0.0f) { 
 				Twc   = PoseSE3::Identity();
 				Tcw   = PoseSE3::Identity();
 				dT_01 = PoseSE3::Identity();
 				dT_10 = PoseSE3::Identity();
+				mappoints.reserve(500);
 			};
+
 		};
 
 		struct ExecutionStatistics{
 			float time_track; // execution time per frame
 			float time_1p; // execution time per frame
 			float time_5p; // execution time per frame
+			float time_localba; // execution time per frame
 			float time_new; // execution time per frame
 			float time_total; // execution time per frame
 
 			ExecutionStatistics() : time_total(0.0f),
-			time_track(0.0f), time_1p(0.0f), time_5p(0.0f), time_new(0.0f) {};
+			time_track(0.0f), time_1p(0.0f), time_5p(0.0f), time_localba(0.0f), time_new(0.0f) {};
 		};
 
 		struct TurnRegionStatistics{
@@ -225,6 +229,8 @@ public:
 	~ScaleMonoVO();
 
 	void trackImage(const cv::Mat& img, const double& timestamp);
+	void trackImageLocalBundle(const cv::Mat& img, const double& timestamp);
+	void trackImageAP3P(const cv::Mat& img, const double& timestamp);
 
 	AlgorithmStatistics getStatistics() const;
 
@@ -240,6 +246,7 @@ private:
  
 private:
 	void showTracking(const std::string& window_name, const cv::Mat& img, const PixelVec& pts0, const PixelVec& pts1, const PixelVec& pts1_new);
+	void showTracking(const std::string& window_name, const cv::Mat& img, const LandmarkPtrVec& lms);
 
 private:
 	void runDataset(); // run algorithm

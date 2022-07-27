@@ -1,10 +1,11 @@
 #include "core/frame.h"
 std::shared_ptr<Camera> Frame::cam_ = nullptr;
 
-Frame::Frame() : is_keyframe_(false) {
+Frame::Frame() : is_keyframe_(false), is_turning_frame_(false) {
     Twc_ = PoseSE3::Identity();
     Tcw_ = PoseSE3::Identity();
     steering_angle_ = 0.0f;
+    scale_ = 0.0f;
     id_  = frame_counter_;
     timestamp_ = 0;
     ++frame_counter_;
@@ -14,12 +15,18 @@ void Frame::setPose(const PoseSE3& Twc) {
     Twc_ = Twc; 
     Tcw_ = Twc_.inverse();
 };
+
 void Frame::setPoseDiff10(const Eigen::Matrix4f& dT10){
     dT10_ = dT10;
     dT01_ = dT10.inverse();
 };
+
 void Frame::setSteeringAngle(float st_angle){
     steering_angle_ = st_angle;
+};
+
+void Frame::setScale(float scale){
+    scale_ = scale;
 };
 
 void Frame::setImageAndTimestamp(const cv::Mat& img, const double& timestamp) { 
@@ -41,7 +48,9 @@ void Frame::setPtsSeen(const PixelVec& pts){
 void Frame::makeThisKeyframe(){
     is_keyframe_ = true;
 };
-
+void Frame::makeThisTurningFrame(){
+    is_turning_frame_ = true;
+};
 const uint32_t& Frame::getID() const { 
     return id_; 
 };
@@ -60,6 +69,9 @@ const PoseSE3& Frame::getPoseDiff01() const{
 const float& Frame::getSteeringAngle() const{
     return steering_angle_;
 };
+const float& Frame::getScale() const {
+    return scale_;
+}
 
 const cv::Mat& Frame::getImage() const {
     return image_; 
@@ -79,4 +91,7 @@ const double& Frame::getTimestamp() const {
 
 bool Frame::isKeyframe() const{
     return is_keyframe_;
+};
+bool Frame::isTurningFrame() const {
+    return is_turning_frame_;
 };
