@@ -37,6 +37,11 @@ public:
 
     void calcSampsonDistance(const PixelVec& pts0, const PixelVec& pts1, const std::shared_ptr<Camera>& cam, 
                             const Rot3& R10, const Pos3& t10, std::vector<float>& sampson_dist);
+
+public:
+    void setThres1p(float thres_1p);
+    void setThres5p(float thres_5p);
+
 private:
  
     bool findCorrectRT(
@@ -44,6 +49,10 @@ private:
         const PixelVec& pxvec0, const PixelVec& pxvec1, const std::shared_ptr<Camera>& cam,
         Rot3& R10_true, Pos3& t10_true, 
         MaskVec& maskvec_true, PointVec& X0);
+
+private:
+    float thres_1p_;
+    float thres_5p_;
 };
 
 #endif

@@ -93,18 +93,32 @@ private:
 			float radius            = 15.0; // NONMAX pixel threshold
 		};
 		struct MotionEstimatorParameters{
-			float thres_5p_error    = 1.5; // sampson error threshold			
+			float thres_1p_error    = 10.0; // sampson error threshold			
+			float thres_5p_error    = 2.0; // sampson error threshold			
+		};
+		struct ScaleEstimatorParameters{
+			float thres_turn_psi       = 0.02; // rad
+			uint32_t thres_cnt_turns   = 0.02; // rad
+
+			uint32_t thres_age_past_horizon = 15; // 
+			uint32_t thres_age_use     = 3; // 
+			uint32_t thres_age_recon   = 8; // 
+
+			float thres_parallax_use   = 1.0; // degrees
+			float thres_parallax_recon = 20.0; // degrees
 		};
 		struct KeyframeUpdateParameters{
-			int thres_alive_ratio     = 0.7;
-			float thres_mean_parallax = 3.0*D2R;
+			float thres_alive_ratio     = 0.7;
+			float thres_mean_parallax   = 3.0*D2R;
 		};
 		struct MappingParameters{
 			float thres_parallax      = 1.0*D2R;
 		};
+
 		FeatureTrackerParameters   feature_tracker;
 		FeatureExtractorParameters feature_extractor;
 		MotionEstimatorParameters  motion_estimator;
+		ScaleEstimatorParameters   scale_estimator;
 		KeyframeUpdateParameters   keyframe_update;
 		MappingParameters          map_update;
 	};

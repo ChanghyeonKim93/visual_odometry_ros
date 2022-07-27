@@ -24,6 +24,8 @@
 #include <opencv2/core.hpp>
 
 #include "core/type_defines.h"
+#include "core/defines.h"
+
 #include "core/camera.h"
 #include "core/mapping.h"
 #include "core/landmark.h"
@@ -41,6 +43,16 @@ public:
 
     bool detectTurnRegions(const FramePtr& frame);
     const FramePtrVec& getAllTurnRegions() const;
+
+public:
+    void setTurnRegion_ThresPsi(float psi);
+    void setTurnRegion_ThresCountTurn(uint32_t thres_cnt_turn);
+
+    void setSFP_ThresAgePastHorizon(uint32_t age_past_horizon);
+    void setSFP_ThresAgeUse(uint32_t age_use);
+    void setSFP_ThresAgeRecon(uint32_t age_recon);
+    void setSFP_ThresParallaxUse(float thres_parallax_use);
+    void setSFP_ThresParallaxRecon(float thres_parallax_recon);
 
 private:
     void runThread();
@@ -72,8 +84,14 @@ private:
     uint32_t thres_cnt_turn_;
     float thres_psi_;
 
-    uint32_t thres_age_;
-    uint32_t thres_age_triangulate_;
+// SFP parameters
+private:
+    uint32_t thres_age_past_horizon_; // SFP parameter
+    uint32_t thres_age_use_;
+    uint32_t thres_age_recon_;
+    float thres_parallax_use_;
+    float thres_parallax_recon_;
+    
     float thres_flow_;
 
     FramePtrVec frames_t0_;
@@ -83,7 +101,6 @@ private:
     FramePtrVec frames_all_t_;
 
 private:
-    uint32_t N_max_past_; // SFP parameter
 
 // Variables to elegantly terminate TX & RX threads
 private:

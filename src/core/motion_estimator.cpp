@@ -1,7 +1,8 @@
 #include "core/motion_estimator.h"
 
 MotionEstimator::MotionEstimator(){
-
+    thres_1p_ = 10.0; // pixels
+    thres_5p_ = 1.5; // pixels
 };
 
 MotionEstimator::~MotionEstimator(){
@@ -25,7 +26,7 @@ bool MotionEstimator::calcPose5PointsAlgorithm(const PixelVec& pts0, const Pixel
 
     // Calculate essential matrix
     cv::Mat inlier_mat, essential;
-    essential = cv::findEssentialMat(pts0, pts1, cam->cvK(), cv::RANSAC, 0.999, 1.0, inlier_mat);
+    essential = cv::findEssentialMat(pts0, pts1, cam->cvK(), cv::RANSAC, 0.999, thres_5p_, inlier_mat);
     // essential = cv::findEssentialMat(pts0, pts1, cam->cvK(), cv::LMEDS, 0.999, 1.0, inlier_mat);
     
     // Calculate fundamental matrix
@@ -268,7 +269,7 @@ float MotionEstimator::findInliers1PointHistogram(const PixelVec& pts0, const Pi
     std::vector<float> sampson_dist;
     this->calcSampsonDistance(pts0, pts1, cam, R10, t10, sampson_dist);
 
-    float thres_sampson = 10.0; // 15.0 px
+    float thres_sampson = thres_1p_; // 15.0 px
     thres_sampson *= thres_sampson;
     for(int i = 0; i < n_pts; ++i){
         if(sampson_dist[i] <= thres_sampson) maskvec_inlier[i] = true;
@@ -311,4 +312,12 @@ void MotionEstimator::calcSampsonDistance(const PixelVec& pts0, const PixelVec& 
         float dist_tmp = numerator / denominator;
         sampson_dist[i] = dist_tmp;
     }
+};
+
+
+void MotionEstimator::setThres1p(float thres_1p){
+    thres_1p_ = thres_1p; // pixels
+};
+void MotionEstimator::setThres5p(float thres_5p){
+    thres_5p_ = thres_5p; // pixels
 };

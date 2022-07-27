@@ -52,12 +52,24 @@ ScaleMonoVO::ScaleMonoVO(std::string mode, std::string directory_intrinsic)
 
 	// Initialize motion estimator
 	motion_estimator_ = std::make_shared<MotionEstimator>();
+	motion_estimator_->setThres1p(params_.motion_estimator.thres_1p_error);
+	motion_estimator_->setThres5p(params_.motion_estimator.thres_5p_error);
 
 	// Initialize scale estimator
 	mut_scale_estimator_      = std::make_shared<std::mutex>();
 	cond_var_scale_estimator_ = std::make_shared<std::condition_variable>(); // New pose 가 도
 	flag_do_ASR_              = std::make_shared<bool>(false);
 	scale_estimator_          = std::make_shared<ScaleEstimator>(mut_scale_estimator_, cond_var_scale_estimator_, flag_do_ASR_);
+	
+	scale_estimator_->setTurnRegion_ThresCountTurn(params_.scale_estimator.thres_cnt_turns);
+	scale_estimator_->setTurnRegion_ThresPsi(params_.scale_estimator.thres_turn_psi*D2R);
+
+	scale_estimator_->setSFP_ThresAgePastHorizon(params_.scale_estimator.thres_age_past_horizon);
+	scale_estimator_->setSFP_ThresAgeUse(params_.scale_estimator.thres_age_use);
+	scale_estimator_->setSFP_ThresAgeRecon(params_.scale_estimator.thres_age_recon);
+	scale_estimator_->setSFP_ThresParallaxUse(params_.scale_estimator.thres_parallax_use*D2R);
+	scale_estimator_->setSFP_ThresParallaxRecon(params_.scale_estimator.thres_parallax_recon*D2R);
+
 };
 
 /**
@@ -155,7 +167,8 @@ void ScaleMonoVO::loadCameraIntrinsicAndUserParameters_KITTI_IMAGE0(const std::s
 	params_.keyframe_update.thres_mean_parallax = fs["keyframe_update.thres_mean_parallax"];
 	
 	params_.map_update.thres_parallax = fs["map_update.thres_parallax"];
-	
+	params_.map_update.thres_parallax *= D2R;
+
 	std::cout << " - 'loadCameraIntrinsicMono()' - loaded.\n";
 };
 
@@ -207,23 +220,41 @@ void ScaleMonoVO::loadCameraIntrinsicAndUserParameters(const std::string& dir) {
 			  << "rows: " << cam_->rows() <<"\n";
 
 	// Load user setting parameters
+	// Feature tracker
 	params_.feature_tracker.thres_error = fs["feature_tracker.thres_error"];
 	params_.feature_tracker.thres_bidirection = fs["feature_tracker.thres_bidirection"];
 	params_.feature_tracker.window_size = (int)fs["feature_tracker.window_size"];
 	params_.feature_tracker.max_level = (int)fs["feature_tracker.max_level"];
 
-
+	// Feature extractor
 	params_.feature_extractor.n_features = (int)fs["feature_extractor.n_features"];
 	params_.feature_extractor.n_bins_u   = (int)fs["feature_extractor.n_bins_u"];
 	params_.feature_extractor.n_bins_v   = (int)fs["feature_extractor.n_bins_v"];
 	params_.feature_extractor.thres_fastscore = fs["feature_extractor.thres_fastscore"];
 	params_.feature_extractor.radius          = fs["feature_extractor.radius"];
 
+	// Motion estimator
+	params_.motion_estimator.thres_1p_error = fs["motion_estimator.thres_1p_error"];
+	params_.motion_estimator.thres_5p_error = fs["motion_estimator.thres_5p_error"];
+
+	// Scale estimator
+	params_.scale_estimator.thres_turn_psi         = fs["scale_estimator.thres_turn_psi"];
+	params_.scale_estimator.thres_cnt_turns        = (int)fs["scale_estimator.thres_cnt_turns"];
+	params_.scale_estimator.thres_age_past_horizon = (int)fs["scale_estimator.thres_age_past_horizon"];
+	params_.scale_estimator.thres_age_use          = (int)fs["scale_estimator.thres_age_use"];
+	params_.scale_estimator.thres_age_recon        = (int)fs["scale_estimator.thres_age_recon"];
+	params_.scale_estimator.thres_parallax_use     = fs["scale_estimator.thres_parallax_use"];
+	params_.scale_estimator.thres_parallax_recon   = fs["scale_estimator.thres_parallax_recon"];
+
+	// Keyframe update
 	params_.keyframe_update.thres_alive_ratio   = fs["keyframe_update.thres_alive_ratio"];
 	params_.keyframe_update.thres_mean_parallax = fs["keyframe_update.thres_mean_parallax"];
 	
+	// Map update
 	params_.map_update.thres_parallax = fs["map_update.thres_parallax"];
-	
+	params_.map_update.thres_parallax *= D2R;
+
+	// Do undistortion or not.
 	system_flags_.flagDoUndistortion = (int)fs["flagDoUndistortion"];
 
 	std::cout << " - 'loadCameraIntrinsic()' - loaded.\n";
@@ -459,8 +490,9 @@ statcurr_execution.time_5p = timer::toc(false);
 			}
 			avg_flow /= (float) cnt_alive;
 			std::cout << " AVERAGE FLOW : " << avg_flow << " px\n";
+			std::cout << " Parallax OK : " << cnt_parallax_ok << std::endl;
 			// Scale forward propagation
-			if(frame_curr->getID() > 4 && avg_flow > 5.5)
+			if(frame_curr->getID() > 3 && avg_flow > 2.5)
 				scale_estimator_->module_ScaleForwardPropagation(lmvec1_final, all_frames_,dT10);
 
 #ifdef RECORD_FRAME_STAT

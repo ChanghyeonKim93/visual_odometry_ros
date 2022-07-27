@@ -15,13 +15,16 @@ ScaleEstimator::ScaleEstimator(const std::shared_ptr<std::mutex> mut,
 
     thres_cnt_turn_ = 15;
     // thres_psi_ = 1.0 * M_PI / 180.0;
-    thres_psi_ = 0.03;
+    thres_psi_ = 0.02;
 
     // SFP parameters
-    N_max_past_            = 40;
-    thres_age_             = 3;
-    thres_age_triangulate_ = 15;
-    thres_flow_            = 20.0;
+    thres_age_past_horizon_ = 20;
+    thres_age_use_          = 2;
+    thres_age_recon_        = 15;
+    thres_flow_             = 10.0;
+
+    thres_parallax_use_   = 0.5*D2R;
+    thres_parallax_recon_ = 60*D2R;
 
     terminate_future_ = terminate_promise_.get_future();
     runThread();
@@ -89,10 +92,8 @@ void ScaleEstimator::module_ScaleForwardPropagation(const LandmarkPtrVec& lmvec,
     // Get current frame
     FramePtr frame_curr = framevec.back();
     uint32_t j = frame_curr->getID() ;
-    // std::cout << "currente frame ID (j): " << j << std::endl;
 
     // Pixels tracked in this frame
-    lmvec;
 
     // Get relative motion
     PoseSE3 dT = dT10;
@@ -104,6 +105,8 @@ void ScaleEstimator::module_ScaleForwardPropagation(const LandmarkPtrVec& lmvec,
     
     Rot3 dRj = dT.block<3,3>(0,0);
     Pos3 uj  = dT.block<3,1>(0,3);    
+    
+    Pos3 Rwj_uj = Rwj*uj;
 
     // std::cout << "framevec.size(): " << framevec.size() << std::endl;
     PoseSE3 Twjm1 = framevec[framevec.size()-2]->getPose();
@@ -114,10 +117,11 @@ void ScaleEstimator::module_ScaleForwardPropagation(const LandmarkPtrVec& lmvec,
     LandmarkPtrVec lms_depth;
     for(int m = 0; m < lmvec.size(); ++m){
         const LandmarkPtr& lm = lmvec[m];
-        if(lm->getAge() >= thres_age_ 
-        && lm->getAvgOptFlow() >= thres_flow_
-        && lm->getTriangulated() == false) 
-            lms_no_depth.push_back(lm);    
+        if(    lm->getAge()          >= thres_age_use_ 
+            // && lm->getAvgOptFlow()   >= thres_flow_
+            && lm->getLastParallax() >= thres_parallax_use_
+            && lm->getTriangulated() == false) 
+                lms_no_depth.push_back(lm);    
 
         if(lm->getTriangulated()) 
             lms_depth.push_back(lm);
@@ -186,12 +190,12 @@ void ScaleEstimator::module_ScaleForwardPropagation(const LandmarkPtrVec& lmvec,
     idx_mat[0] = 0; idx_mat[1] = 1; idx_mat[2] = 2;
     for(int ii = 0; ii < M_tmp; ++ii){
         const LandmarkPtr& lm = lms_no_depth[ii];
-        PixelVec pts_history = lm->getObservations();
+        const PixelVec& pts_history = lm->getObservations();
 
         // 현재 랜드마크와 연관된 가장 오래된 FRAME ID를 추출한다.
         int j_end = lm->getRelatedFramePtr().front()->getID(); 
-        if(j - j_end + 1 >= N_max_past_)
-            j_end = j - N_max_past_ + 1;
+        if(j - j_end + 1 >= thres_age_past_horizon_)
+            j_end = j - thres_age_past_horizon_ + 1;
 
         if( j == j_end)
             throw std::runtime_error("j == j_end");
@@ -282,8 +286,8 @@ void ScaleEstimator::module_ScaleForwardPropagation(const LandmarkPtrVec& lmvec,
         Eigen::Matrix<float,3,3> FijtFij = Fij.transpose()*Fij;
         AtAlast_tmp += FijtFij;
 
-        float ujt_Rjw_Rij_FijgtFijg_twjm1_Xwi = uj.transpose()*Rjw*FijtFij*(twjm1-Xwi);
-        Atb.coeffRef(idx_end,0) += ujt_Rjw_Rij_FijgtFijg_twjm1_Xwi;
+        float ujt_Rjw_Rij_FijtFij_twjm1_Xwi = uj.transpose()*Rjw*FijtFij*(twjm1-Xwi);
+        Atb.coeffRef(idx_end,0) += ujt_Rjw_Rij_FijtFij_twjm1_Xwi;
     }
 
     // AtA (last)
@@ -303,18 +307,19 @@ void ScaleEstimator::module_ScaleForwardPropagation(const LandmarkPtrVec& lmvec,
         frame_curr->setPoseDiff10(dT10_est);
 
         // Update points
-        // idx = 0;
-        // for(int ii = 0; ii < M_tmp; ++ii){
-        //     Point Xw;
-        //     Xw << theta.coeff(idx), theta.coeff(++idx), theta.coeff(++idx);
-        //     ++idx;
+        idx = 0;
+        for(int ii = 0; ii < M_tmp; ++ii){
+            Point Xw;
+            Xw << theta.coeff(idx), theta.coeff(++idx), theta.coeff(++idx);
+            ++idx;
             
-        //     const LandmarkPtr& lm = lms_no_depth[ii];
-        //     if(lm->getAge() >= thres_age_triangulate_ 
-        //     && lm->getAvgParallax() >= 0.03){
-        //         lm->set3DPoint(Xw);
-        //     }
-        // } 
+            const LandmarkPtr& lm = lms_no_depth[ii];
+            if(lm->getAge() >= thres_age_recon_ 
+             && lm->getLastParallax() >= thres_parallax_recon_)
+            {
+                lm->set3DPoint(Xw);
+            }
+        } 
     }
     
 
@@ -334,12 +339,14 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame){
     }
     else { // end of array of turn regions
         if(cnt_turn_ >= thres_cnt_turn_){ // sufficient frames
-            // Do Scale Forward Propagation
+            // Do Absolute Scale Recovery
             frames_t0_; // Ft0
             frames_t1_; // Ft1
             frames_u_; // Fu
 
             std::cout << " TURN REGION IS DETECTED!\n";
+
+            // Calculate scale of the Turn regions.
             
             flag_turn_detected = true;
 
@@ -500,4 +507,27 @@ void ScaleEstimator::calcAinvB_SFP(const std::vector<Mat33>& Ainv_vec, const SpV
 
         idx[0] += 3; idx[1] += 3; idx[2] += 3;
     }
-}
+};
+
+
+void ScaleEstimator::setTurnRegion_ThresPsi(float psi){
+    thres_psi_ = psi;
+};
+void ScaleEstimator::setTurnRegion_ThresCountTurn(uint32_t thres_cnt_turn){
+    thres_cnt_turn_ = thres_cnt_turn;
+};
+void ScaleEstimator::setSFP_ThresAgePastHorizon(uint32_t age_past_horizon){
+    thres_age_past_horizon_ = age_past_horizon;
+};
+void ScaleEstimator::setSFP_ThresAgeUse(uint32_t age_use){
+    thres_age_use_ = age_use;
+};
+void ScaleEstimator::setSFP_ThresAgeRecon(uint32_t age_recon){
+    thres_age_recon_ = age_recon;
+};
+void ScaleEstimator::setSFP_ThresParallaxUse(float thres_parallax_use){
+    thres_parallax_use_ = thres_parallax_use;
+};
+void ScaleEstimator::setSFP_ThresParallaxRecon(float thres_parallax_recon){
+    thres_parallax_recon_ = thres_parallax_recon;
+};

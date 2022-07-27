@@ -42,14 +42,22 @@ void Landmark::addObservationAndRelatedFrame(const Pixel& p, const FramePtr& fra
         throw std::runtime_error("observeation.size() != related_frames_.size(). please check.");
     }
     ++age_;
+    if(observations_.size() == 1){
+        return;
+    }
 
     // Calculate parallax w.r.t. the oldest pixel
     const Pixel& p0 = observations_[observations_.size()-2];
     const Pixel& p1 = observations_.back();
 
+    PoseSE3 T01 = related_frames_[observations_.size()-2]->getPose().inverse()*related_frames_.back()->getPose();
+    Rot3 R01 = T01.block<3,3>(0,0);
+
     Point x0, x1;
     x0 << (p0.x-cam_->cx())*cam_->fxinv(), (p0.y-cam_->cy())*cam_->fyinv(), 1.0f; 
     x1 << (p1.x-cam_->cx())*cam_->fxinv(), (p1.y-cam_->cy())*cam_->fyinv(), 1.0f; 
+    x1 = R01*x1;
+
 
     float costheta = x0.dot(x1)/(x0.norm()*x1.norm());
     if(costheta >  1) costheta =  0.999f;
