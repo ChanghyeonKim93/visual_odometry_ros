@@ -270,7 +270,7 @@ statcurr_frame.steering_angle = steering_angle_curr;
 				PoseSE3 T01_recon = (*(all_frames_.end()-2))->getPoseDiff01();
 				PoseSE3 T21_recon = frame_curr->getPoseDiff10();
 				for(int i = 0; i < lms.size(); ++i){
-					if(lms[i]->getAge() >= 3 && lms[i]->getMaxParallax() > 1.0*D2R){
+					if(lms[i]->getAge() >= 3 && lms[i]->getMaxParallax() > 2.0*D2R){
 						pts_recon_0.push_back(*(lms[i]->getObservations().end()-3));
 						pts_recon_1.push_back(*(lms[i]->getObservations().end()-2));
 						pts_recon_2.push_back(*(lms[i]->getObservations().end()-1));
