@@ -40,11 +40,11 @@ feature_extractor.radius: 5.0
 
 # Parameters of motion estimator
 motion_estimator.thres_1p_error: 60.0 # pixels
-motion_estimator.thres_5p_error: 1.0 # pixels
+motion_estimator.thres_5p_error: 1.5 # pixels
 
 # Parameters of scale estimator
-scale_estimator.initial_scale: 0.60 # meters
-scale_estimator.thres_turn_psi: 1.5 # degrees
+scale_estimator.initial_scale: 0.12 # meters
+scale_estimator.thres_turn_psi: 1.0 # degrees
 scale_estimator.thres_cnt_turns: 8
 
 scale_estimator.thres_age_past_horizon: 20
