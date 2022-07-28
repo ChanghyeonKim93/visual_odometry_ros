@@ -43,6 +43,7 @@ motion_estimator.thres_1p_error: 30.0 # pixels
 motion_estimator.thres_5p_error: 1.5 # pixels
 
 # Parameters of scale estimator
+scale_estimator.initial_scale: 1.40 # meters
 scale_estimator.thres_turn_psi: 1.5 # degrees
 scale_estimator.thres_cnt_turns: 8
 

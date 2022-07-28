@@ -186,7 +186,7 @@ timer::tic();
 			// Frame_curr의 자세를 넣는다.
 			float scale;
 			if(frame_curr->getID() > 300) scale = 0.22;
-			else scale = 0.86;
+			else scale = params_.scale_estimator.initial_scale;
 			PoseSE3 dT10; dT10 << dR10, scale*dt10, 0.0f, 0.0f, 0.0f, 1.0f;
 			PoseSE3 dT01 = dT10.inverse();
 

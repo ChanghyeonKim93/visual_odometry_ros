@@ -98,6 +98,7 @@ private:
 			float thres_5p_error    = 2.0; // sampson error threshold			
 		};
 		struct ScaleEstimatorParameters{
+			float initial_scale        = 1.0; // Initial velocity.
 			float thres_turn_psi       = 0.02; // rad
 			uint32_t thres_cnt_turns   = 0.02; // rad
 

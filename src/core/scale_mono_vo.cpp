@@ -238,6 +238,7 @@ void ScaleMonoVO::loadCameraIntrinsicAndUserParameters(const std::string& dir) {
 	params_.motion_estimator.thres_5p_error = fs["motion_estimator.thres_5p_error"];
 
 	// Scale estimator
+	params_.scale_estimator.initial_scale          = fs["scale_estimator.initial_scale"];
 	params_.scale_estimator.thres_turn_psi         = fs["scale_estimator.thres_turn_psi"];
 	params_.scale_estimator.thres_cnt_turns        = (int)fs["scale_estimator.thres_cnt_turns"];
 	params_.scale_estimator.thres_age_past_horizon = (int)fs["scale_estimator.thres_age_past_horizon"];
