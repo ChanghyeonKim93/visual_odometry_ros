@@ -64,6 +64,22 @@ void FeatureExtractor::resetWeightBin() {
 	weight_bin_->reset();
 };
 
+void FeatureExtractor::suppressCenterBins(){
+	int u_cent = params_orb_.n_bins_u/2;	
+	int v_cent = params_orb_.n_bins_v/2;
+
+
+	int win_sz = 5;
+	for(int w = -3; w <= 7; ++w){
+		int v_idx = params_orb_.n_bins_u*(w+v_cent);
+		for(int u = -11; u <= 11; ++u){
+			int bin_idx = v_idx + u;
+			std::cout << bin_idx << std::endl;
+			weight_bin_->weight[bin_idx] = 0;
+		}
+	}
+};
+
 void FeatureExtractor::updateWeightBin(const PixelVec& fts) {
 	// std::cout << " - FEATURE_EXTRACTOR - 'updateWeightBin'\n";
 

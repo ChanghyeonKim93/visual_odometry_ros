@@ -323,6 +323,7 @@ timer::tic();
 			// 빈 곳에 특징점 pts1_new 를 추출한다.
 			PixelVec pts1_new;
 			extractor_->updateWeightBin(pts1_final); // 이미 pts1가 있는 곳은 제외.
+			extractor_->suppressCenterBins();
 			extractor_->extractORBwithBinning(frame_curr->getImage(), pts1_new);
 #ifdef RECORD_EXECUTION_STAT
 statcurr_execution.time_new = timer::toc(false);

@@ -143,6 +143,7 @@ public:
 	void initParams(int n_cols, int n_rows, int n_bins_u, int n_bins_v, int THRES_FAST, int radius);
 	void updateWeightBin(const PixelVec& pts);
 	void resetWeightBin();
+	void suppressCenterBins();
 	void extractORBwithBinning(const cv::Mat& img, PixelVec& pts_extracted);
 	void extractHarriswithBinning(const cv::Mat& img, PixelVec& pts_extracted);
 };
