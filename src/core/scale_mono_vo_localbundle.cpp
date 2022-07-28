@@ -246,7 +246,7 @@ statcurr_landmark.n_ok_parallax = cnt_parallax_ok;
 			}
 			std::cout << frame_curr->getID() <<" -th image. depth newly reconstructed: " << cnt_depth_ok << std::endl;
 
-			if(cnt_depth_ok >= 1111111111111){
+			if(cnt_depth_ok >= 20){
 				// Do Local BA
 				std::cout << " DO Local Bundle Adjustment...\n";
 
@@ -273,17 +273,17 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			for(auto lm : lms1_final){
 				if(!lm->isTriangulated()){
 					// std::cout << "parallax: " << lm->getMaxParallax()*R2D << " deg\n";
-					if(lm->getMaxParallax() >= 1.0f*D2R){
+					if(lm->getMaxParallax() >= 0.5f*D2R){
 						// const Pixel& pt0 = *(lm->getObservations().end()-2);
 						if(lm->getObservations().size() != lm->getRelatedFramePtr().size())
 							throw std::runtime_error("lm->getObservations().size() != lm->getRelatedFramePtr().size()\n");
 
 						uint32_t idx_end = lm->getAge()-1;
-						// const Pixel& pt0 = lm->getObservations()[idx_end-1];
-						const Pixel& pt0 = lm->getObservations().front();
+						const Pixel& pt0 = lm->getObservations()[idx_end-1];
+						// const Pixel& pt0 = lm->getObservations().front();
 						const Pixel& pt1 = lm->getObservations().back();
-						// const PoseSE3& Tw0 = lm->getRelatedFramePtr()[idx_end-1]->getPose();
-						const PoseSE3& Tw0 = lm->getRelatedFramePtr().front()->getPose();
+						const PoseSE3& Tw0 = lm->getRelatedFramePtr()[idx_end-1]->getPose();
+						// const PoseSE3& Tw0 = lm->getRelatedFramePtr().front()->getPose();
 						const PoseSE3& Tw1 = lm->getRelatedFramePtr().back()->getPose();
 						PoseSE3 T10 =  Tw1.inverse() * Tw0;
 

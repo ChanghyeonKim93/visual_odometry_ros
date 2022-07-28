@@ -722,14 +722,14 @@ bool MotionEstimator::calcPoseLocalBundleAdjustment(const PointVec& X, const Pix
             Jt(5,0) = -fx*yiz;
 
             if(flag_weight) {
-                JtWJ += weight*(Jt*Jt.transpose());
+                JtWJ.noalias() += weight*(Jt*Jt.transpose());
                 float w_rx = weight*rx;
-                mJtWr -= (w_rx)*Jt;
+                mJtWr.noalias() -= (w_rx)*Jt;
                 err_curr += w_rx*rx;
             }
             else {
-                JtWJ += Jt*Jt.transpose();
-                mJtWr -= rx*Jt;
+                JtWJ.noalias() += Jt*Jt.transpose();
+                mJtWr.noalias() -= rx*Jt;
                 err_curr += rx*rx;
             }
 
@@ -742,14 +742,14 @@ bool MotionEstimator::calcPoseLocalBundleAdjustment(const PointVec& X, const Pix
             Jt(5,0) = fy*xiz;
 
              if(flag_weight) {
-                JtWJ += weight*(Jt*Jt.transpose());
+                JtWJ.noalias() += weight*(Jt*Jt.transpose());
                 float w_ry = weight*ry;
-                mJtWr -= (w_ry)*Jt;
+                mJtWr.noalias() -= (w_ry)*Jt;
                 err_curr += w_ry*ry;
             }
             else {
-                JtWJ += Jt*Jt.transpose();
-                mJtWr -= ry*Jt;
+                JtWJ.noalias() += Jt*Jt.transpose();
+                mJtWr.noalias() -= ry*Jt;
                 err_curr += ry*ry;
             }
         } // END FOR
