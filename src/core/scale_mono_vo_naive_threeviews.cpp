@@ -141,44 +141,9 @@ timer::tic();
 			float steering_angle_curr = motion_estimator_->findInliers1PointHistogram(pts0_alive, pts1_alive, cam_, maskvec_1p);
 			frame_curr->setSteeringAngle(steering_angle_curr);
 
-			// Detect turn region by a steering angle.
-			if(scale_estimator_->detectTurnRegions(frame_curr)){
-				std::cout << "Turn region is detected !\n";
-
-				FramePtrVec frames_turn_tmp;
-				frames_turn_tmp = scale_estimator_->getAllTurnRegions();
-				for(auto f :frames_turn_tmp)
-					stat_.stat_turn.turn_regions.push_back(f);
-
-				std::vector<float> scales_vo;
-				for(auto f : scale_estimator_->getLastTurnRegion()){
-					PoseSE3 dT01_f = f->getPoseDiff01();
-					scales_vo.push_back(dT01_f.block<3,1>(0,3).norm());
-				}
-				std::sort(scales_vo.begin(), scales_vo.end());
-
-				std::cout << "sort OK" << std::endl;
-				int idx_median = (int)((float)scales_vo.size()*0.5);
-				std::cout << scales_vo.size() <<" , " <<  idx_median << std::endl;
-				float scaler = scale_estimator_->getLastTurnRegion().back()->getScale()/scales_vo[idx_median]*0.8;
-				std::cout <<" scaler : " << scaler << std::endl;
-				for(auto f : scale_estimator_->getLastTurnRegion()){
-					PoseSE3 dT01_f = f->getPoseDiff01();
-					PoseSE3 Twc = f->getPose();
-					Twc*= dT01_f.inverse();
-					dT01_f.block<3,1>(0,3) *= scaler;
-					Twc*= dT01_f;
-					f->setPose(Twc);
-					f->setPoseDiff10(dT01_f.inverse());
-				}
-			}
-
 
 #ifdef RECORD_EXECUTION_STAT
 statcurr_execution.time_1p = timer::toc(false);
-#endif
-#ifdef RECORD_FRAME_STAT
-statcurr_frame.steering_angle = steering_angle_curr;
 #endif
 			PixelVec       pts0_1p;
 			PixelVec       pts1_1p;
@@ -212,9 +177,49 @@ timer::tic();
 			if( !motion_estimator_->calcPose5PointsAlgorithm(pts0_1p, pts1_1p, cam_, dR10, dt10, X0_inlier, maskvec_inlier) ) {
 				throw std::runtime_error("calcPose5PointsAlgorithm() is failed.");
 			}
+
+			// Steering angle을 계산한다.
+			steering_angle_curr = motion_estimator_->calcSteeringAngleFromRotationMat(dR10.transpose());
+			frame_curr->setSteeringAngle(steering_angle_curr);
+
 #ifdef RECORD_EXECUTION_STAT
 statcurr_execution.time_5p = timer::toc(false);
 #endif			
+			// Detect turn region by a steering angle.
+			if(scale_estimator_->detectTurnRegions(frame_curr)){
+				std::cout << "Turn region is detected !\n";
+
+				FramePtrVec frames_turn_tmp;
+				frames_turn_tmp = scale_estimator_->getAllTurnRegions();
+				for(auto f :frames_turn_tmp)
+					stat_.stat_turn.turn_regions.push_back(f);
+
+				std::vector<float> scales_vo;
+				for(auto f : scale_estimator_->getLastTurnRegion()){
+					PoseSE3 dT01_f = f->getPoseDiff01();
+					scales_vo.push_back(dT01_f.block<3,1>(0,3).norm());
+				}
+				std::sort(scales_vo.begin(), scales_vo.end());
+
+				std::cout << "sort OK" << std::endl;
+				int idx_median = (int)((float)scales_vo.size()*0.5);
+				std::cout << scales_vo.size() <<" , " <<  idx_median << std::endl;
+				float scaler = scale_estimator_->getLastTurnRegion().back()->getScale()/scales_vo[idx_median]*0.8;
+				std::cout <<" scaler : " << scaler << std::endl;
+				for(auto f : scale_estimator_->getLastTurnRegion()){
+					PoseSE3 dT01_f = f->getPoseDiff01();
+					PoseSE3 Twc = f->getPose();
+					Twc*= dT01_f.inverse();
+					dT01_f.block<3,1>(0,3) *= scaler;
+					Twc*= dT01_f;
+					f->setPose(Twc);
+					f->setPoseDiff10(dT01_f.inverse());
+				}
+			}
+
+#ifdef RECORD_FRAME_STAT
+statcurr_frame.steering_angle = steering_angle_curr;
+#endif
 			// Frame_curr의 자세를 넣는다.
 			float scale;
 			if(frame_curr->getID() > 300) scale = 0.22;
