@@ -383,7 +383,7 @@ void MotionEstimator::refineEssentialMatIRLS(const PixelVec& pts0, const PixelVe
                 float sampson_dist = calcSampsonDistance(pts0[i],pts1[i],F10);
                 
                 // std::cout << sampson_dist << std::endl;
-                if(sampson_dist > 0.0025) weight = 0.0025/sampson_dist;
+                if(sampson_dist > 0.001) weight = 0.001/sampson_dist;
                 
                 M_weight(idx,0) = weight*M(idx,0);
                 M_weight(idx,1) = weight*M(idx,1);

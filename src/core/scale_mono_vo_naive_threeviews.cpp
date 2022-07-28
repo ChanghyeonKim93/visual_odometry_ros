@@ -143,10 +143,34 @@ timer::tic();
 
 			// Detect turn region by a steering angle.
 			if(scale_estimator_->detectTurnRegions(frame_curr)){
+				std::cout << "Turn region is detected !\n";
+
 				FramePtrVec frames_turn_tmp;
 				frames_turn_tmp = scale_estimator_->getAllTurnRegions();
 				for(auto f :frames_turn_tmp)
 					stat_.stat_turn.turn_regions.push_back(f);
+
+				std::vector<float> scales_vo;
+				for(auto f : scale_estimator_->getLastTurnRegion()){
+					PoseSE3 dT01_f = f->getPoseDiff01();
+					scales_vo.push_back(dT01_f.block<3,1>(0,3).norm());
+				}
+				std::sort(scales_vo.begin(), scales_vo.end());
+
+				std::cout << "sort OK" << std::endl;
+				int idx_median = (int)((float)scales_vo.size()*0.5);
+				std::cout << scales_vo.size() <<" , " <<  idx_median << std::endl;
+				float scaler = scale_estimator_->getLastTurnRegion().back()->getScale()/scales_vo[idx_median]*0.8;
+				std::cout <<" scaler : " << scaler << std::endl;
+				for(auto f : scale_estimator_->getLastTurnRegion()){
+					PoseSE3 dT01_f = f->getPoseDiff01();
+					PoseSE3 Twc = f->getPose();
+					Twc*= dT01_f.inverse();
+					dT01_f.block<3,1>(0,3) *= scaler;
+					Twc*= dT01_f;
+					f->setPose(Twc);
+					f->setPoseDiff10(dT01_f.inverse());
+				}
 			}
 
 
@@ -194,7 +218,7 @@ statcurr_execution.time_5p = timer::toc(false);
 			// Frame_curr의 자세를 넣는다.
 			float scale;
 			if(frame_curr->getID() > 300) scale = 0.22;
-			else scale = 0.90;
+			else scale = 1.0;
 			PoseSE3 dT10; dT10 << dR10, scale*dt10, 0.0f, 0.0f, 0.0f, 1.0f;
 			PoseSE3 dT01 = dT10.inverse();
 
@@ -260,10 +284,9 @@ statcurr_execution.time_5p = timer::toc(false);
 				
 				std::cout << "recovered scale: " << scale_recon << std::endl;
 				
-				PoseSE3 dT01_recon = frame_curr->getPoseDiff01();
-				PoseSE3 dT01_recon_updated = dT01_recon;
+				PoseSE3 dT01_recon_updated = frame_curr->getPoseDiff01();
 				dT01_recon_updated.block<3,1>(0,3) *= scale_recon;
-				frame_curr->setPose(frame_curr->getPose()*dT01_recon.inverse()*(dT01_recon_updated));
+				frame_curr->setPose(frame_curr->getPose()*frame_curr->getPoseDiff10()*(dT01_recon_updated));
 				frame_curr->setPoseDiff10(dT01_recon_updated.inverse());
 			}
 

@@ -351,18 +351,28 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame){
             // Calculate scale of the Turn regions.
             float L = 1.05;
             float mean_scale = 0.0f;
+            std::vector<float> scales_t1;
             for(auto f : frames_t1_){
                 Pos3 u01 = f->getPoseDiff01().block<3,1>(0,3);
                 float s = calcScaleByKinematics(f->getSteeringAngle(), u01, L);
+                scales_t1.push_back(s);
                 // PoseSE3 dT10_est;
                 // dT10_est << dRj, uj*scale_est,0,0,0,1;
                 // frame_curr->setPose(Twjm1*dT10_est.inverse());
                 // frame_curr->setPoseDiff10(dT10_est);
                 std::cout << f->getID() << "-th image scale : " << s << std::endl;
-                f->setScale(s);
+            }
+
+            std::sort(scales_t1.begin(), scales_t1.end());
+            int idx_median = (int)((float)scales_t1.size()*0.5f);
+            std::cout << "turning scale median : " << scales_t1[idx_median] << std::endl;
+            for(auto f : frames_t1_){
+                f->setScale(scales_t1[idx_median]);
                 f->makeThisTurningFrame();
             }
+
             flag_turn_detected = true;
+
 
             // Update turn regions
             frames_t0_ = frames_t1_;
@@ -387,6 +397,11 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame){
 const FramePtrVec& ScaleEstimator::getAllTurnRegions() const{
     return frames_all_t_;
 };
+
+const FramePtrVec& ScaleEstimator::getLastTurnRegion() const{
+    return frames_t0_;
+};
+
 
 void ScaleEstimator::solveLeastSquares_SFP(const SpMat& AtA, const SpVec& Atb, uint32_t M_tmp,
     SpVec& theta)

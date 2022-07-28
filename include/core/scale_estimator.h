@@ -43,6 +43,7 @@ public:
 
     bool detectTurnRegions(const FramePtr& frame);
     const FramePtrVec& getAllTurnRegions() const;
+    const FramePtrVec& getLastTurnRegion() const;
 
 public:
     void setTurnRegion_ThresPsi(float psi);
