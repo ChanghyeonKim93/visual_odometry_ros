@@ -40,6 +40,7 @@ void ScaleMonoVO::trackImageNaiveThreeviews(const cv::Mat& img, const double& ti
 			LandmarkPtrVec lms0;
 
 			extractor_->resetWeightBin();
+			extractor_->suppressCenterBins();
 			extractor_->extractORBwithBinning(I0, pts0);
 #ifdef RECORD_EXECUTION_STAT
 	statcurr_execution.time_new = 0;
@@ -185,7 +186,7 @@ timer::tic();
 			// Frame_curr의 자세를 넣는다.
 			float scale;
 			if(frame_curr->getID() > 300) scale = 0.22;
-			else scale = 0.9;
+			else scale = 0.86;
 			PoseSE3 dT10; dT10 << dR10, scale*dt10, 0.0f, 0.0f, 0.0f, 1.0f;
 			PoseSE3 dT01 = dT10.inverse();
 
@@ -260,7 +261,7 @@ statcurr_frame.steering_angle = steering_angle_curr;
 			std::cout << " Parallax OK : " << cnt_parallax_ok << std::endl;
 
 			// Recover scale 
-			if(frame_curr->getID() >= 10){
+			if(frame_curr->getID() >= 5){
 				const LandmarkPtrVec& lms = lms1_final;
 				PixelVec pts_recon_0;
 				PixelVec pts_recon_1;
@@ -269,7 +270,7 @@ statcurr_frame.steering_angle = steering_angle_curr;
 				PoseSE3 T01_recon = (*(all_frames_.end()-2))->getPoseDiff01();
 				PoseSE3 T21_recon = frame_curr->getPoseDiff10();
 				for(int i = 0; i < lms.size(); ++i){
-					if(lms[i]->getAge() >= 3){
+					if(lms[i]->getAge() >= 3 && lms[i]->getMaxParallax() > 1.0*D2R){
 						pts_recon_0.push_back(*(lms[i]->getObservations().end()-3));
 						pts_recon_1.push_back(*(lms[i]->getObservations().end()-2));
 						pts_recon_2.push_back(*(lms[i]->getObservations().end()-1));
@@ -288,7 +289,7 @@ statcurr_frame.steering_angle = steering_angle_curr;
 				}
 
 				std::sort(scales.begin(),scales.end());
-				float scale_recon = *(scales.begin() + (int)((float)scales.size()*0.5f));
+				float scale_recon = *(scales.begin() + (int)((float)scales.size()*0.50f)-1);
 				
 				std::cout << "recovered scale: " << scale_recon << std::endl;
 				
@@ -323,7 +324,7 @@ timer::tic();
 			// 빈 곳에 특징점 pts1_new 를 추출한다.
 			PixelVec pts1_new;
 			extractor_->updateWeightBin(pts1_final); // 이미 pts1가 있는 곳은 제외.
-			extractor_->suppressCenterBins();
+			// extractor_->suppressCenterBins();
 			extractor_->extractORBwithBinning(frame_curr->getImage(), pts1_new);
 #ifdef RECORD_EXECUTION_STAT
 statcurr_execution.time_new = timer::toc(false);

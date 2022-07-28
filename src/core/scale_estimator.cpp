@@ -349,7 +349,7 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame){
             std::cout << " TURN REGION IS DETECTED!\n";
 
             // Calculate scale of the Turn regions.
-            float L = 1.05;
+            float L = 1.08;
             float mean_scale = 0.0f;
             std::vector<float> scales_t1;
             for(auto f : frames_t1_){
@@ -364,10 +364,14 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame){
             }
 
             std::sort(scales_t1.begin(), scales_t1.end());
-            int idx_median = (int)((float)scales_t1.size()*0.5f);
-            std::cout << "turning scale median : " << scales_t1[idx_median] << std::endl;
+            int idx_median = (int)((float)scales_t1.size()*0.5f)-1;
+            
+            float scale_turn_median = scales_t1[idx_median];
+            float scale_turn_mean = (scales_t1[idx_median-1]+scales_t1[idx_median]+scales_t1[idx_median+1])*0.33333f;
+            std::cout << "turning scale median : " << scale_turn_median << std::endl;
+            std::cout << "turning scale mean : " << scale_turn_mean << std::endl;
             for(auto f : frames_t1_){
-                f->setScale(scales_t1[idx_median]);
+                f->setScale(scale_turn_mean);
                 f->makeThisTurningFrame();
             }
 

@@ -69,12 +69,13 @@ void FeatureExtractor::suppressCenterBins(){
 	int v_cent = params_orb_.n_bins_v/2;
 
 
-	int win_sz = 5;
-	for(int w = -3; w <= 7; ++w){
+	int win_sz_u = (int)(0.3f*params_orb_.n_bins_u);
+	int win_sz_v = (int)(0.3f*params_orb_.n_bins_v);
+	for(int w = -win_sz_v; w <= win_sz_v; ++w){
 		int v_idx = params_orb_.n_bins_u*(w+v_cent);
-		for(int u = -11; u <= 11; ++u){
+		for(int u = -win_sz_u; u <= win_sz_u; ++u){
 			int bin_idx = v_idx + u;
-			std::cout << bin_idx << std::endl;
+			// std::cout << bin_idx << std::endl;
 			weight_bin_->weight[bin_idx] = 0;
 		}
 	}

@@ -47,6 +47,7 @@ bool MotionEstimator::calcPose5PointsAlgorithm(const PixelVec& pts0, const Pixel
 
     // Refine essential matrix
     // refineEssentialMatIRLS(pts0,pts1, maskvec_5p, cam, E10);
+    // refineEssentialMat(pts0,pts1, maskvec_5p, cam, E10);
 
     F10 = cam->Kinv().transpose() * E10 * cam->Kinv();
 
@@ -371,7 +372,7 @@ void MotionEstimator::refineEssentialMatIRLS(const PixelVec& pts0, const PixelVe
     }
 
     // Iterations
-    int MAX_ITER = 10;
+    int MAX_ITER = 30;
     for(int iter = 0; iter < MAX_ITER; ++iter){
         Mat33 F10 = Kinv.transpose()*E*Kinv;
         idx = 0;
