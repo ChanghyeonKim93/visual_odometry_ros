@@ -46,7 +46,7 @@ bool MotionEstimator::calcPose5PointsAlgorithm(const PixelVec& pts0, const Pixel
     cv::cv2eigen(essential, E10);
 
     // Refine essential matrix
-    // refineEssentialMat(pts0,pts1, maskvec_5p, cam, E10);
+    // refineEssentialMatIRLS(pts0,pts1, maskvec_5p, cam, E10);
 
     F10 = cam->Kinv().transpose() * E10 * cam->Kinv();
 
@@ -247,7 +247,7 @@ void MotionEstimator::refineEssentialMat(const PixelVec& pts0, const PixelVec& p
         if(mask[i]) ++n_pts_valid;
     }
 
-    Eigen::MatrixXf M,M_weight;
+    Eigen::MatrixXf M, M_weight;
     M = Eigen::MatrixXf(n_pts_valid,9);
     M_weight = Eigen::MatrixXf(n_pts_valid,9);
 
@@ -305,13 +305,14 @@ void MotionEstimator::refineEssentialMat(const PixelVec& pts0, const PixelVec& p
     E_est << e_vec(0),e_vec(1),e_vec(2),
             e_vec(3),e_vec(4),e_vec(5),
             e_vec(6),e_vec(7),e_vec(8);
+
     Eigen::Matrix3f U3, V3, S3;
     Eigen::Vector3f s3;
     Eigen::JacobiSVD<Eigen::Matrix3f> svd3(E_est, Eigen::ComputeFullU | Eigen::ComputeFullV);
     U3 = svd3.matrixU();
     s3 = svd3.singularValues();
     V3 = svd3.matrixV();
-    S3 << 1,0,0,0,1,0,0,0,0;
+    S3 << 1,0,0, 0,1,0, 0,0,0;
     E_est = U3*S3*V3.transpose();
 
     // std::cout << " e_vec:\n" << (E_est /= E_est(2,2)) << std::endl;
@@ -321,6 +322,126 @@ void MotionEstimator::refineEssentialMat(const PixelVec& pts0, const PixelVec& p
 
 };
 
+
+void MotionEstimator::refineEssentialMatIRLS(const PixelVec& pts0, const PixelVec& pts1, const MaskVec& mask, const std::shared_ptr<Camera>& cam,
+    Mat33& E)
+{
+
+    if(pts0.size() != pts1.size() )
+        throw std::runtime_error("Error in 'refineEssentialMat()': pts0.size() != pts1.size()");
+
+    int n_pts = pts0.size(); 
+    int n_pts_valid = 0;
+    for(int i = 0; i < n_pts; ++i){
+        if(mask[i]) ++n_pts_valid;
+    }
+
+    Eigen::MatrixXf M, M_weight;
+    M = Eigen::MatrixXf(n_pts_valid,9);
+    M_weight = Eigen::MatrixXf(n_pts_valid,9);
+
+    float fx = cam->fx();
+    float fy = cam->fy();
+    float fxinv = cam->fxinv();
+    float fyinv = cam->fyinv();
+    float cx = cam->cx();
+    float cy = cam->cy();
+    const Mat33& K = cam->K();
+    const Mat33& Kinv = cam->Kinv();
+
+    // Precalculation
+    int idx = 0;
+    for(int i = 0; i < n_pts; ++i) {
+        if(mask[i]){
+            float x0 = fxinv*(pts0[i].x-cx);
+            float y0 = fyinv*(pts0[i].y-cy);
+            float x1 = fxinv*(pts1[i].x-cx);
+            float y1 = fyinv*(pts1[i].y-cy);
+            M(idx,0) = x0*x1;
+            M(idx,1) = y0*x1;
+            M(idx,2) = x1;
+            M(idx,3) = x0*y1;
+            M(idx,4) = y0*y1;
+            M(idx,5) = y1;
+            M(idx,6) = x0;
+            M(idx,7) = y0;
+            M(idx,8) = 1.0f;
+            ++idx;
+        }
+    }
+
+    // Iterations
+    int MAX_ITER = 10;
+    for(int iter = 0; iter < MAX_ITER; ++iter){
+        Mat33 F10 = Kinv.transpose()*E*Kinv;
+        idx = 0;
+        for(int i = 0; i < n_pts; ++i) {
+            if(mask[i]){
+                float weight = 1.0f;
+
+                // Calculate Sampson distance
+                float sampson_dist = calcSampsonDistance(pts0[i],pts1[i],F10);
+                
+                // std::cout << sampson_dist << std::endl;
+                if(sampson_dist > 0.0025) weight = 0.0025/sampson_dist;
+                
+                M_weight(idx,0) = weight*M(idx,0);
+                M_weight(idx,1) = weight*M(idx,1);
+                M_weight(idx,2) = weight*M(idx,2);
+                M_weight(idx,3) = weight*M(idx,3);
+                M_weight(idx,4) = weight*M(idx,4);
+                M_weight(idx,5) = weight*M(idx,5);
+                M_weight(idx,6) = weight*M(idx,6);
+                M_weight(idx,7) = weight*M(idx,7);
+                M_weight(idx,8) = weight*M(idx,8);
+                ++idx;
+            }
+        }
+
+        // solve!
+        Eigen::MatrixXf U,V;
+        Eigen::JacobiSVD<Eigen::MatrixXf> svd(M_weight, Eigen::ComputeFullU | Eigen::ComputeFullV);
+        U = svd.matrixU();
+        V = svd.matrixV();
+
+        Eigen::Matrix<float,9,1> e_vec;
+        e_vec(0) = V(0,8);
+        e_vec(1) = V(1,8);
+        e_vec(2) = V(2,8);
+        e_vec(3) = V(3,8);
+        e_vec(4) = V(4,8);
+        e_vec(5) = V(5,8);
+        e_vec(6) = V(6,8);
+        e_vec(7) = V(7,8);
+        e_vec(8) = V(8,8);
+
+        // float inv_last = 1.0f/e_vec(8);
+        // for(int i = 0; i < 9; ++i){
+        //     e_vec(i) *= inv_last;
+        // }
+        Mat33 E_est ;
+        E_est << e_vec(0),e_vec(1),e_vec(2),
+                e_vec(3),e_vec(4),e_vec(5),
+                e_vec(6),e_vec(7),e_vec(8);
+
+        Eigen::Matrix3f U3, V3, S3;
+        Eigen::Vector3f s3;
+        Eigen::JacobiSVD<Eigen::Matrix3f> svd3(E_est, Eigen::ComputeFullU | Eigen::ComputeFullV);
+        U3 = svd3.matrixU();
+        s3 = svd3.singularValues();
+        V3 = svd3.matrixV();
+        S3 << 1,0,0, 0,1,0, 0,0,0;
+        E_est = U3*S3*V3.transpose();
+
+        // std::cout << iter <<": " << e_vec.transpose() << std::endl;
+        // std::cout << " e_vec:\n" << (E_est /= E_est(2,2)) << std::endl;
+        // std::cout << " Essential : \n" << (E /=E(2,2)) << std::endl;
+
+        E = E_est;
+    }
+
+
+};
 
 float MotionEstimator::findInliers1PointHistogram(const PixelVec& pts0, const PixelVec& pts1, const std::shared_ptr<Camera>& cam,
     MaskVec& maskvec_inlier){
@@ -419,6 +540,54 @@ void MotionEstimator::calcSampsonDistance(const PixelVec& pts0, const PixelVec& 
     }
 };
 
+
+void MotionEstimator::calcSampsonDistance(const PixelVec& pts0, const PixelVec& pts1,
+                        const Mat33& F10, std::vector<float>& sampson_dist)
+{
+    if(pts0.size() != pts1.size()) 
+        throw std::runtime_error("Error in 'fineInliers1PointHistogram()': pts0.size() != pts1.size()");
+    
+    int n_pts = pts0.size();
+    
+    sampson_dist.resize(n_pts);
+
+    Eigen::Matrix3f F10t;
+
+    F10t = F10.transpose();
+    for(int i = 0; i < n_pts; ++i){
+        Point p0,p1;
+        p0 << pts0[i].x, pts0[i].y, 1.0f;
+        p1 << pts1[i].x, pts1[i].y, 1.0f;
+
+        Point F10p0  = F10*p0;
+        Point F10tp1 = F10t*p1;
+        
+        float numerator = p1.transpose()*F10p0;
+        numerator *= numerator;
+        float denominator = F10p0(0)*F10p0(0) + F10p0(1)*F10p0(1) + F10tp1(0)*F10tp1(0) + F10tp1(1)*F10tp1(1);
+        float dist_tmp = numerator / denominator;
+        sampson_dist[i] = dist_tmp;
+    }
+};
+
+float MotionEstimator::calcSampsonDistance(const Pixel& pt0, const Pixel& pt1,const Mat33& F10)
+{
+    Eigen::Matrix3f F10t;
+
+    F10t = F10.transpose();
+    Point p0,p1;
+    p0 << pt0.x, pt0.y, 1.0f;
+    p1 << pt1.x, pt1.y, 1.0f;
+
+    Point F10p0  = F10*p0;
+    Point F10tp1 = F10t*p1;
+    
+    float numerator = p1.transpose()*F10p0;
+    numerator *= numerator;
+    float denominator = F10p0(0)*F10p0(0) + F10p0(1)*F10p0(1) + F10tp1(0)*F10tp1(0) + F10tp1(1)*F10tp1(1);
+    float dist_tmp = numerator / denominator;
+    return dist_tmp;
+};
 
 void MotionEstimator::calcSymmetricEpipolarDistance(const PixelVec& pts0, const PixelVec& pts1, const std::shared_ptr<Camera>& cam, 
     const Rot3& R10, const Pos3& t10, std::vector<float>& sym_epi_dist)

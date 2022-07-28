@@ -45,6 +45,10 @@ public:
     void calcSampsonDistance(const PixelVec& pts0, const PixelVec& pts1, const std::shared_ptr<Camera>& cam, 
                             const Rot3& R10, const Pos3& t10, std::vector<float>& sampson_dist);
 
+    void calcSampsonDistance(const PixelVec& pts0, const PixelVec& pts1,const Mat33& F10, 
+                            std::vector<float>& sampson_dist);
+    float calcSampsonDistance(const Pixel& pt0, const Pixel& pt1,const Mat33& F10);
+
     void calcSymmetricEpipolarDistance(const PixelVec& pts0, const PixelVec& pts1, const std::shared_ptr<Camera>& cam, 
                             const Rot3& R10, const Pos3& t10, std::vector<float>& sym_epi_dist);
 
@@ -62,6 +66,8 @@ private:
     void refineEssentialMat(const PixelVec& pts0, const PixelVec& pts1, const MaskVec& mask, const std::shared_ptr<Camera>& cam,
         Mat33& E);
 
+    void refineEssentialMatIRLS(const PixelVec& pts0, const PixelVec& pts1, const MaskVec& mask, const std::shared_ptr<Camera>& cam,
+        Mat33& E);
 private:
     float thres_1p_;
     float thres_5p_;

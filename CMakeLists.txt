@@ -44,6 +44,7 @@ set(SRC ${SRC}
   src/core/scale_mono_vo.cpp
   src/core/scale_mono_vo_localbundle.cpp
   src/core/scale_mono_vo_ap3p.cpp
+  src/core/scale_mono_vo_naive_threeviews.cpp
 
   src/core/camera.cpp
   src/core/frame.cpp

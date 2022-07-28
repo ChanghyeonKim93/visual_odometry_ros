@@ -40,6 +40,7 @@
 
 #include "core/image_processing.h"
 #include "core/dataset_loader.h"
+#include "core/mapping.h"
 
 #include "util/timer.h"
 
@@ -71,7 +72,7 @@ private:
 	std::shared_ptr<bool> flag_do_ASR_;
 
 private:
-	struct SystemFlags{
+	struct SystemFlags {
 		bool flagFirstImageGot;
 		bool flagVOInit;
 		bool flagDoUndistortion;
@@ -231,6 +232,7 @@ public:
 	void trackImage(const cv::Mat& img, const double& timestamp);
 	void trackImageLocalBundle(const cv::Mat& img, const double& timestamp);
 	void trackImageAP3P(const cv::Mat& img, const double& timestamp);
+	void trackImageNaiveThreeviews(const cv::Mat& img, const double& timestamp);
 
 	AlgorithmStatistics getStatistics() const;
 

@@ -446,8 +446,8 @@ statcurr_execution.time_5p = timer::toc(false);
 #endif			
 			// Frame_curr의 자세를 넣는다.
 			float scale;
-			if(frame_curr->getID() > 300) scale = 0.33;
-			else scale = 0.90;
+			if(frame_curr->getID() > 300) scale = 0.22;
+			else scale = 0.9;
 			PoseSE3 dT10; dT10 << dR10, scale*dt10, 0.0f, 0.0f, 0.0f, 1.0f;
 			PoseSE3 dT01 = dT10.inverse();
 
@@ -496,7 +496,7 @@ statcurr_frame.steering_angle = steering_angle_curr;
 			std::cout << " AVERAGE FLOW : " << avg_flow << " px\n";
 			std::cout << " Parallax OK : " << cnt_parallax_ok << std::endl;
 			// Scale forward propagation
-			if(frame_curr->getID() > 3 && avg_flow > 0.5)
+			if(frame_curr->getID() > 3 && avg_flow > 1.5)
 				scale_estimator_->module_ScaleForwardPropagation(lmvec1_final, all_frames_,dT10);
 
 #ifdef RECORD_FRAME_STAT
