@@ -182,6 +182,16 @@ timer::tic();
 			steering_angle_curr = motion_estimator_->calcSteeringAngleFromRotationMat(dR10.transpose());
 			frame_curr->setSteeringAngle(steering_angle_curr);
 
+			// Frame_curr의 자세를 넣는다.
+			float scale;
+			if(frame_curr->getID() > 300) scale = 0.22;
+			else scale = 0.9;
+			PoseSE3 dT10; dT10 << dR10, scale*dt10, 0.0f, 0.0f, 0.0f, 1.0f;
+			PoseSE3 dT01 = dT10.inverse();
+
+			frame_curr->setPose(frame_prev_->getPose()*dT01);		
+			frame_curr->setPoseDiff10(dT10);	
+
 #ifdef RECORD_EXECUTION_STAT
 statcurr_execution.time_5p = timer::toc(false);
 #endif			
@@ -204,7 +214,8 @@ statcurr_execution.time_5p = timer::toc(false);
 				std::cout << "sort OK" << std::endl;
 				int idx_median = (int)((float)scales_vo.size()*0.5);
 				std::cout << scales_vo.size() <<" , " <<  idx_median << std::endl;
-				float scaler = scale_estimator_->getLastTurnRegion().back()->getScale()/scales_vo[idx_median]*0.8;
+				float scaler = scale_estimator_->getLastTurnRegion().back()->getScale()/scales_vo[idx_median]*0.85f;
+				
 				std::cout <<" scaler : " << scaler << std::endl;
 				for(auto f : scale_estimator_->getLastTurnRegion()){
 					PoseSE3 dT01_f = f->getPoseDiff01();
@@ -215,20 +226,12 @@ statcurr_execution.time_5p = timer::toc(false);
 					f->setPose(Twc);
 					f->setPoseDiff10(dT01_f.inverse());
 				}
+				dT10 = frame_curr->getPoseDiff10();
 			}
 
 #ifdef RECORD_FRAME_STAT
 statcurr_frame.steering_angle = steering_angle_curr;
-#endif
-			// Frame_curr의 자세를 넣는다.
-			float scale;
-			if(frame_curr->getID() > 300) scale = 0.22;
-			else scale = 1.0;
-			PoseSE3 dT10; dT10 << dR10, scale*dt10, 0.0f, 0.0f, 0.0f, 1.0f;
-			PoseSE3 dT01 = dT10.inverse();
-
-			frame_curr->setPose(frame_prev_->getPose()*dT01);		
-			frame_curr->setPoseDiff10(dT10);		
+#endif	
 
 			// tracking, 5p algorithm, newpoint 모두 합쳐서 살아남은 점만 frame_curr에 넣는다
 			float avg_flow = 0.0f;
@@ -257,7 +260,7 @@ statcurr_frame.steering_angle = steering_angle_curr;
 			std::cout << " Parallax OK : " << cnt_parallax_ok << std::endl;
 
 			// Recover scale 
-			if(frame_curr->getID() >= 2){
+			if(frame_curr->getID() >= 10){
 				const LandmarkPtrVec& lms = lms1_final;
 				PixelVec pts_recon_0;
 				PixelVec pts_recon_1;
@@ -293,6 +296,8 @@ statcurr_frame.steering_angle = steering_angle_curr;
 				dT01_recon_updated.block<3,1>(0,3) *= scale_recon;
 				frame_curr->setPose(frame_curr->getPose()*frame_curr->getPoseDiff10()*(dT01_recon_updated));
 				frame_curr->setPoseDiff10(dT01_recon_updated.inverse());
+
+				// scale_estimator_->module_ScaleForwardPropagation(lms1_final,all_frames_,dT10);
 			}
 
 #ifdef RECORD_LANDMARK_STAT
