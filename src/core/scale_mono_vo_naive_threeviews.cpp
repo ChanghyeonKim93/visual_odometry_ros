@@ -244,7 +244,7 @@ statcurr_frame.steering_angle = steering_angle_curr;
 			for(int i = 0; i < pts0_1p.size(); ++i){
 				if( maskvec_inlier[i] ) {
 					lms1_1p[i]->addObservationAndRelatedFrame(pts1_1p[i], frame_curr);
-					avg_flow += lms1_1p[i]->getAvgOptFlow();
+					avg_flow += lms1_1p[i]->getLastOptFlow();
 					if(lms1_1p[i]->getMaxParallax() > params_.map_update.thres_parallax) {
 						++cnt_parallax_ok;
 						// lms1_1p[i]->set3DPoint(X0_inlier[i]);
@@ -297,8 +297,9 @@ statcurr_frame.steering_angle = steering_angle_curr;
 				dT01_recon_updated.block<3,1>(0,3) *= scale_recon;
 				frame_curr->setPose(frame_curr->getPose()*frame_curr->getPoseDiff10()*(dT01_recon_updated));
 				frame_curr->setPoseDiff10(dT01_recon_updated.inverse());
-
-				// scale_estimator_->module_ScaleForwardPropagation(lms1_final,all_frames_,dT10);
+				// if(avg_flow > 1.5){
+				// 	scale_estimator_->module_ScaleForwardPropagation(lms1_final,all_frames_,dT10);
+				// }
 			}
 
 #ifdef RECORD_LANDMARK_STAT

@@ -7,10 +7,10 @@
 flagDoUndistortion: 0 # 0: do not undistort an image (KITTI), 1: undistort an image
 
 # Camera calibration and distortion parameters (OpenCV) 
-Camera.fx: 718.856
-Camera.fy: 718.856
-Camera.cx: 607.1928
-Camera.cy: 185.2157
+Camera.fx: 707.0912
+Camera.fy: 707.0912
+Camera.cx: 601.8873
+Camera.cy: 183.1104
 
 Camera.k1: 0.0
 Camera.k2: 0.0
@@ -18,8 +18,8 @@ Camera.k3: 0.0
 Camera.p1: 0.0
 Camera.p2: 0.0
 
-Camera.width: 1241
-Camera.height: 376
+Camera.width: 1226
+Camera.height: 370
 
 #--------------------------------------------------------------------------------------------
 # User setting Parameters
