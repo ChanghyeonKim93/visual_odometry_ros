@@ -33,8 +33,8 @@ feature_tracker.max_level: 6
 
 # Parameters of feature extractor
 feature_extractor.n_features: 100
-feature_extractor.n_bins_u: 32
-feature_extractor.n_bins_v: 20
+feature_extractor.n_bins_u: 24
+feature_extractor.n_bins_v: 16
 feature_extractor.thres_fastscore: 30.0
 feature_extractor.radius: 5.0
 

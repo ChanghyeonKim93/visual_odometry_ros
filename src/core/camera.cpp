@@ -184,3 +184,10 @@ void Camera::undistortPixels(const PixelVec& pts_raw, PixelVec& pts_undist){
 		pts_undist[i].y = cy_ + v_undist[i] * fy_;
 	}
 };
+
+Pixel Camera::projectToPixel(const Point& X){
+	float invz = 1.0f/X(2);
+
+	return Pixel(fx_*X(0)*invz+cx_,fy_*X(1)*invz+cy_);
+};
+

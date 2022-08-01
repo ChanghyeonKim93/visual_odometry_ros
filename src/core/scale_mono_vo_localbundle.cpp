@@ -91,6 +91,20 @@ void ScaleMonoVO::trackImageLocalBundle(const cv::Mat& img, const double& timest
 			system_flags_.flagFirstImageGot = true;
 		}
 		else {
+// INIT
+//
+//
+//// INIT
+//
+//
+//// INIT
+//
+//
+//// INIT
+//
+//
+//
+			// 초기화 미완료
 			// 최초 첫 이미지는 들어왔으나, 아직 초기화가 되지 않은 상태.
 			// 이전 프레임의 pixels 와 lms0을 가져온다.
 			const PixelVec&       pts0 = frame_prev_->getPtsSeen();
@@ -105,10 +119,29 @@ void ScaleMonoVO::trackImageLocalBundle(const cv::Mat& img, const double& timest
 #ifdef RECORD_EXECUTION_STAT
 	timer::tic();
 #endif
+
+			// 이전 자세의 변화량을 가져온다. 
+			PoseSE3 Twc_prev   = frame_prev_->getPose();
+			PoseSE3 Tcw_prev   = Twc_prev.inverse();
+			PoseSE3 dT01_prior = frame_prev_->getPoseDiff01();
+			PoseSE3 Twc_prior  = Twc_prev*dT01_prior;
+			PoseSE3 Tcw_prior  = Twc_prior.inverse();
+
+			// 깊이가 있는 점들에 대해 prior를 생성한다.
+			PixelVec pts1_track; pts1_track.resize(lms0.size());
+			for(int i = 0; i < lms0.size(); ++i){
+				const LandmarkPtr& lm = lms0[i];
+				if(lm->isTriangulated() && lm->getMaxParallax() > 0.5*D2R ){
+					Point Xc = Tcw_prior.block<3,3>(0,0)*lm->get3DPoint() + Tcw_prior.block<3,1>(0,3);
+					pts1_track[i] = cam_->projectToPixel(Xc);
+				}
+				else pts1_track[i] = pts0[i];
+			}
+
+
 			// frame_prev_ 의 lms 를 현재 이미지로 track.
-			PixelVec pts1_track;
 			MaskVec  maskvec1_track;
-			tracker_->trackBidirection(I0, I1, pts0, params_.feature_tracker.window_size, params_.feature_tracker.max_level, params_.feature_tracker.thres_error, params_.feature_tracker.thres_bidirection,
+			tracker_->trackBidirectionWithPrior(I0, I1, pts0, params_.feature_tracker.window_size, params_.feature_tracker.max_level, params_.feature_tracker.thres_error, params_.feature_tracker.thres_bidirection,
 							           pts1_track, maskvec1_track);
 #ifdef RECORD_EXECUTION_STAT
 	statcurr_execution.time_track = timer::toc(false);
@@ -133,69 +166,23 @@ void ScaleMonoVO::trackImageLocalBundle(const cv::Mat& img, const double& timest
 statcurr_landmark.n_pass_bidirection = cnt_alive;
 #endif
 
-
-#ifdef RECORD_EXECUTION_STAT 
-timer::tic(); 
-#endif
-			// 1-point RANSAC 을 이용하여 outlier를 제거 & tentative steering angle 구함.
-			MaskVec maskvec_1p;
-			float steering_angle_curr = motion_estimator_->findInliers1PointHistogram(pts0_alive, pts1_alive, cam_, maskvec_1p);
-			frame_curr->setSteeringAngle(steering_angle_curr);
-
-			// Detect turn region by a steering angle.
-			if(scale_estimator_->detectTurnRegions(frame_curr)){
-				FramePtrVec frames_turn_tmp;
-				frames_turn_tmp = scale_estimator_->getAllTurnRegions();
-				for(auto f :frames_turn_tmp)
-					stat_.stat_turn.turn_regions.push_back(f);
-			}
-
-
-#ifdef RECORD_EXECUTION_STAT
-statcurr_execution.time_1p = timer::toc(false);
-#endif
-#ifdef RECORD_FRAME_STAT
-statcurr_frame.steering_angle = steering_angle_curr;
-#endif
-			PixelVec       pts0_1p;
-			PixelVec       pts1_1p;
-			LandmarkPtrVec lms1_1p;
-			int cnt_1p = 0;
-			for(int i = 0; i < maskvec_1p.size(); ++i){
-				if( maskvec_1p[i]) {
-					pts0_1p.push_back(pts0_alive[i]);
-					pts1_1p.push_back(pts1_alive[i]);
-					lms1_1p.push_back(lms1_alive[i]);
-					++cnt_1p;
-				}
-				else lms1_alive[i]->setDead(); // track failed. Dead point.
-			}
-
-
-#ifdef RECORD_LANDMARK_STAT
-statcurr_landmark.n_pass_1p = cnt_1p;
-#endif
-
-
 #ifdef RECORD_EXECUTION_STAT
 timer::tic();
 #endif
 			// pts0 와 pts1을 이용, 5-point algorithm 으로 모션 & X0 를 구한다.
 			// 만약 mean optical flow의 중간값이 약 1 px 이하인 경우, 정지 상태로 가정하고 스킵.
-			MaskVec maskvec_inlier(pts0_1p.size());
-			PointVec X0_inlier(pts0_1p.size());
+			MaskVec maskvec_inlier(pts0_alive.size());
+			PointVec X0_inlier(pts0_alive.size());
 			Rot3 dR10;
 			Pos3 dt10;
-			if( !motion_estimator_->calcPose5PointsAlgorithm(pts0_1p, pts1_1p, cam_, dR10, dt10, X0_inlier, maskvec_inlier) ) {
+			if( !motion_estimator_->calcPose5PointsAlgorithm(pts0_alive, pts1_alive, cam_, dR10, dt10, X0_inlier, maskvec_inlier) ) {
 				throw std::runtime_error("calcPose5PointsAlgorithm() is failed.");
 			}
 #ifdef RECORD_EXECUTION_STAT
 statcurr_execution.time_5p = timer::toc(false);
 #endif			
 			// Frame_curr의 자세를 넣는다.
-			float scale;
-			if(frame_curr->getID() > 300) scale = 0.22;
-			else scale = 0.90;
+			float scale = params_.scale_estimator.initial_scale;
 			PoseSE3 dT10; dT10 << dR10, scale*dt10, 0.0f, 0.0f, 0.0f, 1.0f;
 			PoseSE3 dT01 = dT10.inverse();
 
@@ -209,20 +196,20 @@ statcurr_execution.time_5p = timer::toc(false);
 			LandmarkPtrVec lms1_final;
 			cnt_alive = 0;
 			int cnt_parallax_ok = 0;
-			for(int i = 0; i < pts0_1p.size(); ++i){
+			for(int i = 0; i < pts0_alive.size(); ++i){
 				if( maskvec_inlier[i] ) {
-					lms1_1p[i]->addObservationAndRelatedFrame(pts1_1p[i], frame_curr);
-					avg_flow += lms1_1p[i]->getAvgOptFlow();
-					if(lms1_1p[i]->getMaxParallax() > params_.map_update.thres_parallax) {
+					lms1_alive[i]->addObservationAndRelatedFrame(pts1_alive[i], frame_curr);
+					avg_flow += lms1_alive[i]->getAvgOptFlow();
+					if(lms1_alive[i]->getMaxParallax() > params_.map_update.thres_parallax) {
 						++cnt_parallax_ok;
 						// lms1_1p[i]->set3DPoint(X0_inlier[i]);
 					}
-					pts0_final.push_back(pts0_1p[i]);
-					pts1_final.push_back(pts1_1p[i]);
-					lms1_final.push_back(lms1_1p[i]);
+					pts0_final.push_back(pts0_alive[i]);
+					pts1_final.push_back(pts1_alive[i]);
+					lms1_final.push_back(lms1_alive[i]);
 					++cnt_alive;
 				}
-				else lms1_1p[i]->setDead(); // 5p algorithm failed. Dead point.
+				else lms1_alive[i]->setDead(); // 5p algorithm failed. Dead point.
 			}
 			avg_flow /= (float) cnt_alive;
 			std::cout << " AVERAGE FLOW : " << avg_flow << " px\n";
@@ -235,30 +222,36 @@ statcurr_landmark.n_ok_parallax = cnt_parallax_ok;
 
 			// 깊이를 가진 점 갯수를 세어보고, 30개 이상이면 local bundle을 수행한다.
 			uint32_t cnt_depth_ok = 0;
-			PixelVec pts1_depth_ok; pts1_depth_ok.reserve(lms1_final.size());
-			PointVec X_depth_ok; X_depth_ok.reserve(lms1_final.size());
+			PixelVec pts1_depth_ok; 
+			pts1_depth_ok.reserve(lms1_final.size());
+			PointVec X_depth_ok; 
+			X_depth_ok.reserve(lms1_final.size());
+
+			Rot3 Rcw_prev = Tcw_prev.block<3,3>(0,0);
+			Pos3 tcw_prev = Tcw_prev.block<3,1>(0,3);
+
 			for(auto lm : lms1_final){
-				if(lm->isTriangulated()){ 
-					++cnt_depth_ok;
+				if(lm->isTriangulated() && lm->getMaxParallax() > 0.3*D2R){ 
 					pts1_depth_ok.push_back(lm->getObservations().back());
-					X_depth_ok.push_back(lm->get3DPoint());
+					X_depth_ok.push_back(Rcw_prev*lm->get3DPoint() + tcw_prev);
+					++cnt_depth_ok;
 				}
 			}
 			std::cout << frame_curr->getID() <<" -th image. depth newly reconstructed: " << cnt_depth_ok << std::endl;
 
-			if(cnt_depth_ok >= 20){
+			if(cnt_depth_ok >= 0){
 				// Do Local BA
 				std::cout << " DO Local Bundle Adjustment...\n";
 
-				Rot3 Rwc_est = frame_curr->getPose().block<3,3>(0,0);
-				Pos3 twc_est = frame_curr->getPose().block<3,1>(0,3);
 
 				MaskVec maskvec_ba;
-				motion_estimator_->calcPoseLocalBundleAdjustment(X_depth_ok, pts1_depth_ok, cam_, Rwc_est, twc_est, maskvec_ba);
+				Rot3 dR01 = dT01.block<3,3>(0,0);
+				Pos3 dt01 = dT01.block<3,1>(0,3);
+				motion_estimator_->calcPoseLocalBundleAdjustment(X_depth_ok, pts1_depth_ok, cam_, dR01, dt01, maskvec_ba);
 				
-				PoseSE3 Twc_ba;
-				Twc_ba <<Rwc_est, twc_est,0,0,0,1;
-				frame_curr->setPose(Twc_ba);
+				PoseSE3 dT01_ba;
+				dT01_ba << dR01, dt01, 0,0,0,1;
+				frame_curr->setPose(Twc_prev*dT01_ba);
 			}
 
 #ifdef RECORD_FRAME_STAT
@@ -270,20 +263,21 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 
 			// lms1_final 중, depth가 복원되지 않은 경우 복원해준다.
 			PointVec X_world_recon;
+			uint32_t cnt_recon = 0 ;
 			for(auto lm : lms1_final){
-				if(!lm->isTriangulated()){
+				if( lm->getMaxParallax() < 2.0f*D2R){
 					// std::cout << "parallax: " << lm->getMaxParallax()*R2D << " deg\n";
-					if(lm->getMaxParallax() >= 0.5f*D2R){
+					if(lm->getMaxParallax() >= 0.2f*D2R){
 						// const Pixel& pt0 = *(lm->getObservations().end()-2);
 						if(lm->getObservations().size() != lm->getRelatedFramePtr().size())
 							throw std::runtime_error("lm->getObservations().size() != lm->getRelatedFramePtr().size()\n");
 
 						uint32_t idx_end = lm->getAge()-1;
-						const Pixel& pt0 = lm->getObservations()[idx_end-1];
-						// const Pixel& pt0 = lm->getObservations().front();
+						// const Pixel& pt0 = lm->getObservations()[idx_end-1];
+						const Pixel& pt0 = lm->getObservations().front();
 						const Pixel& pt1 = lm->getObservations().back();
-						const PoseSE3& Tw0 = lm->getRelatedFramePtr()[idx_end-1]->getPose();
-						// const PoseSE3& Tw0 = lm->getRelatedFramePtr().front()->getPose();
+						// const PoseSE3& Tw0 = lm->getRelatedFramePtr()[idx_end-1]->getPose();
+						const PoseSE3& Tw0 = lm->getRelatedFramePtr().front()->getPose();
 						const PoseSE3& Tw1 = lm->getRelatedFramePtr().back()->getPose();
 						PoseSE3 T10 =  Tw1.inverse() * Tw0;
 
@@ -292,10 +286,11 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 						Point Xworld = Tw0.block<3,3>(0,0)*X0 + Tw0.block<3,1>(0,3);
 						lm->set3DPoint(Xworld);
 						X_world_recon.push_back(Xworld);
+						++cnt_recon;
 					}
 				}
 			}
-			std::cout << " Recon done.\n";
+			std::cout << " Recon done. : " << cnt_recon << "\n";
 
 #ifdef RECORD_FRAME_STAT
 statcurr_frame.mappoints = X_world_recon;

@@ -644,10 +644,10 @@ bool MotionEstimator::calcPoseLocalBundleAdjustment(const PointVec& X, const Pix
     int n_pts = X.size();
     mask_inlier.resize(n_pts);
     
-    int MAX_ITER = 500;
+    int MAX_ITER = 250;
     float THRES_HUBER = 1.0f; // pixels
 
-    float lambda = 0.0001f;
+    float lambda = 1.0f;
     float step_size = 1.0f;
     float thres_reproj_error = 4.0; // pixels
     
@@ -755,7 +755,7 @@ bool MotionEstimator::calcPoseLocalBundleAdjustment(const PointVec& X, const Pix
         } // END FOR
 
         // Solve H^-1*Jtr;
-        for(int i = 0; i < 6; ++i) JtWJ(i,i) += lambda*JtWJ(i,i); // lambda 
+        // for(int i = 0; i < 6; ++i) JtWJ(i,i) += lambda*JtWJ(i,i); // lambda 
         PoseSE3Tangent delta_xi = JtWJ.ldlt().solve(mJtWr);
         delta_xi *= step_size; 
         xi10 += delta_xi;

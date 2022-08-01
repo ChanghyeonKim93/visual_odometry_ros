@@ -12,6 +12,7 @@
 #include "core/image_processing.h"
 #include "core/type_defines.h"
 
+
 class Camera {
 private:
 	int n_cols_, n_rows_;
@@ -42,6 +43,8 @@ public:
 	void undistortImage(const cv::Mat& raw, cv::Mat& rectified);
 
 	void undistortPixels(const PixelVec& pts_raw, PixelVec& pts_undist);
+
+	Pixel projectToPixel(const Point& X);
 
 	const int cols() const { return n_cols_; };
 	const int rows() const { return n_rows_; };
