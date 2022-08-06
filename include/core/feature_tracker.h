@@ -36,7 +36,7 @@ public:
                 PixelVec& pts_track, MaskVec& mask_valid);
     void trackBidirectionWithPrior(const cv::Mat& img0, const cv::Mat& img1, const PixelVec& pts0, uint32_t window_size, uint32_t max_pyr_lvl, float thres_err, float thres_bidirection, 
                 PixelVec& pts_track, MaskVec& mask_valid);
-    void trackWithPrior(const cv::Mat& img0, const cv::Mat& img1, const PixelVec& pts0, const PixelVec& pts1_prior,
+    void trackWithPrior(const cv::Mat& img0, const cv::Mat& img1, const PixelVec& pts0, uint32_t window_size, uint32_t max_pyr_lvl, float thres_err,
                 PixelVec& pts_track, MaskVec& mask_valid);
     void calcPrior(const PixelVec& pts0, const PointVec& Xw, const PoseSE3& Tw1, const Eigen::Matrix3f& K,
                 PixelVec& pts1_prior);

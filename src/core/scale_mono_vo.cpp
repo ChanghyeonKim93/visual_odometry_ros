@@ -616,6 +616,37 @@ statcurr_landmark.n_new = pxvec1_new.size();
 };
 
 /**
+ * @brief Prune out invalid landmarks and their trackings.
+ * @details Prune out invalid landmarks and their trackings.
+ * @return void
+ * @author Changhyeon Kim (hyun91015@gmail.com)
+ * @date 06-August-2022
+ */
+void ScaleMonoVO::pruneInvalidLandmarks(const PixelVec& pts0, const PixelVec& pts1, const LandmarkPtrVec& lms, const MaskVec& mask,
+	PixelVec& pts0_alive, PixelVec& pts1_alive, LandmarkPtrVec& lms_alive)
+{
+	if(pts0.size() != pts1.size() || pts0.size() != lms.size())
+		throw std::runtime_error("pts0.size() != pts1.size() || pts0.size() != lms.size()");
+	
+	int n_pts = pts0.size();
+
+	// Tracking 결과를 반영하여 pts1_alive, lms1_alive를 정리한다.
+	pts0_alive.reserve(n_pts);
+	pts1_alive.reserve(n_pts);
+	lms_alive.reserve(n_pts);
+	int cnt_alive = 0;
+	for(int i = 0; i < n_pts; ++i){
+		if( mask[i]) {
+			pts0_alive.push_back(pts0[i]);
+			pts1_alive.push_back(pts1[i]);
+			lms_alive.push_back(lms[i]);
+			++cnt_alive;
+		}
+		else lms[i]->setDead(); // track failed. Dead point.
+	}
+};
+
+/**
  * @brief Update keyframe with an input frame
  * @details 새로운 frame으로 Keyframe을 업데이트 & all_keyframes_ 에 저장
  * @param frame Keyframe이 될 frame

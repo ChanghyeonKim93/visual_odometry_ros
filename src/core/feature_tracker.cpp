@@ -153,8 +153,8 @@ void FeatureTracker::trackBidirectionWithPrior(const cv::Mat& img0, const cv::Ma
     // printf(" - FEATURE_TRACKER - 'trackBidirection()'\n");
 };
 
-void FeatureTracker::trackWithPrior(const cv::Mat& img0, const cv::Mat& img1, const PixelVec& pts0, const PixelVec& pts1_prior,
-                PixelVec& pts_track, MaskVec& mask_valid) 
+void FeatureTracker::trackWithPrior(const cv::Mat& img0, const cv::Mat& img1, const PixelVec& pts0, uint32_t window_size, uint32_t max_pyr_lvl, float thres_err,
+    PixelVec& pts_track, MaskVec& mask_valid)
 {
     int n_cols = img0.size().width;
     int n_rows = img0.size().height;
@@ -162,20 +162,35 @@ void FeatureTracker::trackWithPrior(const cv::Mat& img0, const cv::Mat& img1, co
     int n_pts = pts0.size();
     mask_valid.resize(n_pts, true);
 
-    pts_track.resize(n_pts);
-    std::copy(pts1_prior.begin(), pts1_prior.end(), pts_track.begin());
+    // KLT tracking
+    int maxLevel = max_pyr_lvl;
 
     // KLT tracking with prior.
     std::vector<uchar> status;
     std::vector<float> err;
-    int maxLevel = 4;
     cv::calcOpticalFlowPyrLK(img0, img1,
         pts0, pts_track,
-        status, err, cv::Size(25,25), maxLevel, {}, cv::OPTFLOW_USE_INITIAL_FLOW, {});
+        status, err, cv::Size(window_size, window_size), maxLevel, {}, cv::OPTFLOW_USE_INITIAL_FLOW, {});
     
     for(int i = 0; i < n_pts; ++i){
         mask_valid[i] = (mask_valid[i] && status[i] > 0);
     }
+
+    // Check validity.
+    for(int i = 0; i < n_pts; ++i){
+        // Border check
+        mask_valid[i] = (mask_valid[i] && pts_track[i].x > 0 && pts_track[i].x < n_cols
+                                       && pts_track[i].y > 0 && pts_track[i].y < n_rows);
+        // Error check
+        mask_valid[i] = (mask_valid[i] && err[i]  <= thres_err);
+
+        // ZNCC check
+        if(mask_valid[i]){
+            float ncc_track = image_processing::calcZNCC(img0,img1,pts0[i],pts_track[i],25);
+            mask_valid[i] = ncc_track > 0.9f;
+        }
+    }
+    
     // printf(" - FEATURE_TRACKER - 'trackWithPrior()'\n");
 };
 
@@ -344,7 +359,8 @@ void FeatureTracker::refineScale(const cv::Mat& img0, const cv::Mat& img1, const
         }
 
         // push results
-        if(err_curr < 20 && theta(2,0) > 0.8 && theta(2,0) < 1.5){
+        if(err_curr < 20 && theta(2,0) > 0.8 && theta(2,0) < 1.3) {
+            
             pts_track[i].x += theta(0,0);
             pts_track[i].y += theta(1,0);
             mask_valid[i] = true;

@@ -11,5 +11,8 @@ namespace image_processing {
 		std::vector<float>& interp_values, MaskVec& mask_valid);
 	void interpImage3(const cv::Mat& img, const cv::Mat& du, const cv::Mat& dv, const PixelVec& pts,
 		std::vector<float>& interp_img, std::vector<float>& interp_du, std::vector<float>& interp_dv, MaskVec& mask_valid);
+	
+	float calcZNCC(const cv::Mat& img0, const cv::Mat& img1, const Pixel& pt0, const Pixel& pt1, int win_sz);
+	
 };
 #endif

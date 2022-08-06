@@ -176,4 +176,77 @@ namespace image_processing {
 			mask_valid[i]    = true;
 		}	
 	}
+
+	float calcZNCC(const cv::Mat& img0, const cv::Mat& img1, const Pixel& pt0, const Pixel& pt1, int win_sz){
+		int n_cols = img0.cols;
+		int n_rows = img0.rows;
+
+		if(img0.cols != img1.cols || img0.rows != img1.rows)
+			throw std::runtime_error("in 'calcZNCC', img0.cols != img1.cols || img0.rows != img1.rows");
+		
+		if(!(win_sz & 0x01))
+			throw std::runtime_error("in 'calcZNCC', !(win_sz & 0x01)");
+			
+		cv::Mat I0, I1;
+		img0.convertTo(I0, CV_32FC1);
+		img1.convertTo(I1, CV_32FC1);
+
+		// Generate patch
+		int win_half = win_sz/2;
+		int n_elem = win_sz*win_sz;
+		PixelVec patt(n_elem);
+		int ind = 0;
+		for(int i = 0; i < win_sz; ++i) {
+			for(int j = 0; j < win_sz; ++j) {
+				patt[ind].x = (float)(i-win_sz);
+				patt[ind].y = (float)(j-win_sz);
+				++ind;
+			}
+		}
+		n_elem = ind;
+
+		// interpolate patches
+		std::vector<float> I0_patt(n_elem);
+		std::vector<float> I1_patt(n_elem);		
+		PixelVec patt0(n_elem);
+		PixelVec patt1(n_elem);
+		MaskVec mask0(n_elem);
+		MaskVec mask1(n_elem);
+		for(int j = 0; j < n_elem; ++j){
+			patt0[j] = pt0 + patt[j];
+			patt1[j] = pt1 + patt[j];
+		}
+        image_processing::interpImage(I0, patt0, I0_patt, mask0);
+        image_processing::interpImage(I1, patt1, I1_patt, mask1);
+
+		// calculate zncc
+
+		float mean_l = 0;
+		float mean_r = 0;
+		float numer = 0;
+		float denom_l = 0;
+		float denom_r = 0;
+		
+		float cost_temp = -10;
+
+		// calculate means
+		for(int i = 0; i < n_elem; ++i){
+			mean_l += I0_patt[i];
+			mean_r += I1_patt[i];
+		}
+		mean_l /= (float)n_elem;
+		mean_r /= (float)n_elem;
+
+		// Calculate cost
+		for(int i = 0; i < n_elem; ++i){
+			float I0_ml = I0_patt[i] - mean_l;
+			float I1_mr = I1_patt[i] - mean_r;
+			numer += (I0_ml)*(I1_mr);
+			denom_l += I0_ml*I0_ml;
+			denom_r += I1_mr*I1_mr;
+		}
+		cost_temp = numer/sqrt(denom_l*denom_r);
+
+		return cost_temp;
+	};
 };
