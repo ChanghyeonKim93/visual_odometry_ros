@@ -18,6 +18,7 @@
 
 #include "core/camera.h"
 #include "core/mapping.h"
+#include "core/landmark.h"
 
 #include "util/histogram.h"
 #include "util/geometry_library.h"
@@ -36,7 +37,13 @@ public:
     float findInliers1PointHistogram(const PixelVec& pts0, const PixelVec& pts1, const std::shared_ptr<Camera>& cam,
         MaskVec& maskvec_inlier);
 
-    bool calcPoseLocalBundleAdjustment(const PointVec& X, const PixelVec& pts1, const std::shared_ptr<Camera>& cam,
+    bool calcPoseOnlyBundleAdjustment(const PointVec& X, const PixelVec& pts1, const std::shared_ptr<Camera>& cam,
+        Rot3& R01_true, Pos3& t01_true, MaskVec& mask_inlier);
+
+    bool calcPoseOnlyBundleAdjustment(const LandmarkPtrVec& lms, const PixelVec& pts1, const std::shared_ptr<Camera>& cam,
+        Rot3& R01_true, Pos3& t01_true, MaskVec& mask_inlier);
+
+    bool localBundleAdjustment(const PointVec& X, const PixelVec& pts1, const std::shared_ptr<Camera>& cam,
         Rot3& R01_true, Pos3& t01_true, MaskVec& mask_inlier);
 
     float calcSteeringAngleFromRotationMat(const Rot3& R);
