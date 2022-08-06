@@ -204,3 +204,152 @@ void FeatureTracker::calcPrior(const PixelVec& pts0, const PointVec& Xw, const P
         // else pts1_prior[i] = pts0[i];
     }
 };
+
+
+void FeatureTracker::refineScale(const cv::Mat& img0, const cv::Mat& img1, const cv::Mat& dimg1_u, const cv::Mat& dimg1_v, const PixelVec& pts0, const float& scale_init,
+        PixelVec& pts_track, MaskVec& mask_valid)
+{
+    std::cout << "refine do\n";
+    if(pts_track.size() != pts0.size() ){
+        throw std::runtime_error("pts_track.size() != pts0.size()");
+    }
+
+    cv::Mat I0, I1;
+    img0.convertTo(I0, CV_32FC1);
+    img1.convertTo(I1, CV_32FC1);
+
+    cv::Mat dI1u, dI1v;
+    // std::cout << image_processing::type2str(dimg1_u) << std::endl;
+    // dimg1_u.convertTo(dI1u, CV_32FC1);
+    // dimg1_v.convertTo(dI1v, CV_32FC1);
+    dI1u = dimg1_u;
+    dI1v = dimg1_v;
+    // std::cout << image_processing::type2str(dI1u) << std::endl;
+
+    int n_cols = I0.size().width;
+    int n_rows = I0.size().height;
+
+    int n_pts = pts0.size();
+    mask_valid.resize(n_pts, true);
+
+    int win_sz     = 5;
+    int win_len    = 2*win_sz+1;
+    int win_len_sq = win_len*win_len;
+
+    int MAX_ITER = 150;
+    float EPS_SCALE = 1e-4;
+    float EPS_PIXEL = 1e-3;
+    float EPS_TOTAL = 1e-5;
+
+    // Generate patch
+    PixelVec patt(win_len_sq);
+    int ind = 0;
+    for(int i = 0; i < win_len; i += 2) {
+        for(int j = 0; j < win_len; j += 2) {
+            patt[ind].x = (float)(i-win_sz);
+            patt[ind].y = (float)(j-win_sz);
+            ++ind;
+        }
+    }
+    win_len_sq = ind;
+
+    // containers
+    std::vector<float> I0_patt(win_len_sq);
+    std::vector<float> I1_patt(win_len_sq);
+    std::vector<float> dI1u_patt(win_len_sq);
+    std::vector<float> dI1v_patt(win_len_sq);
+
+    // temporal container
+    PixelVec pts_warp(win_len_sq);
+    MaskVec mask_warp_I0(win_len_sq);
+    MaskVec mask_warp_I1(win_len_sq);
+    
+    // Iteratively update for each point.
+    for(int i = 0; i < n_pts; ++i) { 
+        if(!mask_valid[i]) continue;
+
+
+        // calculate prior values.
+        Eigen::MatrixXf theta(3,1);
+        theta(0,0) = 0.0;
+        theta(1,0) = 0.0;
+        theta(2,0) = 1.1f; // initial scale. We assume increasing scale.
+
+        for(int j = 0; j < win_len_sq; ++j) {
+            pts_warp[j] = patt[j] + pts0[i];
+        }
+
+        // interpolate data
+        image_processing::interpImage(I0, pts_warp, I0_patt, mask_warp_I0);
+        
+        float err_curr = 0;
+        float err_prev = 1e22;
+
+        // Iterations.
+        for(int iter = 0; iter < MAX_ITER; ++iter) {
+            Pixel pt_track_tmp;
+            pt_track_tmp.x = theta(0,0) + pts_track[i].x;
+            pt_track_tmp.y = theta(1,0) + pts_track[i].y;
+
+            // warp patch points
+            for(int j = 0; j < win_len_sq; j++) {
+                pts_warp[j] = patt[j]*theta(2,0) + pt_track_tmp;
+            }
+
+            // Generate patches.
+            // image_processing::interpImage(I1,   pts_warp,   I1_patt, mask_warp);
+            // image_processing::interpImage(dI1u, pts_warp, dI1u_patt, mask_warp);
+            // image_processing::interpImage(dI1v, pts_warp, dI1v_patt, mask_warp);
+            image_processing::interpImage3(I1, dI1u, dI1v, pts_warp,
+                I1_patt, dI1u_patt, dI1v_patt, mask_warp_I1);
+
+            // calculate jacobian & residual
+            Eigen::MatrixXf J(win_len_sq, 3); // R^{N x 3}
+            Eigen::MatrixXf r(win_len_sq, 1); // R^{N x 1}
+            int idx_tmp = 0;
+            for(int j = 0; j < win_len_sq; ++j) {
+                if(mask_warp_I0[j] && mask_warp_I1[j]){
+                    J(idx_tmp,0) = dI1u_patt[j];
+                    J(idx_tmp,1) = dI1v_patt[j];
+                    J(idx_tmp,2) = dI1u_patt[j]*patt[j].x + dI1u_patt[j]*patt[j].y;
+                    
+                    r(idx_tmp,0) = I1_patt[j] - I0_patt[j];
+                    ++idx_tmp;
+                }
+            }
+            
+            // calculate Hessian and HinvJt
+            Eigen::MatrixXf H(3,3);                // equal to J^t*J, R^{3 x 3}
+            Eigen::MatrixXf HinvJt(3,win_len_sq); // R^{3 x N}
+
+            J = J.block(0,0,idx_tmp,3);
+            r = r.block(0,0,idx_tmp,1);
+            H = J.transpose()*J;
+            HinvJt = H.inverse()*J.transpose();
+            HinvJt = HinvJt;
+
+            Eigen::MatrixXf delta_theta(3,1);
+            delta_theta = -HinvJt*r;
+            theta = theta + delta_theta;
+
+            err_curr = r.norm()/r.size();
+
+            // breaking point.
+            if( abs(err_prev-err_curr) <= EPS_TOTAL || sqrt(delta_theta(0,0)*delta_theta(0,0)+delta_theta(1,0)*delta_theta(1,0)) < EPS_PIXEL){
+                // std::cout << " e:" << err_curr <<", itr:" << iter << "\n";
+                // std::cout <<"update  px: " << theta(0,0)<< ", " << theta(1,0) << ", sc:" << theta(2,0) << std::endl;
+                break;
+            }
+            err_prev = err_curr;
+        }
+
+        // push results
+        if(err_curr < 20 && theta(2,0) > 0.8 && theta(2,0) < 1.5){
+            pts_track[i].x += theta(0,0);
+            pts_track[i].y += theta(1,0);
+            mask_valid[i] = true;
+        }
+        else mask_valid[i] = false; // not update
+    }
+
+};

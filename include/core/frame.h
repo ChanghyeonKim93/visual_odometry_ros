@@ -34,6 +34,8 @@ private:
     float scale_;
 
     cv::Mat image_;
+    cv::Mat image_du_;
+    cv::Mat image_dv_;
 
     LandmarkPtrVec related_landmarks_;
 
@@ -65,11 +67,14 @@ public:
     // Get
     const uint32_t& getID() const;
     const PoseSE3& getPose() const;
+    const PoseSE3& getPoseInv() const;
     const PoseSE3& getPoseDiff10() const;
     const PoseSE3& getPoseDiff01() const;
     const float& getSteeringAngle() const;
     const float& getScale() const;
     const cv::Mat& getImage() const ; 
+    const cv::Mat& getImageDu() const ; 
+    const cv::Mat& getImageDv() const ; 
     const LandmarkPtrVec& getRelatedLandmarkPtr() const;
     const PixelVec& getPtsSeen() const;
     const double& getTimestamp() const;

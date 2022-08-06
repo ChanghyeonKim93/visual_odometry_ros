@@ -647,9 +647,9 @@ bool MotionEstimator::calcPoseLocalBundleAdjustment(const PointVec& X, const Pix
     int MAX_ITER = 250;
     float THRES_HUBER = 1.0f; // pixels
 
-    float lambda = 1.0f;
+    float lambda = 0.01f;
     float step_size = 1.0f;
-    float thres_reproj_error = 4.0; // pixels
+    float thres_reproj_error = 3.0; // pixels
     
     float fx = cam->fx();
     float fy = cam->fy();
@@ -659,8 +659,10 @@ bool MotionEstimator::calcPoseLocalBundleAdjustment(const PointVec& X, const Pix
     float fyinv = cam->fyinv();
 
     PoseSE3 T10_init;
-    T10_init << R01_true.transpose(), -R01_true.transpose()*t01_true,0,0,0,1;
-    
+    PoseSE3 T01_init;
+    T01_init << R01_true, t01_true, 0,0,0,1;
+    T10_init = T01_init.inverse();
+
     PoseSE3Tangent xi10; // se3
     geometry::SE3Log_f(T10_init,xi10);
     
@@ -755,7 +757,7 @@ bool MotionEstimator::calcPoseLocalBundleAdjustment(const PointVec& X, const Pix
         } // END FOR
 
         // Solve H^-1*Jtr;
-        // for(int i = 0; i < 6; ++i) JtWJ(i,i) += lambda*JtWJ(i,i); // lambda 
+        for(int i = 0; i < 6; ++i) JtWJ(i,i) += lambda*JtWJ(i,i); // lambda 
         PoseSE3Tangent delta_xi = JtWJ.ldlt().solve(mJtWr);
         delta_xi *= step_size; 
         xi10 += delta_xi;
@@ -766,14 +768,17 @@ bool MotionEstimator::calcPoseLocalBundleAdjustment(const PointVec& X, const Pix
         }
     }
 
-    PoseSE3 T01_update;
-    geometry::se3Exp_f(-xi10, T01_update);
-    R01_true = T01_update.block<3,3>(0,0);
-    t01_true = T01_update.block<3,1>(0,3);
+    if(!std::isnan(xi10.norm())){
+        PoseSE3 T01_update;
+        geometry::se3Exp_f(-xi10, T01_update);
+        R01_true = T01_update.block<3,3>(0,0);
+        t01_true = T01_update.block<3,1>(0,3);
 
-    std::cout <<"BA result:\n";
-    std::cout << "R01_ba:\n" << R01_true <<"\n";
-    std::cout << "t01_ba:\n" << t01_true <<"\n";
+        std::cout <<"BA result:\n";
+        std::cout << "R01_ba:\n" << R01_true <<"\n";
+        std::cout << "t01_ba:\n" << t01_true <<"\n";
+    }
+    else is_success = false;
 
     return is_success;
 };

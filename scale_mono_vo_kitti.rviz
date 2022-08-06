@@ -7,8 +7,6 @@ Panels:
         - /Global Options1
         - /VO_pose1/Status1
         - /VO_pose1/Shape1
-        - /ORB_pose1
-        - /ORB_path1
       Splitter Ratio: 0.49023860692977905
     Tree Height: 355
   - Class: rviz/Selection
@@ -110,7 +108,7 @@ Visualization Manager:
       Use rainbow: false
       Value: true
     - Alpha: 1
-      Axes Length: 50
+      Axes Length: 250
       Axes Radius: 3
       Class: rviz/Pose
       Color: 255; 25; 0
@@ -173,7 +171,7 @@ Visualization Manager:
       Queue Size: 10
       Shape:
         Alpha: 1
-        Axes Length: 30
+        Axes Length: 160
         Axes Radius: 5
         Color: 255; 25; 0
         Head Length: 0.30000001192092896
@@ -217,7 +215,7 @@ Visualization Manager:
       Axis: Z
       Channel Name: y
       Class: rviz/PointCloud2
-      Color: 138; 226; 52
+      Color: 186; 189; 182
       Color Transformer: FlatColor
       Decay Time: 0
       Enabled: true
@@ -304,7 +302,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 156.23956298828125
+      Distance: 1295.220458984375
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -312,17 +310,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7799999713897705
       Focal Point:
-        X: -21.211204528808594
-        Y: 63.147186279296875
-        Z: 5.987736225128174
+        X: 258.11627197265625
+        Y: -35.92079162597656
+        Z: 151.41749572753906
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.0002027079463005066
+      Pitch: 0.005202912725508213
       Target Frame: <Fixed Frame>
-      Yaw: 4.690014362335205
+      Yaw: 4.639974117279053
     Saved: ~
 Window Geometry:
   Displays:

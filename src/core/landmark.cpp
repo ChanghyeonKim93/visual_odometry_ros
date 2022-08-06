@@ -3,7 +3,7 @@
 std::shared_ptr<Camera> Landmark::cam_ = nullptr;
 
 Landmark::Landmark()
-: Xw_(0,0,0), id_(landmark_counter_++), age_(0), is_alive_(true), is_triangulated_(false)
+: Xw_(0,0,0), x_front_(0,0,0), invd_(0.0f), cov_invd_(100000.0f), id_(landmark_counter_++), age_(0), is_alive_(true), is_triangulated_(false)
 {
     min_optflow_ = 1000.0f;
     max_optflow_ = 0.0f;
@@ -19,9 +19,11 @@ Landmark::Landmark()
     related_frames_.reserve(30);
 };  
 Landmark::Landmark(const Pixel& p, const FramePtr& frame)
-: Xw_(0,0,0), id_(landmark_counter_++), age_(0), is_alive_(true), is_triangulated_(false)
+: Xw_(0,0,0), x_front_(0,0,0), invd_(0.0f), cov_invd_(100000.0f), id_(landmark_counter_++), age_(0), is_alive_(true), is_triangulated_(false)
 {
     addObservationAndRelatedFrame(p, frame);
+    x_front_ << (p.x-cam_->cx())*cam_->fxinv(), (p.y-cam_->cy())*cam_->fyinv(), 1.0f;
+
     min_optflow_ = 1000.0f;
     max_optflow_ = 0.0f;
     avg_optflow_ = 0.0f;
@@ -41,6 +43,25 @@ Landmark::~Landmark(){
 };
 
 void Landmark::set3DPoint(const Point& Xw) { Xw_ = Xw;  is_triangulated_ = true; };
+
+void Landmark::setInverseDepth(float invd_curr) { invd_ = invd_curr; };
+void Landmark::setCovarianceInverseDepth(float cov_invd_curr) { cov_invd_ = cov_invd_curr; };
+void Landmark::updateInverseDepth(float invd_curr, float cov_invd_curr)
+{
+    // new std
+    float invd_new = (invd_*cov_invd_curr+ invd_curr*cov_invd_)/(cov_invd_+cov_invd_curr);
+    invd_ = invd_new;
+
+    float cov_new = cov_invd_curr*cov_invd_/(cov_invd_curr+cov_invd_);
+    cov_invd_ = cov_new;
+
+
+    Point Xf;
+    Xf = x_front_ * (1.0f/invd_);
+
+    const PoseSE3& Twf = related_frames_.front()->getPose();
+    Xw_ = Twf.block<3,3>(0,0)*Xf + Twf.block<3,1>(0,3);
+};
 void Landmark::addObservationAndRelatedFrame(const Pixel& p, const FramePtr& frame) {
     observations_.push_back(p);
     related_frames_.push_back(frame);
@@ -58,13 +79,12 @@ void Landmark::addObservationAndRelatedFrame(const Pixel& p, const FramePtr& fra
     const Pixel& p1 = observations_.back();
 
     // const PoseSE3& T01 = related_frames_[observations_.size()-2]->getPose().inverse()*related_frames_.back()->getPose();
-    const PoseSE3& T01 = related_frames_.front()->getPose().inverse()*related_frames_.back()->getPose();
+    PoseSE3 T01 = related_frames_.front()->getPoseInv()*related_frames_.back()->getPose();
 
     Point x0, x1;
     x0 << (p0.x-cam_->cx())*cam_->fxinv(), (p0.y-cam_->cy())*cam_->fyinv(), 1.0f; 
     x1 << (p1.x-cam_->cx())*cam_->fxinv(), (p1.y-cam_->cy())*cam_->fyinv(), 1.0f; 
     x1 = T01.block<3,3>(0,0)*x1;
-
 
     float costheta = x0.dot(x1)/(x0.norm()*x1.norm());
     if(costheta >=  1) costheta =  0.999f;
@@ -72,11 +92,11 @@ void Landmark::addObservationAndRelatedFrame(const Pixel& p, const FramePtr& fra
 
     
     float parallax_curr = acos(costheta);
+    last_parallax_ = parallax_curr;
     if(max_parallax_ <= parallax_curr) max_parallax_ = parallax_curr;
     if(min_parallax_ >= parallax_curr) min_parallax_ = parallax_curr;
 
     float invage = 1.0f/(float)age_;
-    last_parallax_ = parallax_curr;
     avg_parallax_ = avg_parallax_*(float)(age_-1.0f);
     avg_parallax_ += parallax_curr;
     avg_parallax_ *= invage;
@@ -84,10 +104,10 @@ void Landmark::addObservationAndRelatedFrame(const Pixel& p, const FramePtr& fra
     // Calculate optical flow 
     Pixel dp = p1-p0;
     float optflow_now = sqrt(dp.x*dp.x + dp.y*dp.y);
+    last_optflow_ = optflow_now;
     if(optflow_now >= max_optflow_) max_optflow_ = optflow_now;
     if(optflow_now <= min_optflow_) min_optflow_ = optflow_now; 
 
-    last_optflow_ = optflow_now;
     avg_optflow_ = avg_optflow_*(float)(age_-1.0f);
     avg_optflow_ += optflow_now;
     avg_optflow_ *= invage;
@@ -98,6 +118,8 @@ void               Landmark::setDead()                  { is_alive_ = false; };
 
 uint32_t           Landmark::getID() const              { return id_; };
 uint32_t           Landmark::getAge() const             { return age_; };
+float              Landmark::getInverseDepth() const    { return invd_; };
+float              Landmark::getCovarianceInverseDepth() const { return cov_invd_; };
 const Point&       Landmark::get3DPoint() const         { return Xw_; };
 const PixelVec&    Landmark::getObservations() const    { return observations_; };
 const FramePtrVec& Landmark::getRelatedFramePtr() const { return related_frames_; };

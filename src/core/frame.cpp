@@ -32,6 +32,14 @@ void Frame::setScale(float scale){
 void Frame::setImageAndTimestamp(const cv::Mat& img, const double& timestamp) { 
     img.copyTo(image_); 
     timestamp_ = timestamp;
+
+    // image_du_ = cv::Mat::zeros(image_.size(), CV_32FC1);
+    // image_dv_ = cv::Mat::zeros(image_.size(), CV_32FC1);
+    
+    // Calculate diff images
+    int kerner_size = 3;
+    cv::Sobel(image_, image_du_, CV_32FC1, 1, 0, kerner_size, 1.0, 0.0, cv::BORDER_DEFAULT);
+    cv::Sobel(image_, image_dv_, CV_32FC1, 0, 1, kerner_size, 1.0, 0.0, cv::BORDER_DEFAULT);
 };
 
 void Frame::setRelatedLandmarks(const LandmarkPtrVec& landmarks){
@@ -58,7 +66,10 @@ const uint32_t& Frame::getID() const {
 const PoseSE3& Frame::getPose() const { 
     return Twc_; 
 };
-    
+const PoseSE3& Frame::getPoseInv() const{
+    return Tcw_;
+};
+
 const PoseSE3& Frame::getPoseDiff10() const{
     return dT10_;
 };
@@ -76,6 +87,14 @@ const float& Frame::getScale() const {
 const cv::Mat& Frame::getImage() const {
     return image_; 
 }; 
+
+const cv::Mat& Frame::getImageDu() const {
+    return image_du_;
+};
+
+const cv::Mat& Frame::getImageDv() const {
+    return image_dv_;
+};
 
 const LandmarkPtrVec& Frame::getRelatedLandmarkPtr() const { 
     return related_landmarks_; 

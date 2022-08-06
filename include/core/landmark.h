@@ -24,6 +24,10 @@ class Landmark{
 private:
     uint32_t id_;
     Point    Xw_;
+    Point    x_front_;
+
+    float invd_;
+    float cov_invd_;
 
     PixelVec observations_;
     FramePtrVec related_frames_;
@@ -57,6 +61,9 @@ public:
     void addObservationAndRelatedFrame(const Pixel& p, const FramePtr& frame);
     
     void set3DPoint(const Point& Xw);
+    void setInverseDepth(float invd_curr);
+    void setCovarianceInverseDepth(float cov_invd_curr);
+    void updateInverseDepth(float invd_curr, float cov_invd_curr);
     void setDead();
     
     // void setTrackInView(bool value);
@@ -66,6 +73,8 @@ public:
     
     uint32_t           getID() const;
     uint32_t           getAge() const;
+    float              getInverseDepth() const;
+    float              getCovarianceInverseDepth() const;
     const Point&       get3DPoint() const;
     const PixelVec&    getObservations() const;
     const FramePtrVec& getRelatedFramePtr() const;
