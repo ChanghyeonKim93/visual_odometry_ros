@@ -28,7 +28,7 @@ public:
     FeatureTracker();
     ~FeatureTracker();
 
-    void track(const cv::Mat& img0, const cv::Mat& img1, const PixelVec& pts0, 
+    void track(const cv::Mat& img0, const cv::Mat& img1, const PixelVec& pts0, uint32_t window_size, uint32_t max_pyr_lvl, float thres_err,
                 PixelVec& pts_track, MaskVec& mask_valid);
     void scaleRefinement(const cv::Mat& img0, const cv::Mat& img1, const PixelVec& pts0,  uint32_t window_size, float thres_err,
                 PixelVec& pts_track, MaskVec& mask_valid);

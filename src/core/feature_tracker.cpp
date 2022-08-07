@@ -8,8 +8,9 @@ FeatureTracker::~FeatureTracker(){
     printf(" - FEATURE_TRACKER is deleted.\n");
 };
 
-void FeatureTracker::track(const cv::Mat& img0, const cv::Mat& img1, const PixelVec& pts0, 
-    PixelVec& pts_track, MaskVec& mask_valid) {
+void FeatureTracker::track(const cv::Mat& img0, const cv::Mat& img1, const PixelVec& pts0, uint32_t window_size, uint32_t max_pyr_lvl, float thres_err,
+    PixelVec& pts_track, MaskVec& mask_valid)
+{
     int n_cols = img0.size().width;
     int n_rows = img0.size().height;
 
@@ -22,13 +23,13 @@ void FeatureTracker::track(const cv::Mat& img0, const cv::Mat& img1, const Pixel
 
     std::vector<uchar> status;
     std::vector<float> err;
-    int maxLevel = 4;
+    int maxLevel = max_pyr_lvl;
     cv::calcOpticalFlowPyrLK(img0, img1, 
         pts0, pts_track, 
-        status, err, cv::Size(25,25), maxLevel);
+        status, err, cv::Size(window_size,window_size), maxLevel);
     
     for(int i = 0; i < n_pts; ++i){
-        mask_valid[i] = (mask_valid[i] && status[i] > 0);
+        mask_valid[i] = (mask_valid[i] && status[i] > 0 && err[i] <= thres_err);
     }
     
     // printf(" - FEATURE_TRACKER - 'track()'\n");
@@ -225,18 +226,14 @@ void FeatureTracker::refineScale(const cv::Mat& img0, const cv::Mat& img1, const
         PixelVec& pts_track, MaskVec& mask_valid)
 {
     std::cout << "refine do\n";
-    if(pts_track.size() != pts0.size() ){
-        throw std::runtime_error("pts_track.size() != pts0.size()");
-    }
+    if(pts_track.size() != pts0.size() ) throw std::runtime_error("pts_track.size() != pts0.size()");
+    
 
     cv::Mat I0, I1;
     img0.convertTo(I0, CV_32FC1);
     img1.convertTo(I1, CV_32FC1);
 
     cv::Mat dI1u, dI1v;
-    // std::cout << image_processing::type2str(dimg1_u) << std::endl;
-    // dimg1_u.convertTo(dI1u, CV_32FC1);
-    // dimg1_v.convertTo(dI1v, CV_32FC1);
     dI1u = dimg1_u;
     dI1v = dimg1_v;
     // std::cout << image_processing::type2str(dI1u) << std::endl;
@@ -247,7 +244,7 @@ void FeatureTracker::refineScale(const cv::Mat& img0, const cv::Mat& img1, const
     int n_pts = pts0.size();
     mask_valid.resize(n_pts, true);
 
-    int win_sz     = 5;
+    int win_sz     = 10;
     int win_len    = 2*win_sz+1;
     int win_len_sq = win_len*win_len;
 
@@ -259,8 +256,8 @@ void FeatureTracker::refineScale(const cv::Mat& img0, const cv::Mat& img1, const
     // Generate patch
     PixelVec patt(win_len_sq);
     int ind = 0;
-    for(int i = 0; i < win_len; i += 2) {
-        for(int j = 0; j < win_len; j += 2) {
+    for(int j = 0; j < win_len; ++j) {
+        for(int i = !(j & 0x01); i < win_len; i += 2) {
             patt[ind].x = (float)(i-win_sz);
             patt[ind].y = (float)(j-win_sz);
             ++ind;
@@ -283,12 +280,11 @@ void FeatureTracker::refineScale(const cv::Mat& img0, const cv::Mat& img1, const
     for(int i = 0; i < n_pts; ++i) { 
         if(!mask_valid[i]) continue;
 
-
         // calculate prior values.
         Eigen::MatrixXf theta(3,1);
         theta(0,0) = 0.0;
         theta(1,0) = 0.0;
-        theta(2,0) = 1.1f; // initial scale. We assume increasing scale.
+        theta(2,0) = 1.25f; // initial scale. We assume increasing scale.
 
         for(int j = 0; j < win_len_sq; ++j) {
             pts_warp[j] = patt[j] + pts0[i];

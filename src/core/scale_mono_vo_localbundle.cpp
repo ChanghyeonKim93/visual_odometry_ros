@@ -11,8 +11,8 @@
  */
 void ScaleMonoVO::trackImageLocalBundle(const cv::Mat& img, const double& timestamp){
 	
-	float THRES_ZNCC    = 0.90f;
-	float THRES_SAMPSON = 20.0f;
+	float THRES_ZNCC    = 0.90;
+	float THRES_SAMPSON = 10.0f;
 
 	// Generate statistics
 	AlgorithmStatistics::LandmarkStatistics  statcurr_landmark;
@@ -47,8 +47,7 @@ void ScaleMonoVO::trackImageLocalBundle(const cv::Mat& img, const double& timest
 
 			// 초기 landmark 생성
 			lms0.reserve(pts0.size());
-			for(auto p : pts0) 
-				lms0.push_back(std::make_shared<Landmark>(p, frame_curr));
+			for(auto p : pts0) lms0.push_back(std::make_shared<Landmark>(p, frame_curr));
 			
 			// Related Landmark와 tracked pixels를 업데이트
 			frame_curr->setPtsSeen(pts0);
@@ -56,7 +55,7 @@ void ScaleMonoVO::trackImageLocalBundle(const cv::Mat& img, const double& timest
 
 			frame_curr->setPose(PoseSE3::Identity());
 			PoseSE3 T_init = PoseSE3::Identity();
-			T_init.block<3,1>(0,3) << 0,0,-0.8;
+			T_init.block<3,1>(0,3) << 0,0,-1.0f;
 			frame_curr->setPoseDiff10(T_init);
 			
 			this->saveLandmarks(lms0);	
@@ -68,17 +67,6 @@ void ScaleMonoVO::trackImageLocalBundle(const cv::Mat& img, const double& timest
 			system_flags_.flagFirstImageGot = true;
 		}
 		else {
-// INIT
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
 			// 초기화 미완료
 			// 최초 첫 이미지는 들어왔으나, 아직 초기화가 되지 않은 상태.
 			// 이전 프레임의 pixels 와 lms0을 가져온다.
@@ -89,68 +77,61 @@ void ScaleMonoVO::trackImageLocalBundle(const cv::Mat& img, const double& timest
 
 			// 이전 자세의 변화량을 가져온다. 
 			PoseSE3 Twc_prev   = frame_prev_->getPose();
-			PoseSE3 Tcw_prev   = Twc_prev.inverse();
 
 			PoseSE3 dT01_prior = frame_prev_->getPoseDiff01();
 			PoseSE3 Twc_prior  = Twc_prev*dT01_prior;
 			PoseSE3 Tcw_prior  = Twc_prior.inverse();
 
-			// 깊이가 있는 점들에 대해 prior를 생성한다.
-			PixelVec pts1_track; pts1_track.resize(lms0.size());
-			for(int i = 0; i < lms0.size(); ++i){
-				const LandmarkPtr& lm = lms0[i];
-				if(lm->isTriangulated() && lm->getCovarianceInverseDepth() < 0.0) {
-					Point Xc = Tcw_prior.block<3,3>(0,0)*lm->get3DPoint() + Tcw_prior.block<3,1>(0,3);
-					pts1_track[i] = cam_->projectToPixel(Xc);
-				}
-				else pts1_track[i] = pts0[i];
-			}
+			// frame_prev_ 의 lms 를 현재 이미지로 track. 5ms
+			PixelVec pts1;
+			MaskVec  mask_track;
+			tracker_->track(I0, I1, pts0, params_.feature_tracker.window_size, params_.feature_tracker.max_level, params_.feature_tracker.thres_error,
+				pts1, mask_track);
+			PixelVec       pts0_trackok;
+			PixelVec       pts1_trackok;
+			LandmarkPtrVec lms1_trackok;
+			this->pruneInvalidLandmarks(pts0, pts1, lms0, mask_track, 
+				pts0_trackok, pts1_trackok, lms1_trackok);
 
-			// frame_prev_ 의 lms 를 현재 이미지로 track.
-			MaskVec  maskvec1_track;
-			tracker_->trackWithPrior(I0, I1, pts0, params_.feature_tracker.window_size, params_.feature_tracker.max_level, params_.feature_tracker.thres_error,
-							           pts1_track, maskvec1_track);
+			// Scale refinement 50ms
 
-			PixelVec       pts0_alive0;
-			PixelVec       pts1_alive0;
-			LandmarkPtrVec lms1_alive0;
-			this->pruneInvalidLandmarks(pts0,pts1_track,lms0,maskvec1_track, 
-				pts0_alive0, pts1_alive0, lms1_alive0);
-				
-			// Scale refinement
-			MaskVec mask_refine(pts0_alive0.size(), true);
-			tracker_->refineScale(I0, I1, frame_curr->getImageDu(), frame_curr->getImageDv(), pts0_alive0, 1.25f, pts1_alive0, mask_refine);
+			MaskVec mask_refine(pts0_trackok.size(), true);
+			// tracker_->refineScale(I0, I1, frame_curr->getImageDu(), frame_curr->getImageDv(), pts0_trackok, 1.25f, 
+			// 	pts1_trackok, mask_refine);
 			
-			PixelVec       pts0_alive;
-			PixelVec       pts1_alive;
-			LandmarkPtrVec lms1_alive;
-			this->pruneInvalidLandmarks(pts0_alive0, pts1_alive0, lms1_alive0, mask_refine, 
-				pts0_alive, pts1_alive, lms1_alive);
+			PixelVec       pts0_scaleok;
+			PixelVec       pts1_scaleok;
+			LandmarkPtrVec lms1_scaleok;
+			this->pruneInvalidLandmarks(pts0_trackok, pts1_trackok, lms1_trackok, mask_refine, 
+				pts0_scaleok, pts1_scaleok, lms1_scaleok);
 
+			// 5-point algorithm 2ms
 
-			// 5-point algorithm
-			MaskVec maskvec_inlier(pts0_alive.size());
-			PointVec X0_inlier(pts0_alive.size());
+			MaskVec mask_5p(pts0_scaleok.size());
+			PointVec X0_inlier(pts0_scaleok.size());
 			Rot3 dR10;
 			Pos3 dt10;
-			if( !motion_estimator_->calcPose5PointsAlgorithm(pts0_alive, pts1_alive, cam_, dR10, dt10, X0_inlier, maskvec_inlier) ) {
+			if( !motion_estimator_->calcPose5PointsAlgorithm(pts0_scaleok, pts1_scaleok, cam_, dR10, dt10, X0_inlier, mask_5p) ) {
 				throw std::runtime_error("calcPose5PointsAlgorithm() is failed.");
 			}
 
-			// Check sampson distance
+			// Check sampson distance 0.01 ms
 			std::vector<float> symm_epi_dist;
-			motion_estimator_->calcSymmetricEpipolarDistance(pts0_alive,pts1_alive, cam_, dR10, dt10, symm_epi_dist);
-			MaskVec maskvec_sampson(pts0_alive.size());
+			motion_estimator_->calcSymmetricEpipolarDistance(pts0_scaleok, pts1_scaleok, cam_, dR10, dt10, symm_epi_dist);
+			MaskVec mask_sampson(pts0_scaleok.size());
 
-			for(int i = 0; i < maskvec_sampson.size(); ++i){
-				maskvec_sampson[i] = maskvec_inlier[i] && symm_epi_dist[i] < THRES_SAMPSON;
+			for(int i = 0; i < mask_sampson.size(); ++i){
+				mask_sampson[i] = mask_5p[i] && (symm_epi_dist[i] < THRES_SAMPSON);
 			}
 
 			PixelVec       pts0_final;
 			PixelVec       pts1_final;
 			LandmarkPtrVec lms1_final;
-			this->pruneInvalidLandmarks(pts0_alive, pts1_alive, lms1_alive, maskvec_sampson, 
+			this->pruneInvalidLandmarks(pts0_scaleok, pts1_scaleok, lms1_scaleok, mask_sampson, 
 				pts0_final, pts1_final, lms1_final);
+			for(int i = 0; i < lms1_final.size(); ++i){
+				lms1_final[i]->addObservationAndRelatedFrame(pts0_final[i], frame_curr);
+			}
 
 
 			// Frame_curr의 자세를 넣는다.
@@ -159,87 +140,16 @@ void ScaleMonoVO::trackImageLocalBundle(const cv::Mat& img, const double& timest
 			PoseSE3 dT01 = dT10.inverse();
 
 			frame_curr->setPose(Twc_prev*dT01);		
-			frame_curr->setPoseDiff10(dT10);		
-
+			frame_curr->setPoseDiff10(dT10);	
+				
 #ifdef RECORD_FRAME_STAT
 statcurr_frame.Twc = frame_curr->getPose();
 statcurr_frame.Tcw = frame_curr->getPose().inverse();
 statcurr_frame.dT_10 = frame_curr->getPoseDiff10();
 statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 #endif
-
-			// // 깊이를 가진 점 갯수를 세어보고, 30개 이상이면 local bundle을 수행한다.
-			// uint32_t cnt_depth_ok = 0;
-			// PixelVec pts1_depth_ok; 
-			// PointVec X_depth_ok; 
-			// pts1_depth_ok.reserve(lms1_alive.size());
-			// X_depth_ok.reserve(lms1_alive.size());
-
-			// Rot3 Rcw_prev = Tcw_prev.block<3,3>(0,0);
-			// Pos3 tcw_prev = Tcw_prev.block<3,1>(0,3);
-			// LandmarkPtrVec lms1_depthok;
-			// for(auto lm : lms1_alive){
-			// 	if(lm->isTriangulated() && lm->getAge() > 2 && lm->getMaxParallax() > 0.3*D2R){ 
-			// 		Point Xc = Rcw_prev*lm->get3DPoint() + tcw_prev;
-			// 		if(Xc(2) > 0){
-			// 			pts1_depth_ok.push_back(lm->getObservations().back());
-			// 			X_depth_ok.push_back(Xc);
-			// 			++cnt_depth_ok;
-			// 		}
-			// 	}
-			// }
-			// std::cout << frame_curr->getID() <<" -th image. depth newly reconstructed: " << cnt_depth_ok << std::endl;
-
-			// if(cnt_depth_ok > 111000){
-			// 	// Do Local BA
-			// 	std::cout << " DO Local Bundle Adjustment...\n";
-
-			// 	MaskVec maskvec_ba;
-			// 	Rot3 dR01 = dT01_prior.block<3,3>(0,0);
-			// 	Pos3 dt01 = dT01_prior.block<3,1>(0,3);
-
-			// 	motion_estimator_->calcPoseOnlyBundleAdjustment(X_depth_ok, pts1_depth_ok, cam_, dR01, dt01, maskvec_ba);
-				
-			// 	PoseSE3 dT01_ba, dT10_ba;
-			// 	dT01_ba << dR01, dt01, 0,0,0,1;
-			// 	dT10_ba = dT01_ba.inverse();
-			// 	if(!std::isnan(dt01.norm())){
-			// 		frame_curr->setPose(Twc_prev*dT01_ba);
-			// 		frame_curr->setPoseDiff10(dT10_ba);
-			// 	}
-			// }
-			// else { // do 8 point algorihtm (scale is of the previous frame)
-			// 	// pts0 와 pts1을 이용, 5-point algorithm 으로 모션 & X0 를 구한다.
-			// 	// 만약 mean optical flow의 중간값이 약 1 px 이하인 경우, 정지 상태로 가정하고 스킵.
-			// 	MaskVec maskvec_inlier(pts0_alive.size());
-			// 	PointVec X0_inlier(pts0_alive.size());
-			// 	Rot3 dR10;
-			// 	Pos3 dt10;
-			// 	if( !motion_estimator_->calcPose5PointsAlgorithm(pts0_alive, pts1_alive, cam_, dR10, dt10, X0_inlier, maskvec_inlier) ) {
-			// 		throw std::runtime_error("calcPose5PointsAlgorithm() is failed.");
-			// 	}
-
-			// 	// Frame_curr의 자세를 넣는다.
-			// 	float scale = frame_prev_->getPoseDiff01().block<3,1>(0,3).norm();
-			// 	PoseSE3 dT10; dT10 << dR10, (scale/dt10.norm())*dt10, 0.0f, 0.0f, 0.0f, 1.0f;
-			// 	PoseSE3 dT01 = dT10.inverse();
-
-			// 	frame_curr->setPose(Twc_prev*dT01);		
-			// 	frame_curr->setPoseDiff10(dT10);		
-			// }
-
-			// PixelVec       pts0_final;
-			// PixelVec       pts1_final;
-			// LandmarkPtrVec lms1_final;
-			// for(int i = 0; i < pts0_alive.size(); ++i){
-			// 	lms1_alive[i]->addObservationAndRelatedFrame(pts1_alive[i], frame_curr);
-				
-			// 	pts0_final.push_back(pts0_alive[i]);
-			// 	pts1_final.push_back(pts1_alive[i]);
-			// 	lms1_final.push_back(lms1_alive[i]);
-			// }
 			
-			// 빈 곳에 특징점 pts1_new 를 추출한다.
+			// 빈 곳에 특징점 pts1_new 를 추출한다. 2 ms
 			PixelVec pts1_new;
 			extractor_->updateWeightBin(pts1_final); // 이미 pts1가 있는 곳은 제외.
 			extractor_->extractORBwithBinning(frame_curr->getImage(), pts1_new);
@@ -248,35 +158,30 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 				this->showTracking("img_features", frame_curr->getImage(), pts0_final, pts1_final, pts1_new);
 			
 			if( pts1_new.size() > 0 ){
-
-				// 새로운 특징점을 back-track한다.
+				// 새로운 특징점을 back-track.
 				PixelVec pts0_new;
-				MaskVec mask0_new;
-				tracker_->trackBidirection(I1,I0,pts1_new, 15, 5, 20.0, 10.0,
-					pts0_new, mask0_new);
+				MaskVec mask_new;
+				tracker_->trackBidirection(I1, I0, pts1_new, params_.feature_tracker.window_size, params_.feature_tracker.max_level, params_.feature_tracker.thres_error, params_.feature_tracker.thres_bidirection,
+					pts0_new, mask_new);
 
 				// 새로운 특징점은 새로운 landmark가 된다.
-				for(int j = 0; j < pts1_new.size(); ++j) {
-					if(mask0_new[j]){
-						const Pixel& p0_new = pts0_new[j];
-						const Pixel& p1_new = pts1_new[j];
+				for(int i = 0; i < pts1_new.size(); ++i) {
+					if( mask_new[i] ){
+						const Pixel& p0_new = pts0_new[i];
+						const Pixel& p1_new = pts1_new[i];
 						LandmarkPtr ptr = std::make_shared<Landmark>(p0_new, frame_prev_);
 
-						pts1_final.emplace_back(p1_new);
+						pts1_final.push_back(p1_new);
 						lms1_final.push_back(ptr);
-						this->saveLandmarks(ptr);	
+						this->saveLandmarks(ptr);
 					}
 				}
 			}
 
 			// lms1_final 중, depth가 복원되지 않은 경우 복원해준다.
-			PointVec X_world_recon;
 			uint32_t cnt_recon = 0 ;
 			for(auto lm : lms1_final){
-				// if(lm->getMaxParallax() < 9.5*D2R){
-				// std::cout << "parallax: " << lm->getMaxParallax()*R2D << " deg\n";
-				if(lm->getMaxParallax() >= 0.1f*D2R){
-					// const Pixel& pt0 = *(lm->getObservations().end()-2);
+				if( !lm->isTriangulated() && lm->getMaxParallax() >= 0.1f*D2R){
 					if(lm->getObservations().size() != lm->getRelatedFramePtr().size())
 						throw std::runtime_error("lm->getObservations().size() != lm->getRelatedFramePtr().size()\n");
 
@@ -290,44 +195,279 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 					Point X0, X1;
 					Mapping::triangulateDLT(pt0, pt1, T10.block<3,3>(0,0), T10.block<3,1>(0,3), cam_, X0, X1);
 
-					// Calculate cov
-					float parallax_now = lm->getLastParallax();
-					float cov_invd_curr = 25.0;
-					if(parallax_now <= 3.0*D2R) cov_invd_curr /= (parallax_now*R2D)*(parallax_now*R2D);
-					
-					Point Xworld = Tw0.block<3,3>(0,0)*X0 + Tw0.block<3,1>(0,3);
 					if(X0(2) > 0){
-						if(0 && lm->isTriangulated()){
-							// Update inverse depth
-							lm->updateInverseDepth(1.0f/X0(2), cov_invd_curr);
-							Xworld = lm->get3DPoint();
-						}
-						else{
-							lm->setInverseDepth(1.0f/X0(2));
-							// std::cout << "invd : "<< lm->getInverseDepth() <<std::endl;
-							lm->setCovarianceInverseDepth(cov_invd_curr);					
-							lm->set3DPoint(Xworld);
-						}
+						Point Xworld = Tw0.block<3,3>(0,0)*X0 + Tw0.block<3,1>(0,3);
+						lm->set3DPoint(Xworld);
+						++cnt_recon;
 					}
-					if(lm->getMaxParallax() > 2.0*D2R)
-						X_world_recon.push_back(Xworld);
-
-					++cnt_recon;
 				}
 			}
 			std::cout << " Recon done. : " << cnt_recon << "\n";
+
+			// lms1와 pts1을 frame_curr에 넣는다.
+			frame_curr->setPtsSeen(pts1_final);
+			frame_curr->setRelatedLandmarks(lms1_final);
+		}
+	}
+	else { // VO initialized. Do track the new image.
+			const PixelVec&       pts0 = frame_prev_->getPtsSeen();
+			const LandmarkPtrVec& lms0 = frame_prev_->getRelatedLandmarkPtr();
+			const cv::Mat&        I0   = frame_prev_->getImage();
+			const cv::Mat&        I1   = frame_curr->getImage();
+
+			// 이전 자세의 변화량을 가져온다. 
+			PoseSE3 Twc_prev   = frame_prev_->getPose();
+			PoseSE3 Tcw_prev   = Twc_prev.inverse();
+
+			PoseSE3 dT01_prior = frame_prev_->getPoseDiff01();
+			PoseSE3 Twc_prior  = Twc_prev*dT01_prior;
+			PoseSE3 Tcw_prior  = Twc_prior.inverse();
+
+			// frame_prev_ 의 lms 를 현재 이미지로 track. 5ms
+			PixelVec pts1;
+			MaskVec  mask_track;
+			tracker_->track(I0, I1, pts0, params_.feature_tracker.window_size, params_.feature_tracker.max_level, params_.feature_tracker.thres_error,
+				pts1, mask_track);
+			PixelVec       pts0_trackok;
+			PixelVec       pts1_trackok;
+			LandmarkPtrVec lms1_trackok;
+			this->pruneInvalidLandmarks(pts0, pts1, lms0, mask_track, 
+				pts0_trackok, pts1_trackok, lms1_trackok);
+
+			// Scale refinement 50ms
+
+			MaskVec mask_refine(pts0_trackok.size(), true);
+			// tracker_->refineScale(I0, I1, frame_curr->getImageDu(), frame_curr->getImageDv(), pts0_trackok, 1.25f, 
+			// 	pts1_trackok, mask_refine);
+			
+			PixelVec       pts0_scaleok;
+			PixelVec       pts1_scaleok;
+			LandmarkPtrVec lms1_scaleok;
+			this->pruneInvalidLandmarks(pts0_trackok, pts1_trackok, lms1_trackok, mask_refine, 
+				pts0_scaleok, pts1_scaleok, lms1_scaleok);
+
+			
+			// 깊이를 가진 점 갯수를 세어보고, 30개 이상이면 local bundle을 수행한다.
+			uint32_t cnt_depth_ok = 0;
+			PixelVec pts1_depth_ok; 
+			PointVec X_depth_ok; 
+			pts1_depth_ok.reserve(lms1_scaleok.size());
+			X_depth_ok.reserve(lms1_scaleok.size());
+
+			Rot3 Rcw_prev = Tcw_prev.block<3,3>(0,0);
+			Pos3 tcw_prev = Tcw_prev.block<3,1>(0,3);
+			LandmarkPtrVec lms1_depthok;
+			for(auto lm : lms1_scaleok){
+				if(lm->isTriangulated() && lm->getAge() > 2 && lm->getMaxParallax() > 0.3*D2R){ 
+					Point Xc = Rcw_prev * lm->get3DPoint() + tcw_prev;
+					if(Xc(2) > 0){
+						pts1_depth_ok.push_back(lm->getObservations().back());
+						X_depth_ok.push_back(Xc);
+						++cnt_depth_ok;
+					}
+				}
+			}
+			std::cout << frame_curr->getID() <<" -th image. depth newly reconstructed: " << cnt_depth_ok << std::endl;
+			
+			MaskVec mask_motion(pts0_scaleok.size());
+			Rot3 dR10; Rot3 dR01;
+			Pos3 dt10; Pos3 dt01;
+			if(cnt_depth_ok > 10){
+				// Do Local BA
+				std::cout << " DO Local Bundle Adjustment...\n";
+
+				dR01 = dT01_prior.block<3,3>(0,0);
+				dt01 = dT01_prior.block<3,1>(0,3);
+
+				motion_estimator_->calcPoseOnlyBundleAdjustment(X_depth_ok, pts1_depth_ok, cam_, dR01, dt01, mask_motion);
+				
+				PoseSE3 dT01, dT10;
+				dT01 << dR01, dt01, 0,0,0,1;
+				dT10 = dT01.inverse();
+				dR10 = dT10.block<3,3>(0,0);
+				dt10 = dT10.block<3,1>(0,3);
+				if(!std::isnan(dt01.norm())){
+					frame_curr->setPose(Twc_prev*dT01);
+					frame_curr->setPoseDiff10(dT10);
+				}
+			}
+			else { // do 8 point algorihtm (scale is of the previous frame)
+				PointVec X0_inlier(pts0_scaleok.size());
+			
+				if( !motion_estimator_->calcPose5PointsAlgorithm(pts0_scaleok, pts1_scaleok, cam_, dR10, dt10, X0_inlier, mask_motion) ) {
+					throw std::runtime_error("calcPose5PointsAlgorithm() is failed.");
+				}
+
+				// Frame_curr의 자세를 넣는다.
+				float scale = frame_prev_->getPoseDiff01().block<3,1>(0,3).norm();
+				PoseSE3 dT10; dT10 << dR10, (scale/dt10.norm())*dt10, 0.0f, 0.0f, 0.0f, 1.0f;
+				PoseSE3 dT01 = dT10.inverse();
+
+				frame_curr->setPose(Twc_prev*dT01);		
+				frame_curr->setPoseDiff10(dT10);		
+			}
+
+			// Check sampson distance 0.01 ms
+			std::vector<float> symm_epi_dist;
+			motion_estimator_->calcSymmetricEpipolarDistance(pts0_scaleok, pts1_scaleok, cam_, dR10, dt10, symm_epi_dist);
+			MaskVec mask_sampson(pts0_scaleok.size());
+			for(int i = 0; i < mask_sampson.size(); ++i)
+				mask_sampson[i] = mask_motion[i] && (symm_epi_dist[i] < THRES_SAMPSON);
+			
+			PixelVec       pts0_final;
+			PixelVec       pts1_final;
+			LandmarkPtrVec lms1_final;
+			this->pruneInvalidLandmarks(pts0_scaleok, pts1_scaleok, lms1_scaleok, mask_sampson, 
+				pts0_final, pts1_final, lms1_final);
+			for(int i = 0; i < lms1_final.size(); ++i){
+				lms1_final[i]->addObservationAndRelatedFrame(pts0_final[i], frame_curr);
+			}
+
+
+			// Frame_curr의 자세를 넣는다.
+			float scale = frame_prev_->getPoseDiff01().block<3,1>(0,3).norm();
+			PoseSE3 dT10; dT10 << dR10, (scale/dt10.norm())*dt10, 0.0f, 0.0f, 0.0f, 1.0f;
+			PoseSE3 dT01 = dT10.inverse();
+
+			frame_curr->setPose(Twc_prev*dT01);		
+			frame_curr->setPoseDiff10(dT10);	
+				
 #ifdef RECORD_FRAME_STAT
-statcurr_frame.mappoints = X_world_recon;
+statcurr_frame.Twc = frame_curr->getPose();
+statcurr_frame.Tcw = frame_curr->getPose().inverse();
+statcurr_frame.dT_10 = frame_curr->getPoseDiff10();
+statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 #endif
+			
+			// 빈 곳에 특징점 pts1_new 를 추출한다. 2 ms
+			PixelVec pts1_new;
+			extractor_->updateWeightBin(pts1_final); // 이미 pts1가 있는 곳은 제외.
+			extractor_->extractORBwithBinning(frame_curr->getImage(), pts1_new);
+
+			if( true )
+				this->showTracking("img_features", frame_curr->getImage(), pts0_final, pts1_final, pts1_new);
+			
+			if( pts1_new.size() > 0 ){
+				// 새로운 특징점을 back-track.
+				PixelVec pts0_new;
+				MaskVec mask_new;
+				tracker_->trackBidirection(I1, I0, pts1_new, params_.feature_tracker.window_size, params_.feature_tracker.max_level, params_.feature_tracker.thres_error, params_.feature_tracker.thres_bidirection,
+					pts0_new, mask_new);
+
+				// 새로운 특징점은 새로운 landmark가 된다.
+				for(int i = 0; i < pts1_new.size(); ++i) {
+					if( mask_new[i] ){
+						const Pixel& p0_new = pts0_new[i];
+						const Pixel& p1_new = pts1_new[i];
+						LandmarkPtr ptr = std::make_shared<Landmark>(p0_new, frame_prev_);
+
+						pts1_final.push_back(p1_new);
+						lms1_final.push_back(ptr);
+						this->saveLandmarks(ptr);
+					}
+				}
+			}
+
+			// lms1_final 중, depth가 복원되지 않은 경우 복원해준다.
+			uint32_t cnt_recon = 0 ;
+			for(auto lm : lms1_final){
+				if( !lm->isTriangulated() && lm->getMaxParallax() >= 0.1f*D2R){
+					if(lm->getObservations().size() != lm->getRelatedFramePtr().size())
+						throw std::runtime_error("lm->getObservations().size() != lm->getRelatedFramePtr().size()\n");
+
+					const Pixel& pt0 = lm->getObservations().front();
+					const Pixel& pt1 = lm->getObservations().back();
+					const PoseSE3& Tw0 = lm->getRelatedFramePtr().front()->getPose();
+					const PoseSE3& Tw1 = lm->getRelatedFramePtr().back()->getPose();
+					PoseSE3 T10 =  Tw1.inverse() * Tw0;
+
+					// Reconstruct points
+					Point X0, X1;
+					Mapping::triangulateDLT(pt0, pt1, T10.block<3,3>(0,0), T10.block<3,1>(0,3), cam_, X0, X1);
+
+					if(X0(2) > 0){
+						Point Xworld = Tw0.block<3,3>(0,0)*X0 + Tw0.block<3,1>(0,3);
+						lm->set3DPoint(Xworld);
+						++cnt_recon;
+					}
+				}
+			}
+			std::cout << " Recon done. : " << cnt_recon << "\n";
 
 			// lms1와 pts1을 frame_curr에 넣는다.
 			frame_curr->setPtsSeen(pts1_final);
 			frame_curr->setRelatedLandmarks(lms1_final);
 
-		}
-	}
-	else { // VO initialized. Do track the new image.
+		// // 깊이를 가진 점 갯수를 세어보고, 30개 이상이면 local bundle을 수행한다.
+		// uint32_t cnt_depth_ok = 0;
+		// PixelVec pts1_depth_ok; 
+		// PointVec X_depth_ok; 
+		// pts1_depth_ok.reserve(lms1_alive.size());
+		// X_depth_ok.reserve(lms1_alive.size());
 
+		// Rot3 Rcw_prev = Tcw_prev.block<3,3>(0,0);
+		// Pos3 tcw_prev = Tcw_prev.block<3,1>(0,3);
+		// LandmarkPtrVec lms1_depthok;
+		// for(auto lm : lms1_alive){
+		// 	if(lm->isTriangulated() && lm->getAge() > 2 && lm->getMaxParallax() > 0.3*D2R){ 
+		// 		Point Xc = Rcw_prev*lm->get3DPoint() + tcw_prev;
+		// 		if(Xc(2) > 0){
+		// 			pts1_depth_ok.push_back(lm->getObservations().back());
+		// 			X_depth_ok.push_back(Xc);
+		// 			++cnt_depth_ok;
+		// 		}
+		// 	}
+		// }
+		// std::cout << frame_curr->getID() <<" -th image. depth newly reconstructed: " << cnt_depth_ok << std::endl;
+
+		// if(cnt_depth_ok > 111000){
+		// 	// Do Local BA
+		// 	std::cout << " DO Local Bundle Adjustment...\n";
+
+		// 	MaskVec mask_poseonlyba;
+		// 	Rot3 dR01 = dT01_prior.block<3,3>(0,0);
+		// 	Pos3 dt01 = dT01_prior.block<3,1>(0,3);
+
+		// 	motion_estimator_->calcPoseOnlyBundleAdjustment(X_depth_ok, pts1_depth_ok, cam_, dR01, dt01, mask_poseonlyba);
+			
+		// 	PoseSE3 dT01_ba, dT10_ba;
+		// 	dT01_ba << dR01, dt01, 0,0,0,1;
+		// 	dT10_ba = dT01_ba.inverse();
+		// 	if(!std::isnan(dt01.norm())){
+		// 		frame_curr->setPose(Twc_prev*dT01_ba);
+		// 		frame_curr->setPoseDiff10(dT10_ba);
+		// 	}
+		// }
+		// else { // do 8 point algorihtm (scale is of the previous frame)
+		// 	// pts0 와 pts1을 이용, 5-point algorithm 으로 모션 & X0 를 구한다.
+		// 	// 만약 mean optical flow의 중간값이 약 1 px 이하인 경우, 정지 상태로 가정하고 스킵.
+		// 	MaskVec mask_5p(pts0_alive.size());
+		// 	PointVec X0_inlier(pts0_alive.size());
+		// 	Rot3 dR10;
+		// 	Pos3 dt10;
+		// 	if( !motion_estimator_->calcPose5PointsAlgorithm(pts0_alive, pts1_alive, cam_, dR10, dt10, X0_inlier, mask_5p) ) {
+		// 		throw std::runtime_error("calcPose5PointsAlgorithm() is failed.");
+		// 	}
+
+		// 	// Frame_curr의 자세를 넣는다.
+		// 	float scale = frame_prev_->getPoseDiff01().block<3,1>(0,3).norm();
+		// 	PoseSE3 dT10; dT10 << dR10, (scale/dt10.norm())*dt10, 0.0f, 0.0f, 0.0f, 1.0f;
+		// 	PoseSE3 dT01 = dT10.inverse();
+
+		// 	frame_curr->setPose(Twc_prev*dT01);		
+		// 	frame_curr->setPoseDiff10(dT10);		
+		// }
+
+		// PixelVec       pts0_final;
+		// PixelVec       pts1_final;
+		// LandmarkPtrVec lms1_final;
+		// for(int i = 0; i < pts0_alive.size(); ++i){
+		// 	lms1_alive[i]->addObservationAndRelatedFrame(pts1_alive[i], frame_curr);
+			
+		// 	pts0_final.push_back(pts0_alive[i]);
+		// 	pts1_final.push_back(pts1_alive[i]);
+		// 	lms1_final.push_back(lms1_alive[i]);
+		// }
 	}
 
 	// 
@@ -340,6 +480,20 @@ statcurr_frame.mappoints = X_world_recon;
 
 	// Replace the 'frame_prev_' with 'frame_curr'
 	frame_prev_ = frame_curr;
+
+	// Visualization 3D points
+	PointVec X_world_recon;
+	for(auto lm : all_landmarks_){
+		if(lm->isTriangulated()
+		&& lm->getMaxParallax() > 1.0*D2R) {
+			X_world_recon.push_back(lm->get3DPoint());
+		}
+	}
+
+#ifdef RECORD_FRAME_STAT
+statcurr_frame.mappoints = X_world_recon;
+#endif
+
 
 	// Notify a thread.
 
