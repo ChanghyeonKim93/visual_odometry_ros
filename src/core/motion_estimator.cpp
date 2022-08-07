@@ -774,10 +774,13 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
         PoseSE3Tangent delta_xi = JtWJ.ldlt().solve(mJtWr);
         delta_xi *= step_size; 
         xi10 += delta_xi;
-        std::cout << "reproj. err. (avg): " << err_curr*inv_npts*0.5f << ", step: " << delta_xi.transpose() << std::endl;
+        // std::cout << "reproj. err. (avg): " << err_curr*inv_npts*0.5f << ", step: " << delta_xi.transpose() << std::endl;
         if(delta_xi.norm() < THRES_DELTA_XI){
-            std::cout << "pose estimation stops at : " << iter <<"\n";
+            std::cout << "poseonly BA stops at: " << iter <<", err: " << err_curr*inv_npts*0.5f << "\n";
             break;
+        }
+        if(iter == MAX_ITER-1){
+            std::cout << "poseonly BA stops at full iterations!!" <<", err: " << err_curr*inv_npts*0.5f << "\n";
         }
     }
 
@@ -786,12 +789,8 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
         geometry::se3Exp_f(-xi10, T01_update);
         R01_true = T01_update.block<3,3>(0,0);
         t01_true = T01_update.block<3,1>(0,3);
-
-        std::cout <<"BA result:\n";
-        std::cout << "R01_ba:\n" << R01_true <<"\n";
-        std::cout << "t01_ba:\n" << t01_true <<"\n";
     }
-    else is_success = false;
+    else is_success = false;  // if nan, do not update.
 
     return is_success;
 };
