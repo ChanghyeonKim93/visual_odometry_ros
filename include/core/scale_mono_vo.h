@@ -253,6 +253,7 @@ private:
  
 private:
 	void showTracking(const std::string& window_name, const cv::Mat& img, const PixelVec& pts0, const PixelVec& pts1, const PixelVec& pts1_new);
+	void showTrackingBA(const std::string& window_name, const cv::Mat& img, const PixelVec& pts1, const PixelVec& pts1_project);
 	void showTracking(const std::string& window_name, const cv::Mat& img, const LandmarkPtrVec& lms);
 
 private:
