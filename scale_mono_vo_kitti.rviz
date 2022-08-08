@@ -7,6 +7,7 @@ Panels:
         - /Global Options1
         - /VO_pose1/Status1
         - /VO_pose1/Shape1
+        - /VO_map_points1
       Splitter Ratio: 0.5010846257209778
     Tree Height: 355
   - Class: rviz/Selection
@@ -215,10 +216,10 @@ Visualization Manager:
       Axis: Z
       Channel Name: y
       Class: rviz/PointCloud2
-      Color: 186; 189; 182
+      Color: 255; 255; 255
       Color Transformer: FlatColor
       Decay Time: 0
-      Enabled: false
+      Enabled: true
       Invert Rainbow: false
       Max Color: 255; 255; 255
       Min Color: 0; 0; 0
@@ -233,7 +234,7 @@ Visualization Manager:
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: false
-      Value: false
+      Value: true
     - Alpha: 1
       Axes Length: 3
       Axes Radius: 0.30000001192092896
@@ -302,7 +303,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 752.5540161132812
+      Distance: 1255.20751953125
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -310,9 +311,9 @@ Visualization Manager:
         Value: false
       Field of View: 0.7799999713897705
       Focal Point:
-        X: 13.450736999511719
-        Y: -33.67404556274414
-        Z: 229.27886962890625
+        X: 227.98902893066406
+        Y: -28.697345733642578
+        Z: 155.96432495117188
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false

@@ -29,18 +29,18 @@ Camera.height: 376
 feature_tracker.thres_error: 20.0      
 feature_tracker.thres_bidirection: 111.0
 feature_tracker.window_size: 15
-feature_tracker.max_level: 5
+feature_tracker.max_level: 6
 
 # Parameters of feature extractor
 feature_extractor.n_features: 200
 feature_extractor.n_bins_u: 30
-feature_extractor.n_bins_v: 12
+feature_extractor.n_bins_v: 8
 feature_extractor.thres_fastscore: 30.0
 feature_extractor.radius: 10.0
 
 # Parameters of motion estimator
 motion_estimator.thres_1p_error: 120.0 # pixels
-motion_estimator.thres_5p_error: 1.5 # pixels
+motion_estimator.thres_5p_error: 1.0 # pixels
 
 # Parameters of scale estimator
 scale_estimator.initial_scale: 0.76 # meters

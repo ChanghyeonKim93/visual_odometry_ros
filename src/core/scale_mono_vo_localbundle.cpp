@@ -12,7 +12,7 @@
 void ScaleMonoVO::trackImageLocalBundle(const cv::Mat& img, const double& timestamp){
 	
 	float THRES_ZNCC    = 0.90f;
-	float THRES_SAMPSON = 5.0f;
+	float THRES_SAMPSON = 10.0f;
 
 	// Generate statistics
 	AlgorithmStatistics::LandmarkStatistics  statcurr_landmark;
@@ -56,7 +56,7 @@ void ScaleMonoVO::trackImageLocalBundle(const cv::Mat& img, const double& timest
 
 			frame_curr->setPose(PoseSE3::Identity());
 			PoseSE3 T_init = PoseSE3::Identity();
-			T_init.block<3,1>(0,3) << 0,0,-0.82f;
+			T_init.block<3,1>(0,3) << 0,0,-0.90;
 			frame_curr->setPoseDiff10(T_init);
 			
 			this->saveLandmarks(lms1);	
@@ -262,9 +262,10 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			Rot3 Rcw_prev = Tcw_prev.block<3,3>(0,0);
 			Pos3 tcw_prev = Tcw_prev.block<3,1>(0,3);
 			LandmarkPtrVec lms1_depthok;
+			PixelVec pts1_project;
 			for(int i = 0; i < lmtrack_scaleok.pts0.size(); ++i){
 				const LandmarkPtr& lm = lmtrack_scaleok.lms[i];
-				if(lm->isTriangulated() && lm->getAge() > 2 && lm->getMaxParallax() > 0.2*D2R){ 
+				if(lm->isTriangulated() && lm->getAge() > 1 && lm->getMaxParallax() > 0.2*D2R){ 
 					Point Xp = Rcw_prev * lm->get3DPoint() + tcw_prev;
 					if(Xp(2) > 0){
 						pts1_depth_ok.push_back(lmtrack_scaleok.pts1[i]);
@@ -273,6 +274,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 					}
 				}
 			}
+			pts1_project = pts1_depth_ok;
 			
 			MaskVec mask_motion(lmtrack_scaleok.pts0.size(), true);
 			Rot3 dR10; Pos3 dt10; PoseSE3 dT10;
@@ -296,6 +298,12 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 					if(!std::isnan(dt01.norm())){
 						frame_curr->setPose(Twc_prev*dT01);
 						frame_curr->setPoseDiff10(dT10);
+					}
+
+					// Projection 
+					for(int i = 0; i < Xp_depth_ok.size(); ++i){
+						Point Xc = dR10*Xp_depth_ok[i] + dt10;
+						pts1_project[i] = cam_->projectToPixel(Xc);
 					}
 					std::cout <<"======== est   dt01: " << dt01.transpose() <<std::endl;
 
@@ -331,9 +339,8 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			LandmarkTracking lmtrack_final;
 			this->pruneInvalidLandmarks(lmtrack_scaleok, mask_sampson, lmtrack_final);
 
-			for(int i = 0; i < lmtrack_final.pts0.size(); ++i){
+			for(int i = 0; i < lmtrack_final.pts0.size(); ++i)
 				lmtrack_final.lms[i]->addObservationAndRelatedFrame(lmtrack_final.pts1[i], frame_curr);
-			}
 				
 #ifdef RECORD_FRAME_STAT
 statcurr_frame.Twc = frame_curr->getPose();
@@ -348,7 +355,8 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			extractor_->extractORBwithBinning(I1, pts1_new);
 
 			if( true )
-				this->showTracking("img_features", I1, lmtrack_final.pts0, lmtrack_final.pts1, pts1_new);
+			this->showTrackingBA("img_feautues", I1, pts1_depth_ok, pts1_project);
+				// this->showTracking("img_features", I1, lmtrack_final.pts0, lmtrack_final.pts1, pts1_new);
 			
 			if( pts1_new.size() > 0 ){
 				// 새로운 특징점을 back-track.
@@ -376,13 +384,15 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			// lms1_final 중, depth가 복원되지 않은 경우 복원해준다.
 			uint32_t cnt_recon = 0 ;
 			for(auto lm : lmtrack_final.lms){
-				if( lm->getMaxParallax() >= 0.1f*D2R){
+				if( lm->getLastParallax() >= 0.1f*D2R){
 					if(lm->getObservations().size() != lm->getRelatedFramePtr().size())
 						throw std::runtime_error("lm->getObservations().size() != lm->getRelatedFramePtr().size()\n");
 
 					const Pixel& pt0 = lm->getObservations().front();
+					// const Pixel& pt0 = *(lm->getObservations().end()-2);
 					const Pixel& pt1 = lm->getObservations().back();
 					const PoseSE3& Tw0 = lm->getRelatedFramePtr().front()->getPose();
+					// const PoseSE3& Tw0 = (*(lm->getRelatedFramePtr().end()-2))->getPose();
 					const PoseSE3& Tw1 = lm->getRelatedFramePtr().back()->getPose();
 					PoseSE3 T10 =  Tw1.inverse() * Tw0;
 
@@ -417,12 +427,13 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 
 	// Visualization 3D points
 	PointVec X_world_recon;
+	X_world_recon.reserve(all_landmarks_.size());
 	for(auto lm : all_landmarks_){
-		if(lm->isTriangulated()
-		&& lm->getMaxParallax() > 0.2*D2R) {
+		if(lm->isTriangulated()) {
 			X_world_recon.push_back(lm->get3DPoint());
 		}
 	}
+	std::cout << "# of all landmarks: " << X_world_recon.size() << std::endl;
 
 #ifdef RECORD_FRAME_STAT
 statcurr_frame.mappoints = X_world_recon;

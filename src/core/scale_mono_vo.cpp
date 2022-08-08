@@ -756,6 +756,22 @@ void ScaleMonoVO::showTracking(const std::string& window_name, const cv::Mat& im
 	cv::waitKey(3);
 };
 
+void ScaleMonoVO::showTrackingBA(const std::string& window_name, const cv::Mat& img, const PixelVec& pts1, const PixelVec& pts1_project){	
+	cv::namedWindow(window_name);
+	cv::Mat img_draw;
+	img.copyTo(img_draw);
+	cv::cvtColor(img_draw, img_draw, CV_GRAY2RGB);
+	for(int i = 0; i < pts1.size(); ++i) {
+		cv::circle(img_draw, pts1[i], 1.0, cv::Scalar(0,0,255),2); // alived magenta
+	}
+	for(int i = 0; i < pts1.size(); ++i){
+		cv::rectangle(img_draw, cv::Point2f(pts1_project[i].x-4,pts1_project[i].y-4),cv::Point2f(pts1_project[i].x+2,pts1_project[i].y+2), 
+			cv::Scalar(0,255,0), 1);
+	}
+	
+	cv::imshow(window_name, img_draw);
+	cv::waitKey(3);
+};
 
 void ScaleMonoVO::showTracking(const std::string& window_name, const cv::Mat& img, const LandmarkPtrVec& lms){
 	cv::namedWindow(window_name);
