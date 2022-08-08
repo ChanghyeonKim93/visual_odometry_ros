@@ -645,19 +645,17 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
     mask_inlier.resize(n_pts);
     
     int MAX_ITER = 250;
-    float THRES_HUBER = 1.0f; // pixels
-    float THRES_DELTA_XI = 1e-8;
+    float THRES_HUBER        = 1.0f; // pixels
+    float THRES_DELTA_XI     = 1e-7;
+    float THRES_DELTA_ERROR  = 1e-5;
+    float THRES_REPROJ_ERROR = 4.0f; // pixels
 
-    float lambda = 0.01f;
+    float lambda = 0.001f;
     float step_size = 1.0f;
-    float thres_reproj_error = 4.0; // pixels
     
-    float fx = cam->fx();
-    float fy = cam->fy();
-    float cx = cam->cx();
-    float cy = cam->cy();
-    float fxinv = cam->fxinv();
-    float fyinv = cam->fyinv();
+    float fx = cam->fx(); float fy = cam->fy();
+    float cx = cam->cx(); float cy = cam->cy();
+    float fxinv = cam->fxinv(); float fyinv = cam->fyinv();
 
     PoseSE3 T10_init;
     PoseSE3 T01_init;
@@ -667,6 +665,7 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
     PoseSE3Tangent xi10; // se3
     geometry::SE3Log_f(T10_init,xi10);
     
+    float err_prev = 1e10f;
     for(uint32_t iter = 0; iter < MAX_ITER; ++iter){
         PoseSE3 T10;
         geometry::se3Exp_f(xi10,T10);
@@ -679,9 +678,9 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
         JtWJ.setZero();
         mJtWr.setZero();
 
-        float err_prev = 1e15f;
         float err_curr = 0.0f;
         float inv_npts = 1.0f/(float)n_pts;
+        int cnt_invalid = 0;
         // Warp and project point & calculate error...
         for(int i = 0; i < n_pts; ++i) {
             const Pixel& pt = pts1[i];
@@ -710,8 +709,10 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
                 flag_weight = true;
             } 
 
-            if(absrxry >= thres_reproj_error)
+            if(absrxry >= THRES_REPROJ_ERROR){
                 mask_inlier[i] = false;
+                ++cnt_invalid;
+            }
             else 
                 mask_inlier[i] = true;
 
@@ -727,19 +728,15 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
             if(flag_weight) {
                 float w_rx = weight*rx;
                 float err = w_rx*rx;
-                if(err <= thres_reproj_error){
-                    mJtWr.noalias() -= (w_rx)*Jt;
-                    JtWJ.noalias() += weight*(Jt*Jt.transpose());
-                    err_curr += err;
-                }
+                mJtWr.noalias() -= (w_rx)*Jt;
+                JtWJ.noalias() += weight*(Jt*Jt.transpose());
+                err_curr += err;
             }
             else {
                 float err = rx*rx;
-                if(err <= thres_reproj_error){
-                    JtWJ.noalias() += Jt*Jt.transpose();
-                    mJtWr.noalias() -= rx*Jt;
-                    err_curr += rx*rx;
-                }
+                JtWJ.noalias() += Jt*Jt.transpose();
+                mJtWr.noalias() -= rx*Jt;
+                err_curr += rx*rx;
             }
 
             // JtWJ, JtWr for y
@@ -753,34 +750,33 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
              if(flag_weight) {
                 float w_ry = weight*ry;
                 float err = w_ry*ry;
-                if(err <= thres_reproj_error){
-                    JtWJ.noalias() += weight*(Jt*Jt.transpose());
-                    mJtWr.noalias() -= (w_ry)*Jt;
-                    err_curr += err;
-                }
+                JtWJ.noalias() += weight*(Jt*Jt.transpose());
+                mJtWr.noalias() -= (w_ry)*Jt;
+                err_curr += err;
             }
             else {
                 float err = ry*ry;
-                if(err <= thres_reproj_error){
-                    JtWJ.noalias() += Jt*Jt.transpose();
-                    mJtWr.noalias() -= ry*Jt;
-                    err_curr += err;
-                }
+                JtWJ.noalias() += Jt*Jt.transpose();
+                mJtWr.noalias() -= ry*Jt;
+                err_curr += err;
             }
         } // END FOR
+        err_curr *= inv_npts*0.5f;
+        float delta_err = abs(err_curr-err_prev);
 
         // Solve H^-1*Jtr;
         for(int i = 0; i < 6; ++i) JtWJ(i,i) += lambda*JtWJ(i,i); // lambda 
         PoseSE3Tangent delta_xi = JtWJ.ldlt().solve(mJtWr);
         delta_xi *= step_size; 
         xi10 += delta_xi;
+        err_prev = err_curr;
         // std::cout << "reproj. err. (avg): " << err_curr*inv_npts*0.5f << ", step: " << delta_xi.transpose() << std::endl;
-        if(delta_xi.norm() < THRES_DELTA_XI){
-            std::cout << "poseonly BA stops at: " << iter <<", err: " << err_curr*inv_npts*0.5f << "\n";
+        if(delta_xi.norm() < THRES_DELTA_XI || delta_err < THRES_DELTA_ERROR){
+            std::cout << "poseonly BA stops at: " << iter <<", err: " << err_curr <<", derr: " << delta_err << ", # invalid: " << cnt_invalid << "\n";
             break;
         }
         if(iter == MAX_ITER-1){
-            std::cout << "poseonly BA stops at full iterations!!" <<", err: " << err_curr*inv_npts*0.5f << "\n";
+            std::cout << "poseonly BA stops at full iterations!!" <<", err: " << err_curr <<", derr: " << delta_err << ", # invalid: " << cnt_invalid << "\n";
         }
     }
 
@@ -813,7 +809,7 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const LandmarkPtrVec& lms, co
 
     float lambda = 0.01f;
     float step_size = 1.0f;
-    float thres_reproj_error = 4.0; // pixels
+    float THRES_REPROJ_ERROR = 5.0; // pixels
     
     float fx = cam->fx();
     float fy = cam->fy();
@@ -873,7 +869,7 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const LandmarkPtrVec& lms, co
                 flag_weight = true;
             } 
 
-            if(absrxry >= thres_reproj_error)
+            if(absrxry >= THRES_REPROJ_ERROR)
                 mask_inlier[i] = false;
             else 
                 mask_inlier[i] = true;
@@ -890,7 +886,7 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const LandmarkPtrVec& lms, co
             if(flag_weight) {
                 float w_rx = weight*rx;
                 float err = w_rx*rx;
-                if(err <= thres_reproj_error){
+                if(err <= THRES_REPROJ_ERROR){
                     mJtWr.noalias() -= (w_rx)*Jt;
                     JtWJ.noalias() += weight*(Jt*Jt.transpose());
                     err_curr += err;
@@ -898,7 +894,7 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const LandmarkPtrVec& lms, co
             }
             else {
                 float err = rx*rx;
-                if(err <= thres_reproj_error){
+                if(err <= THRES_REPROJ_ERROR){
                     JtWJ.noalias() += Jt*Jt.transpose();
                     mJtWr.noalias() -= rx*Jt;
                     err_curr += rx*rx;
@@ -916,7 +912,7 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const LandmarkPtrVec& lms, co
              if(flag_weight) {
                 float w_ry = weight*ry;
                 float err = w_ry*ry;
-                if(err <= thres_reproj_error){
+                if(err <= THRES_REPROJ_ERROR){
                     JtWJ.noalias() += weight*(Jt*Jt.transpose());
                     mJtWr.noalias() -= (w_ry)*Jt;
                     err_curr += err;
@@ -924,7 +920,7 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const LandmarkPtrVec& lms, co
             }
             else {
                 float err = ry*ry;
-                if(err <= thres_reproj_error){
+                if(err <= THRES_REPROJ_ERROR){
                     JtWJ.noalias() += Jt*Jt.transpose();
                     mJtWr.noalias() -= ry*Jt;
                     err_curr += err;

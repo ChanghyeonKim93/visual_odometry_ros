@@ -645,6 +645,36 @@ void ScaleMonoVO::pruneInvalidLandmarks(const PixelVec& pts0, const PixelVec& pt
 		else lms[i]->setDead(); // track failed. Dead point.
 	}
 };
+/**
+ * @brief Prune out invalid landmarks and their trackings.
+ * @details Prune out invalid landmarks and their trackings.
+ * @return void
+ * @author Changhyeon Kim (hyun91015@gmail.com)
+ * @date 06-August-2022
+ */
+void ScaleMonoVO::pruneInvalidLandmarks(const LandmarkTracking& lmtrack, const MaskVec& mask,
+	LandmarkTracking& lmtrack_alive)
+{
+	if(lmtrack.pts0.size() != lmtrack.pts1.size() || lmtrack.pts0.size() != lmtrack.lms.size())
+		throw std::runtime_error("lmtrack.pts0.size() != lmtrack.pts1.size() || lmtrack.pts0.size() != lmtrack.lms.size()");
+	
+	int n_pts = lmtrack.pts0.size();
+
+	// Tracking 결과를 반영하여 pts1_alive, lms1_alive를 정리한다.
+	lmtrack_alive.pts0.reserve(n_pts);
+	lmtrack_alive.pts1.reserve(n_pts);
+	lmtrack_alive.lms.reserve(n_pts);
+	int cnt_alive = 0;
+	for(int i = 0; i < n_pts; ++i){
+		if( mask[i]) {
+			lmtrack_alive.pts0.push_back(lmtrack.pts0[i]);
+			lmtrack_alive.pts1.push_back(lmtrack.pts1[i]);
+			lmtrack_alive.lms.push_back(lmtrack.lms[i]);
+			++cnt_alive;
+		}
+		else lmtrack.lms[i]->setDead(); // track failed. Dead point.
+	}
+};
 
 /**
  * @brief Update keyframe with an input frame

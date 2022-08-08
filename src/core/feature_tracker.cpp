@@ -173,23 +173,21 @@ void FeatureTracker::trackWithPrior(const cv::Mat& img0, const cv::Mat& img1, co
         pts0, pts_track,
         status, err, cv::Size(window_size, window_size), maxLevel, {}, cv::OPTFLOW_USE_INITIAL_FLOW, {});
     
-    for(int i = 0; i < n_pts; ++i){
-        mask_valid[i] = (mask_valid[i] && status[i] > 0);
-    }
-
     // Check validity.
     for(int i = 0; i < n_pts; ++i){
         // Border check
-        mask_valid[i] = (mask_valid[i] && pts_track[i].x > 0 && pts_track[i].x < n_cols
-                                       && pts_track[i].y > 0 && pts_track[i].y < n_rows);
+        mask_valid[i] = (mask_valid[i] 
+                        && status[i] > 0 
+                        && pts_track[i].x > 0 && pts_track[i].x < n_cols
+                        && pts_track[i].y > 0 && pts_track[i].y < n_rows);
         // Error check
         mask_valid[i] = (mask_valid[i] && err[i]  <= thres_err);
 
         // ZNCC check
-        if(mask_valid[i]){
-            float ncc_track = image_processing::calcZNCC(img0,img1,pts0[i],pts_track[i],25);
-            mask_valid[i] = ncc_track > 0.9f;
-        }
+        // if(mask_valid[i]){
+        //     float ncc_track = image_processing::calcZNCC(img0,img1,pts0[i],pts_track[i],15);
+        //     mask_valid[i] = ncc_track > 0.5f;
+        // }
     }
     
     // printf(" - FEATURE_TRACKER - 'trackWithPrior()'\n");

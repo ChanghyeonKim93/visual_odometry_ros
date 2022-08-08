@@ -92,4 +92,12 @@ public:
     float              getAvgOptFlow() const;
     float              getLastOptFlow() const;
 };
+
+struct LandmarkTracking{
+    PixelVec pts0;
+    PixelVec pts1;
+    LandmarkPtrVec lms;
+
+    LandmarkTracking(){ };
+};
 #endif

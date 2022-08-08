@@ -240,6 +240,8 @@ public:
 private:
 	void pruneInvalidLandmarks(const PixelVec& pts0, const PixelVec& pts1, const LandmarkPtrVec& lms, const MaskVec& mask,
 		PixelVec& pts0_alive, PixelVec& pts1_alive, LandmarkPtrVec& lms_alive);
+	void pruneInvalidLandmarks(const LandmarkTracking& lmtrack, const MaskVec& mask,
+		LandmarkTracking& lmtrack_alive);
 	void updateKeyframe(const FramePtr& frame);
 	void saveLandmarks(const LandmarkPtrVec& lms, bool verbose = false);
 	void saveLandmarks(const LandmarkPtr& lm, bool verbose = false);
