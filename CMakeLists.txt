@@ -49,6 +49,7 @@ set(SRC ${SRC}
   src/core/camera.cpp
   src/core/frame.cpp
   src/core/landmark.cpp
+  src/core/keyframes.cpp
 
   src/core/feature_extractor.cpp
   src/core/feature_tracker.cpp

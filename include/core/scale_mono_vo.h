@@ -31,6 +31,7 @@
 
 #include "core/frame.h"
 #include "core/landmark.h"
+#include "core/keyframes.h"
 
 #include "core/feature_extractor.h"
 #include "core/feature_tracker.h"
@@ -216,15 +217,16 @@ private:
 
 // For tracker
 private:
-	FramePtr       frame_prev_;
-	FramePtr       keyframe_;
+	FramePtr             frame_prev_;
+
+// For keyframes
+private:
+	std::shared_ptr<Keyframes> keyframes_;
 
 // All frames and landmarks
 private:
-	
 	LandmarkPtrVec all_landmarks_;
 	FramePtrVec    all_frames_;
-	FramePtrVec    all_keyframes_;
 	
 public:
 	ScaleMonoVO(std::string mode, std::string directory_intrinsic);

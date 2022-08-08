@@ -163,6 +163,9 @@ void FeatureTracker::trackWithPrior(const cv::Mat& img0, const cv::Mat& img1, co
     int n_pts = pts0.size();
     mask_valid.resize(n_pts, true);
 
+    // Prior vector
+    PixelVec pts_prior = pts_track;
+
     // KLT tracking
     int maxLevel = max_pyr_lvl;
 
@@ -174,7 +177,7 @@ void FeatureTracker::trackWithPrior(const cv::Mat& img0, const cv::Mat& img1, co
         status, err, cv::Size(window_size, window_size), maxLevel, {}, cv::OPTFLOW_USE_INITIAL_FLOW, {});
     
     // Check validity.
-    for(int i = 0; i < n_pts; ++i){
+    for(int i = 0; i < n_pts; ++i) {
         // Border check
         mask_valid[i] = (mask_valid[i] 
                         && status[i] > 0 

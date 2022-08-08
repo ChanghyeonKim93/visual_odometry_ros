@@ -230,7 +230,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 				if(lm->isTriangulated() && lm->getMaxParallax() > 0.5*D2R){
 					const Point& Xw = lm->get3DPoint();
 					Point Xc = Tcw_prior.block<3,3>(0,0)*Xw + Tcw_prior.block<3,1>(0,3);
-					if(Xc(2) > 0)lmtrack_prev.pts1[i] = cam_->projectToPixel(Xc);
+					if(Xc(2) > 0) lmtrack_prev.pts1[i] = cam_->projectToPixel(Xc);
 					else lmtrack_prev.pts1[i] = lmtrack_prev.pts0[i];
 				}
 				else lmtrack_prev.pts1[i] = lmtrack_prev.pts0[i];
@@ -283,7 +283,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			bool flag_do_5point = false;
 			if(cnt_depth_ok > 10){
 				// Do Local BA
-				std::cout << " DO Local Bundle Adjustment... with [" << cnt_depth_ok <<"] points.\n";
+				std::cout << " DO pose-only Bundle Adjustment... with [" << cnt_depth_ok <<"] points.\n";
 
 				dR01 = dT01_prior.block<3,3>(0,0);
 				dt01 = dT01_prior.block<3,1>(0,3);
@@ -422,6 +422,13 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 	stat_.stats_execution.push_back(statcurr_execution);
 	std::cout << "Statistics Updated. size: " << stat_.stats_landmark.size() << "\n";
 
+	// Check keyframe update rules.
+	if(keyframes_->checkUpdateRule(frame_curr)){
+		keyframes_->addNewKeyframe(frame_curr);
+		// Do local bundle adjustment for keyframes.
+		keyframes_->localBundleAdjustment();
+	}
+	
 	// Replace the 'frame_prev_' with 'frame_curr'
 	frame_prev_ = frame_curr;
 
@@ -439,9 +446,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 statcurr_frame.mappoints = X_world_recon;
 #endif
 
-
 	// Notify a thread.
-
 	mut_scale_estimator_->lock();
 	*flag_do_ASR_ = true;
 	mut_scale_estimator_->unlock();

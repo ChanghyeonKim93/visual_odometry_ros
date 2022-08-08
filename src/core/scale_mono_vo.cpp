@@ -70,6 +70,8 @@ ScaleMonoVO::ScaleMonoVO(std::string mode, std::string directory_intrinsic)
 	scale_estimator_->setSFP_ThresParallaxUse(params_.scale_estimator.thres_parallax_use*D2R);
 	scale_estimator_->setSFP_ThresParallaxRecon(params_.scale_estimator.thres_parallax_recon*D2R);
 
+	// Initialize keyframes class
+	keyframes_ = std::make_shared<Keyframes>();
 };
 
 /**
@@ -560,7 +562,6 @@ statcurr_landmark.n_new = pxvec1_new.size();
 			// 초기화를 완료할지 판단
 			// lmvec1_final가 최초 관측되었던 (keyframe) 
 			bool initialization_done = false;
-			int n_lms_keyframe    = keyframe_->getRelatedLandmarkPtr().size();
 			int n_lms_alive       = 0;
 			int n_lms_parallax_ok = 0;
 			float mean_parallax   = 0;
@@ -685,8 +686,6 @@ void ScaleMonoVO::pruneInvalidLandmarks(const LandmarkTracking& lmtrack, const M
  * @date 12-July-2022
  */
 void ScaleMonoVO::updateKeyframe(const FramePtr& frame){
-	keyframe_ = frame;
-	this->all_keyframes_.push_back(keyframe_);
 };
 
 void ScaleMonoVO::saveLandmarks(const LandmarkPtrVec& lms, bool verbose){

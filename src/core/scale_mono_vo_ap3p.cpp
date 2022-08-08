@@ -347,7 +347,6 @@ statcurr_landmark.n_new = pts1_new.size();
 			// 초기화를 완료할지 판단
 			// lms1_final가 최초 관측되었던 (keyframe) 
 			bool initialization_done = false;
-			int n_lms_keyframe    = keyframe_->getRelatedLandmarkPtr().size();
 			int n_lms_alive       = 0;
 			int n_lms_parallax_ok = 0;
 			float mean_parallax   = 0;
