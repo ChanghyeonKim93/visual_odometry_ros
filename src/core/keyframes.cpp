@@ -99,4 +99,12 @@ void Keyframes::localBundleAdjustment(){
     }
     std::cout << std::endl;
     std::cout << "distinguished landmarks: " << landmark_set_all.size() << std::endl;
+
+    //존재 하는 원소 찾기    
+    std::set<LandmarkPtr>::iterator iter;
+    iter = landmark_set_all.find(keyframes_.back()->getRelatedLandmarkPtr().back());
+    if(iter != landmark_set_all.end()) std::cout << *iter << ":존재 "<< std::endl;
+    else std::cout << "존재하지않음.\n";
+    
+        
 };
