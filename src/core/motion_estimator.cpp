@@ -1035,6 +1035,7 @@ bool MotionEstimator::localBundleAdjustment(const std::shared_ptr<Keyframes>& kf
         // 현재 landmark가 보였던 keyframes 중, 현재 active한 keyframe들만 추려냄. 
         LandmarkBA lm_ba;
         lm_ba.lm = lm;
+        lm_ba.X = lm->get3DPoint();
         const FramePtrVec& kfs_related = lm->getRelatedKeyframePtr();
         const PixelVec& pts_on_kfs = lm->getObservationsOnKeyframes();
         
@@ -1081,16 +1082,16 @@ bool MotionEstimator::localBundleAdjustment(const std::shared_ptr<Keyframes>& kf
 
 
     // SE3 vector consisting of T_wj (world to a camera at each epoch)
-    std::vector<PoseSE3> T_wj;         T_wj.reserve(N); // for optimization
-    std::vector<PoseSE3> T_jw;         T_jw.reserve(N); // for optimization
-    std::vector<PoseSE3Tangent> xi_jw; xi_jw.reserve(N); // for optimization
+    std::vector<PoseSE3> T_wj_kfs; T_wj_kfs.reserve(N); // for optimization
+    std::vector<PoseSE3> T_jw_kfs; T_jw_kfs.reserve(N); // for optimization
+    std::vector<PoseSE3Tangent> xi_jw_kfs; xi_jw_kfs.reserve(N); // for optimization
     for(int i = 0; i < N; ++i) {
-        T_wj.push_back(kfs_all[i]->getPose());
-        T_jw.push_back(T_wj[i].inverse());
+        T_wj_kfs.push_back(kfs_all[i]->getPose());
+        T_jw_kfs.push_back(T_wj_kfs[i].inverse());
         
         PoseSE3Tangent xi_jw_tmp;
-        geometry::SE3Log_f(T_jw[i], xi_jw_tmp);
-        xi_jw.push_back(xi_jw_tmp);
+        geometry::SE3Log_f(T_jw_kfs[i], xi_jw_tmp);
+        xi_jw_kfs.push_back(xi_jw_tmp);
     }
 
     // initialize optimization parameter vector.
@@ -1098,7 +1099,7 @@ bool MotionEstimator::localBundleAdjustment(const std::shared_ptr<Keyframes>& kf
     for(int i = 0; i < N-2; ++i){
         int idx0 = 6*i;
         PoseSE3Tangent xi_temp;
-        geometry::SE3Log_f(T_jw[i+2], xi_temp);
+        geometry::SE3Log_f(T_jw_kfs[i+2], xi_temp);
         for(int j = 0; j < 6; ++j) {
             parameter.coeffRef(idx0+j,0) = xi_temp(j,0);
             // std::cout << "idx : " << idx0+j << std::endl;
@@ -1107,265 +1108,220 @@ bool MotionEstimator::localBundleAdjustment(const std::shared_ptr<Keyframes>& kf
     // X part (6*N + 3*m)~(6*N + 3*m + 2), ... ,(6*N + 3*(M-1))~(6*N + 3*(M-1) + 2)
     for(int i = 0; i < M; ++i){
         int idx0 = 6*(N-2) + 3*i;
-        for(int j = 0; j < 3; ++j) {
-            parameter.coeffRef(idx0+j,0) = lms_ba[i].lm->get3DPoint()(j);
-            // std::cout << "idx : " << idx0+j << std::endl;
-        }
+        parameter.coeffRef(idx0  ,0) = lms_ba[i].lm->get3DPoint()(0);
+        parameter.coeffRef(idx0+1,0) = lms_ba[i].lm->get3DPoint()(1);
+        parameter.coeffRef(idx0+2,0) = lms_ba[i].lm->get3DPoint()(2);
     }
 
     // misc.
     std::vector<float> r_prev(n_obs, 0.0f);
-    // for(int iter = 0; iter < MAX_ITER; ++iter) {       
-    //     printf("ITERATION : %d\n", iter);
-    //     // Generate parameters
-    //     // xi part (0~5, 6~11, ... , 6*(N-1)~6*(N-1)+5)
-    //     for(int i = 0; i < N; ++i){
-    //         int idx0 = 6*i;
-    //         se3 xi_temp;
-    //         for(int j = 0; j < 6; ++j){
-    //             xi_temp(j,0) = parameter.coeffRef(idx0+j,0);
-    //             // std::cout << " j;" << j <<" : " << xi_temp(j,0) << std::endl;
-    //         }
-    //         SE3 T_tmp;
-    //         sophuslie::se3Exp(  xi_temp,  T_tmp);
-    //         T_w2l_inv[i] << T_tmp;
-    //     }
-    //     // X part (6*N + 3*m)~(6*N + 3*m + 2), ... ,(6*N + 3*(M-1))~(6*N + 3*(M-1) + 2)
-    //     for(int i = 0; i < M; ++i){
-    //         int idx0 = 6*N + 3*i;
-    //         for(int j = 0; j < 3; ++j) db_valid[i]->X(j) = parameter.coeffRef(idx0+j,0);
-    //     }
+    for(int iter = 0; iter < MAX_ITER; ++iter){
+        // Generate parameters
+        // xi part 0~5, 6~11, ... , 6*(N-3)~6*(N-3)+5
+        int idx0 = 0;
+        for(int i = 0; i < N-2; ++i){
+            PoseSE3Tangent xi_jw_tmp;
+            xi_jw_tmp(0,0) = parameter.coeffRef(idx0++,0);
+            xi_jw_tmp(1,0) = parameter.coeffRef(idx0++,0);
+            xi_jw_tmp(2,0) = parameter.coeffRef(idx0++,0);
+            xi_jw_tmp(3,0) = parameter.coeffRef(idx0++,0);
+            xi_jw_tmp(4,0) = parameter.coeffRef(idx0++,0);
+            xi_jw_tmp(5,0) = parameter.coeffRef(idx0++,0);
+            PoseSE3 T_jw_tmp;
+            geometry::se3Exp_f(xi_jw_tmp, T_jw_tmp);
+            T_jw_kfs[i+2] = T_jw_tmp;
+        }
+        idx0 = 6*(N-2);
+        // point part 6*(N-2)~6*(N-2)+2, ... , 6*(N-2)+3*(M-1)~6*(N-2)+3*(M-1)+2
+        for(int i = 0; i < M; ++i){
+            lms_ba[i].X(0) = parameter.coeffRef(idx0++,0);
+            lms_ba[i].X(1) = parameter.coeffRef(idx0++,0);
+            lms_ba[i].X(2) = parameter.coeffRef(idx0++,0);
+        }
 
-    //     // Generate Jacobian, Hessian, and residual.
-    //     SpMat J(len_residual, len_parameter);
-    //     SpVec r(len_residual, 1);
-    //     SpTripletList Tplist;
-    //     J.reserve(Eigen::VectorXi::Constant(len_parameter, 2000));
+        // Generate Jacobian, Hessian, and residual
+        SpMat J(len_residual, len_parameter);
+        SpVec r(len_residual, 1);
+        SpTripletList Tplist;
+        J.reserve(Eigen::VectorXf::Constant(len_parameter,2000));
 
-    //     // Set THRES_HUBER. 
-    //     if(iter > 1){
-    //         // printf("Recalculates THRES_HUBER.\n");
-    //         std::sort(r_prev.begin(), r_prev.end(), [](int a, int b){return a < b;});
+        // Set THRES_HUBER
+        if(iter > 1){
+            // printf("Recalculates THRES_HUBER.\n");
+            std::sort(r_prev.begin(), r_prev.end(), [](int a, int b){return a < b;});
             
-    //         THRES_HUBER = r_prev[(int)(0.6f*(float)r_prev.size())];
-    //         if(THRES_HUBER > MAX_THRES_HUBER) THRES_HUBER = MAX_THRES_HUBER;
-    //         if(THRES_HUBER < MIN_THRES_HUBER) THRES_HUBER = MIN_THRES_HUBER;
-    //         printf("  -- THRES_HUBER is reset.: %0.3f [px]\n", THRES_HUBER);
-    //         // sort(v.begin(), v.end(), [](int a, int b){ // 익명 함수를 이용한 compare
-    //         //     if (a/10 > b/10){ // 왼쪽항의 십의 자리 수가 더 높다면
-    //         //         return true; // 먼저 정렬한다.
-    //         //     }
-    //         //     else return a < b; // 그 외는 오름차순으로 정렬
-    //         // });
-    //     }
+            THRES_HUBER = r_prev[(int)(0.6f*(float)r_prev.size())];
+            if(THRES_HUBER > THRES_HUBER_MAX) THRES_HUBER = THRES_HUBER_MAX;
+            if(THRES_HUBER < THRES_HUBER_MIN) THRES_HUBER = THRES_HUBER_MIN;
+            printf("  -- THRES_HUBER is reset.: %0.3f [px]\n", THRES_HUBER);
+            // sort(v.begin(), v.end(), [](int a, int b){ // 익명 함수를 이용한 compare
+            //     if (a/10 > b/10){ // 왼쪽항의 십의 자리 수가 더 높다면
+            //         return true; // 먼저 정렬한다.
+            //     }
+            //     else return a < b; // 그 외는 오름차순으로 정렬
+            // });
+        }
 
-    //     // Calculate Jacobian and residual.
-    //     int cnt = 0;
-    //     for(int ii = 0; ii < M; ++ii){
-    //         // image index where the i-th 3-D point is observed.
-    //         const Point& Xi                = db_valid[ii]->X; // represented in the global frame.
-    //         const Pixels& pts_l            = db_valid[ii]->pts_l;
-    //         const Pixels& pts_u            = db_valid[ii]->pts_u;
-    //         const std::vector<int>& id_kfs = db_valid[ii]->id_kfs;
+        // Calculate Jacobian and residual.
+        int cnt = 0;
+        for(int i = 0; i < M; ++i){
+            // image index where the i-th 3-D point is observed.
+            const Point& Xi        = lms_ba[i].X; // represented in the global frame.
+            const PixelVec& pts    = lms_ba[i].pts_on_kfs;
+            const FramePtrVec& kfs = lms_ba[i].kfs_seen;
 
-    //         // printf("%d-th point = age: %ld\n",ii, db_valid[ii]->id_kfs.size());
-    //         for(int jj = 0; jj < id_kfs.size(); ++jj){ 
-    //             // One observation consists of onne point and one frame 
-    //             // --> it generates four residual values.
-    //             const Pixel& pt_l = pts_l[jj];
-    //             const Pixel& pt_u = pts_u[jj];
-
-    //             // Current image number
-    //             const int& j = id_kfs[jj];
-
-    //             const SE3& T_j2w = T_w2l_inv[j];
-    //             SE3 T_uj2w  = T_ul*T_j2w;
-    //             SO3 R_j2w   = T_j2w.block<3,3>(0,0);
-    //             SO3 R_uj2w  = T_uj2w.block<3,3>(0,0);
-    //             Vec3 t_j2w  = T_j2w.block<3,1>(0,3);
-    //             Vec3 t_uj2w = T_uj2w.block<3,1>(0,3);
-
-    //             Point Xi_lj = R_j2w *Xi    + t_j2w;
-    //             Point Xi_uj =  R_ul *Xi_lj + t_ul;
-
-    //             Eigen::Matrix3f hat_Xi_lj;
-    //             hat_Xi_lj <<        0,-Xi_lj(2), Xi_lj(1), 
-    //                          Xi_lj(2),        0,-Xi_lj(0),
-    //                         -Xi_lj(1), Xi_lj(0),        0;
-
-    //             const float& xlj = Xi_lj(0), ylj = Xi_lj(1), zlj = Xi_lj(2);
-    //             const float& xuj = Xi_uj(0), yuj = Xi_uj(1), zuj = Xi_uj(2);
-    //             // if(zlj < 1.0 || zuj < 1.0){
-    //             //     std::cout << "zlj: " << zlj << ", zuj: " << zuj << std::endl;
-    //             // }
-
-    //             float invzlj = 1.0f/zlj; float invzlj2 = invzlj*invzlj;
-    //             float invzuj = 1.0f/zuj; float invzuj2 = invzuj*invzuj;
+            // printf("%d-th point = age: %ld\n",i, db_valid[i]->id_kfs.size());
+            for(int j = 0; j < kfs.size(); ++j){ 
+                // One observation consists of onne point and one frame 
+                // --> it generates four residual values.
+                const Pixel& pt = pts[j];
                 
-    //             //     drudw = [fx_u*invzuj, 0,  -fx_u*xuj*invzuj2;...
-    //             //         0, fy_u*invzuj,  -fy_u*yuj*invzuj2];
-    //             Eigen::Matrix<float,2,3> drldw;
-    //             drldw     << fx_l*invzlj, 0, -fx_l*xlj*invzlj2,
-    //                          0, fy_l*invzlj, -fy_l*ylj*invzlj2;
+                // Current poses
+                const PoseSE3& T_jw = T_jw_kfs[j+2];
+                Rot3 R_jw = T_jw.block<3,3>(0,0);
+                Pos3 t_jw = T_jw.block<3,1>(0,3);
+
+                Point Xi_j = R_jw *Xi + t_jw;
                 
-    //             //     drudxi_jw = [drudw,-drudw*hat_Xi_uj];
-    //             Eigen::Matrix<float,2,6> drldxi_jw;
-    //             drldxi_jw << drldw, -drldw*hat_Xi_lj;
+                Eigen::Matrix3f hat_Xi_j;
+                hat_Xi_j <<        0,-Xi_j(2), Xi_j(1), 
+                             Xi_j(2),        0,-Xi_j(0),
+                            -Xi_j(1), Xi_j(0),        0;
+
+                const float& xj = Xi_j(0), yj = Xi_j(1), zj = Xi_j(2);
                 
-    //             //     drudX_i   = drudw*R_j2w;
-    //             Eigen::Matrix<float,2,3> drldX_i;
-    //             drldX_i   << drldw*R_j2w;
-
-    //             //     drdw_l = [fx_l*invzlj, 0,  -fx_l*xlj*invzlj2;...
-    //             //         0, fy_l*invzlj,  -fy_l*ylj*invzlj2];
-    //             Eigen::Matrix<float,2,3> drudw;
-    //             drudw     << fx_u*invzuj, 0, -fx_u*xuj*invzuj2,
-    //                          0, fy_u*invzuj, -fy_u*yuj*invzuj2;
-    //             //     drldxi_jw = drdw_l*[R_lu,-R_lu*hat_Xi_uj];
-    //             Eigen::Matrix<float,2,6> drudxi_jw;
-    //             Eigen::Matrix<float,2,3> drudwR_ul;
-    //             drudwR_ul << drudw*R_ul;
-    //             drudxi_jw << drudwR_ul, -drudwR_ul*hat_Xi_lj;
+                float invzj = 1.0f/zj; float invzj2 = invzj*invzj;
                 
-    //             //     drldX_i   = drdw_l*R_lj2w; // drldX_i   = drdw_l*R_lu*R_j2w;
-    //             Eigen::Matrix<float,2,3> drudX_i;
-    //             drudX_i << drudw*R_uj2w;
-
-    //             // Fill Jacobian matrix!
-    //             int j6 = j*6; int cnt4 = cnt*4;
-    //             int idx_hori0, idx_hori1; 
-    //             int idx_vert0_l, idx_vert1_l, idx_vert0_u, idx_vert1_u;
-    //             idx_hori0 = j6; idx_hori1 = j6+5;
-    //             idx_vert0_l = cnt4;   idx_vert1_l = cnt4+1;
-    //             idx_vert0_u = cnt4+2; idx_vert1_u = cnt4+3;
-    //             // 1) dru / dxi_jw
-    //             // idx_hori = 6*(j-1)+(1:6); --> 6*(jj-1)+(0:5)
-    //             // idx_vert = 4*(cnt-1)+(1:2); --> 4*(cnt-1)+0:1
-    //             // % J(4*(cnt-1)+(1:2), 6*(j-1)+(1:6)) = drudxi_jw;
-    //             // J(idx_vert, idx_hori) = drudxi_jw;
-    //             this->fillTriplet(Tplist, idx_hori0, idx_hori1, idx_vert0_l, idx_vert1_l, drldxi_jw);
-
-    //             // 2) drl / dxi_jw
-    //             // % J(4*(cnt-1)+(3:4), 6*(j-1)+(1:6)) = drldxi_jw;
-    //             // J(idx_vert+2, idx_hori) = drldxi_jw;
-    //             this->fillTriplet(Tplist, idx_hori0, idx_hori1, idx_vert0_u, idx_vert1_u, drudxi_jw);
-
-    //             // 3) dru / dX_i
-    //             // % J(4*(cnt-1)+(1:2), 6*M+3*(ii-1)+(1:3)) = drudX_i;
-    //             // idx_hori = 6*M+3*(ii-1)+(1:3);
-    //             // J(idx_vert, idx_hori) = drudX_i;
-    //             idx_hori0 = 6*N + 3*ii; 
-    //             idx_hori1 = idx_hori0 + 2;
-    //             this->fillTriplet(Tplist, idx_hori0, idx_hori1, idx_vert0_l, idx_vert1_l, drldX_i);
+                //     drudw = [fx_u*invzuj, 0,  -fx_u*xuj*invzuj2;...
+                //         0, fy_u*invzuj,  -fy_u*yuj*invzuj2];
+                Eigen::Matrix<float,2,3> drdw;
+                drdw     << fx*invzj, 0, -fx*xj*invzj2,
+                            0, fy*invzj, -fy*yj*invzj2;
                 
-    //             // 4) drl / dX_i
-    //             // % J(4*(cnt-1)+(3:4), 6*M+3*(ii-1)+(1:3)) = drldX_i;
-    //             // J(idx_vert+2, idx_hori) = drldX_i;
-    //             this->fillTriplet(Tplist, idx_hori0, idx_hori1, idx_vert0_u, idx_vert1_u, drudX_i);
+                //     drudxi_jw = [drudw,-drudw*hat_Xi_uj];
+                Eigen::Matrix<float,2,6> drdxi_jw;
+                drdxi_jw << drdw, -drdw*hat_Xi_j;
                 
-    //             // 5) residual
-    //             // ptsw_u = [fx_u*xuj*invzuj+cx_u; fy_u*yuj*invzuj+cy_u];
-    //             // ptsw_l = [fx_l*xlj*invzlj+cx_l; fy_l*ylj*invzlj+cy_l];
-    //             Pixel ptw_l, ptw_u;
-    //             ptw_l.x = fx_l*xlj*invzlj + cx_l;
-    //             ptw_l.y = fy_l*ylj*invzlj + cy_l;
-    //             ptw_u.x = fx_u*xuj*invzuj + cx_u;
-    //             ptw_u.y = fy_u*yuj*invzuj + cy_u;
+                //     drudX_i   = drudw*R_j2w;
+                Eigen::Matrix<float,2,3> drdX_i;
+                drdX_i   << drdw*R_jw;
 
-    //             // r(4*(cnt-1)+(1:4),1) =...
-    //             //     [ptsw_u-pts_u(:,jj);...
-    //             //     ptsw_l-pts_l(:,jj)];
-    //             r.coeffRef(cnt4  ,0) = ptw_l.x - pt_l.x;
-    //             r.coeffRef(cnt4+1,0) = ptw_l.y - pt_l.y;
-    //             r.coeffRef(cnt4+2,0) = ptw_u.x - pt_u.x;
-    //             r.coeffRef(cnt4+3,0) = ptw_u.y - pt_u.y;
+                // Fill Jacobian matrix!
+                int j6 = j*6; int cnt4 = cnt*4;
+                int idx_hori0, idx_hori1; 
+                int idx_vert0_l, idx_vert1_l, idx_vert0_u, idx_vert1_u;
+                idx_hori0 = j6; idx_hori1 = j6+5;
+                idx_vert0_l = cnt4;   idx_vert1_l = cnt4+1;
+                idx_vert0_u = cnt4+2; idx_vert1_u = cnt4+3;
+                // 1) dru / dxi_jw
+                // idx_hori = 6*(j-1)+(1:6); --> 6*(j-1)+(0:5)
+                // idx_vert = 4*(cnt-1)+(1:2); --> 4*(cnt-1)+0:1
+                // % J(4*(cnt-1)+(1:2), 6*(j-1)+(1:6)) = drudxi_jw;
+                // J(idx_vert, idx_hori) = drudxi_jw;
+                this->fillTriplet(Tplist, idx_hori0, idx_hori1, idx_vert0_l, idx_vert1_l, drdxi_jw);
 
-    //             ++cnt;
-    //         } // END jj
-    //     } // END ii 
+                // 3) dru / dX_i
+                // % J(4*(cnt-1)+(1:2), 6*M+3*(i-1)+(1:3)) = drudX_i;
+                // idx_hori = 6*M+3*(i-1)+(1:3);
+                // J(idx_vert, idx_hori) = drudX_i;
+                idx_hori0 = 6*N + 3*i; 
+                idx_hori1 = idx_hori0 + 2;
+                this->fillTriplet(Tplist, idx_hori0, idx_hori1, idx_vert0_l, idx_vert1_l, drdX_i);
+                
+                // 5) residual
+                // ptsw_u = [fx_u*xuj*invzuj+cx_u; fy_u*yuj*invzuj+cy_u];
+                // ptsw_l = [fx_l*xlj*invzlj+cx_l; fy_l*ylj*invzlj+cy_l];
+                Pixel ptw;
+                ptw.x = fx*xj*invzj + cx;
+                ptw.y = fy*yj*invzj + cy;
+                
+                // r(4*(cnt-1)+(1:4),1) =...
+                //     [ptsw_u-pts_u(:,j);...
+                //     ptsw_l-pts_l(:,j)];
+                r.coeffRef(cnt4  ,0) = ptw.x - pt.x;
+                r.coeffRef(cnt4+1,0) = ptw.y - pt.y;
+                ++cnt;
+            } // END j
+        } // END i 
 
-    //     // Fill Jacobian
-    //     // 'cnt' should be same with 'n_obs'
-    //     // printf("cnt : %d, n_obs : %d\n", cnt, n_obs);
-    //     size_t residual_size = 4*cnt;
-    //     // std::cout << "iter : " << iter << ", # of Tplist: " << Tplist.size() <<"/" << 4*n_obs*(6*N+3*M) << ", percent: " << (float)Tplist.size() / (float)(len_parameter*len_residual)*100.0f << "%" << std::endl;
-    //     J.setFromTriplets(Tplist.begin(), Tplist.end());
-    //     J.makeCompressed();
-    //     // std::cout << "residual nnz : " << r.nonZeros() <<" / " << residual_size << ", residual size : " << r.size() <<std::endl;
+        // Fill Jacobian
+        // 'cnt' should be same with 'n_obs'
+        // printf("cnt : %d, n_obs : %d\n", cnt, n_obs);
+        size_t residual_size = 4*cnt;
+        // std::cout << "iter : " << iter << ", # of Tplist: " << Tplist.size() <<"/" << 4*n_obs*(6*N+3*M) << ", percent: " << (float)Tplist.size() / (float)(len_parameter*len_residual)*100.0f << "%" << std::endl;
+        J.setFromTriplets(Tplist.begin(), Tplist.end());
+        J.makeCompressed();
+        // std::cout << "residual nnz : " << r.nonZeros() <<" / " << residual_size << ", residual size : " << r.size() <<std::endl;
 
-    //     // Huber loss calculation
-    //     std::vector<float> err_per_db;
-    //     std::vector<float> weight;
-    //     err_per_db.resize(cnt);
-    //     weight.resize(cnt);
-    //     double err_sum = 0.0f;
-    //     double* r_ptr = r.valuePtr();
-    //     for(int ii = 0; ii < cnt; ++ii){
-    //         float err_tmp = 0;
-    //         int idx = 4*ii;
-    //         const float u_l = r.coeff(idx  ,0); const float v_l = r.coeff(++idx,0);
-    //         const float u_u = r.coeff(++idx,0); const float v_u = r.coeff(++idx,0);
-    //         err_tmp += std::sqrt(u_l*u_l + v_l*v_l);
-    //         err_tmp += std::sqrt(u_u*u_u + v_u*v_u);
-    //         err_tmp *= 0.5f;
+        // Huber loss calculation
+        std::vector<float> err_per_db;
+        std::vector<float> weight;
+        err_per_db.resize(cnt);
+        weight.resize(cnt);
+        double err_sum = 0.0f;
+        double* r_ptr = r.valuePtr();
+        for(int ii = 0; ii < cnt; ++ii){
+            float err_tmp = 0;
+            int idx = 2*ii;
+            const float u = r.coeff(idx  ,0); const float v = r.coeff(++idx,0);
+            err_tmp += std::sqrt(u*u + v*v);
+            err_tmp *= 0.5f;
 
-    //         // Huber calc.
-    //         if(err_tmp > THRES_HUBER) weight[ii] = THRES_HUBER/err_tmp;
-    //         else weight[ii] = 1.0f;
+            // Huber calc.
+            if(err_tmp > THRES_HUBER) weight[ii] = THRES_HUBER/err_tmp;
+            else weight[ii] = 1.0f;
 
-    //         r_prev[ii]     = err_tmp*weight[ii];
-    //         err_per_db[ii] = err_tmp;
-    //         err_sum += (double)(err_tmp*weight[ii]);
-    //     }
+            r_prev[ii]     = err_tmp*weight[ii];
+            err_per_db[ii] = err_tmp;
+            err_sum += (double)(err_tmp*weight[ii]);
+        }
 
-    //     SpMat W(len_residual,len_residual);
-    //     W.reserve(Eigen::VectorXi::Constant(len_residual,1));
-    //     for(int ii = 0; ii < cnt; ++ii){
-    //         int idx0 = 4*ii;
-    //         float w_tmp = weight[ii];
-    //         for(int jj = 0; jj < 4; ++jj) W.coeffRef(idx0 + jj, idx0 + jj) = w_tmp;
-    //     }
-    //     std::cout << "  iter: " << iter << ", errsum: " << err_sum <<", meanerr: " << err_sum/(float)cnt << " [px]" << std::endl;
+        SpMat W(len_residual,len_residual);
+        W.reserve(Eigen::VectorXi::Constant(len_residual,1));
+        for(int ii = 0; ii < cnt; ++ii){
+            int idx0 = 4*ii;
+            float w_tmp = weight[ii];
+            for(int jj = 0; jj < 4; ++jj) W.coeffRef(idx0 + jj, idx0 + jj) = w_tmp;
+        }
+        std::cout << "  iter: " << iter << ", errsum: " << err_sum <<", meanerr: " << err_sum/(float)cnt << " [px]" << std::endl;
 
-    //     // Calc JtJ and Jtr
-    //     // timer::tic();
-    //     SpMat JtW = J.transpose()*W;
-    //     SpMat JtWJ = JtW*J;
-    //     for(int i = 0; i < JtWJ.cols(); ++i) JtWJ.coeffRef(i,i) *= (1.0f+lam); 
+        // Calc JtJ and Jtr
+        // timer::tic();
+        SpMat JtW = J.transpose()*W;
+        SpMat JtWJ = JtW*J;
+        for(int i = 0; i < JtWJ.cols(); ++i) JtWJ.coeffRef(i,i) *= (1.0f+lam); 
 
-    //     // std::cout << "JtJ time : " << timer::toc() <<" [ms], ";
-    //     // timer::tic();
-    //     SpMat JtWr = JtW*r;
-    //     // std::cout << "Jtr time : " << timer::toc() << " [ms], ";
+        // std::cout << "JtJ time : " << timer::toc() <<" [ms], ";
+        // timer::tic();
+        SpMat JtWr = JtW*r;
+        // std::cout << "Jtr time : " << timer::toc() << " [ms], ";
 
-    //     SpMat AA(6*N, 6*N);
-    //     AA.reserve(Eigen::VectorXi::Constant(6*N, 6*N));
-    //     SpMat BB(6*N, 3*M);
-    //     BB.reserve(Eigen::VectorXi::Constant(6*N, 3*M));
-    //     SpMat CC(3*M, 3*M);
-    //     CC.reserve(Eigen::VectorXi::Constant(3*M,3));
+        SpMat AA(6*(N-2), 6*(N-2));
+        AA.reserve(Eigen::VectorXi::Constant(6*(N-2), 6*(N-2)));
+        SpMat BB(6*(N-2), 3*M);
+        BB.reserve(Eigen::VectorXi::Constant(6*(N-2), 3*M));
+        SpMat CC(3*M, 3*M);
+        CC.reserve(Eigen::VectorXi::Constant(3*M,3));
         
-    //     // SpMat CC(3*M, 3*M);
-    //     // CC.reserve(Eigen::VectorXi::Constant(3*M,3));
+        // SpMat CC(3*M, 3*M);
+        // CC.reserve(Eigen::VectorXi::Constant(3*M,3));
         
-
-    //     // Solve! (Cholesky decomposition based solver. JtJ is sym. positive definite.)
-    //     // timer::tic();
-    //     Eigen::SimplicialCholesky<SpMat> chol(JtWJ);
-    //     Eigen::VectorXd delta_theta = chol.solve(JtWr);
-    //     // std::cout << "chol time : " << timer::toc() << " [ms]" << std::endl;
-    //     // std::cout << "dimension : " << delta_theta.rows() << ", 6*N+3*M: " << 6*N+3*M << std::endl;
+        // Solve! (Cholesky decomposition based solver. JtJ is sym. positive definite.)
+        // timer::tic();
+        Eigen::SimplicialCholesky<SpMat> chol(JtWJ);
+        Eigen::VectorXd delta_theta = chol.solve(JtWr);
+        // std::cout << "chol time : " << timer::toc() << " [ms]" << std::endl;
+        // std::cout << "dimension : " << delta_theta.rows() << ", 6*N+3*M: " << 6*N+3*M << std::endl;
         
-    //     // Update parameters (T_w2l, T_w2l_inv, xi_w2l, database->X)
-    //     // Should omit the first image pose update. (index = 0)
-    //     double step_size = 0.2;
-    //     SpVec delta_parameter(len_parameter, 1);
-    //     for(int i = 0; i < 6; ++i) delta_parameter.coeffRef(i,0) = 0.0f;
-    //     for(int i = 6; i < delta_theta.rows(); ++i) delta_parameter.coeffRef(i,0) = step_size*delta_theta(i);
+        // Update parameters (T_w2l, T_w2l_inv, xi_w2l, database->X)
+        // Should omit the first image pose update. (index = 0)
+        double step_size = 0.5;
+        SpVec delta_parameter(len_parameter, 1);
+        for(int i = 0; i < 6; ++i) delta_parameter.coeffRef(i,0) = 0.0f;
+        for(int i = 6; i < delta_theta.rows(); ++i) delta_parameter.coeffRef(i,0) = step_size*delta_theta(i);
         
-    //     parameter -= delta_parameter; 
-
-    // } // END iter
+        parameter -= delta_parameter; 
+    } // END iter
 
 
     // Finish

@@ -112,6 +112,7 @@ struct LandmarkTracking{
 
 struct LandmarkBA{
     LandmarkPtr lm;
+    Point X;
     FramePtrVec kfs_seen; // 해당 키프레임에서 어떤 좌표로 보였는지를 알아야 함.
     PixelVec pts_on_kfs; // 각 키프레임에서 추적된 pixel 좌표.
 };
