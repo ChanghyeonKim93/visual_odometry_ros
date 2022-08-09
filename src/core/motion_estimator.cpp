@@ -1191,12 +1191,13 @@ bool MotionEstimator::localBundleAdjustment(const std::shared_ptr<Keyframes>& kf
                 const float& xj = Xi_j(0), yj = Xi_j(1), zj = Xi_j(2);
                 
                 float invzj = 1.0f/zj; float invzj2 = invzj*invzj;
+                float fxinvzj = fx*invzj; float fyinvzj = fy*invzj;
                 
                 //     drudw = [fx_u*invzuj, 0,  -fx_u*xuj*invzuj2;...
                 //         0, fy_u*invzuj,  -fy_u*yuj*invzuj2];
                 Eigen::Matrix<float,2,3> drdw;
-                drdw     << fx*invzj, 0, -fx*xj*invzj2,
-                            0, fy*invzj, -fy*yj*invzj2;
+                drdw     << fxinvzj, 0, -fx*xj*invzj2,
+                            0, fyinvzj, -fy*yj*invzj2;
                 
                 //     drudxi_jw = [drudw,-drudw*hat_Xi_uj];
                 Eigen::Matrix<float,2,6> drdxi_jw;
@@ -1213,30 +1214,27 @@ bool MotionEstimator::localBundleAdjustment(const std::shared_ptr<Keyframes>& kf
                 idx_hori0 = j6; idx_hori1 = j6+5;
                 idx_vert0 = cnt2;   idx_vert1 = cnt2+1;
                 // 1) dru / dxi_jw
-                // idx_hori = 6*(j-1)+(1:6); --> 6*(j-1)+(0:5)
-                // idx_vert = 4*(cnt-1)+(1:2); --> 4*(cnt-1)+0:1
-                // % J(4*(cnt-1)+(1:2), 6*(j-1)+(1:6)) = drudxi_jw;
-                // J(idx_vert, idx_hori) = drudxi_jw;
+                // idx_hori = 6*(j-1)+(0:5)
+                // idx_vert = 2*(cnt-1)+(0:1);
+                // % J(2*(cnt-1)+(0:1), 6*(j-1)+(0:5)) = drdxi_jw;
+                // J(idx_vert, idx_hori) = drdxi_jw;
                 this->fillTriplet(Tplist, idx_hori0, idx_hori1, idx_vert0, idx_vert1, drdxi_jw);
 
                 // 3) dru / dX_i
-                // % J(4*(cnt-1)+(1:2), 6*M+3*(i-1)+(1:3)) = drudX_i;
-                // idx_hori = 6*M+3*(i-1)+(1:3);
-                // J(idx_vert, idx_hori) = drudX_i;
-                idx_hori0 = 6*N + 3*i; 
+                // % J(2*(cnt-1)+(0:1), 6*(N-2)+3*(i-1)+(0:2)) = drdX_i;
+                // idx_hori = 6*(N-2)+3*(i-1)+(0:2);
+                // J(idx_vert, idx_hori) = drdX_i;
+                idx_hori0 = 6*(N-2) + 3*i; 
                 idx_hori1 = idx_hori0 + 2;
                 this->fillTriplet(Tplist, idx_hori0, idx_hori1, idx_vert0, idx_vert1, drdX_i);
                 
                 // 5) residual
-                // ptsw_u = [fx_u*xuj*invzuj+cx_u; fy_u*yuj*invzuj+cy_u];
-                // ptsw_l = [fx_l*xlj*invzlj+cx_l; fy_l*ylj*invzlj+cy_l];
                 Pixel ptw;
-                ptw.x = fx*xj*invzj + cx;
-                ptw.y = fy*yj*invzj + cy;
+                ptw.x = fxinvzj*xj + cx;
+                ptw.y = fyinvzj*yj + cy;
                 
-                // r(4*(cnt-1)+(1:4),1) =...
-                //     [ptsw_u-pts_u(:,j);...
-                //     ptsw_l-pts_l(:,j)];
+                // r(2*(cnt-1)+(0:1),1) =...
+                //     [ptw-pt(:,j);...
                 r.coeffRef(cnt2  ,0) = ptw.x - pt.x;
                 r.coeffRef(cnt2+1,0) = ptw.y - pt.y;
                 ++cnt;
