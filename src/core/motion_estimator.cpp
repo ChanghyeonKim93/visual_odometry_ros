@@ -1207,18 +1207,17 @@ bool MotionEstimator::localBundleAdjustment(const std::shared_ptr<Keyframes>& kf
                 drdX_i   << drdw*R_jw;
 
                 // Fill Jacobian matrix!
-                int j6 = j*6; int cnt4 = cnt*4;
+                int j6 = j*6; int cnt2 = cnt*2;
                 int idx_hori0, idx_hori1; 
-                int idx_vert0_l, idx_vert1_l, idx_vert0_u, idx_vert1_u;
+                int idx_vert0, idx_vert1;
                 idx_hori0 = j6; idx_hori1 = j6+5;
-                idx_vert0_l = cnt4;   idx_vert1_l = cnt4+1;
-                idx_vert0_u = cnt4+2; idx_vert1_u = cnt4+3;
+                idx_vert0 = cnt2;   idx_vert1 = cnt2+1;
                 // 1) dru / dxi_jw
                 // idx_hori = 6*(j-1)+(1:6); --> 6*(j-1)+(0:5)
                 // idx_vert = 4*(cnt-1)+(1:2); --> 4*(cnt-1)+0:1
                 // % J(4*(cnt-1)+(1:2), 6*(j-1)+(1:6)) = drudxi_jw;
                 // J(idx_vert, idx_hori) = drudxi_jw;
-                this->fillTriplet(Tplist, idx_hori0, idx_hori1, idx_vert0_l, idx_vert1_l, drdxi_jw);
+                this->fillTriplet(Tplist, idx_hori0, idx_hori1, idx_vert0, idx_vert1, drdxi_jw);
 
                 // 3) dru / dX_i
                 // % J(4*(cnt-1)+(1:2), 6*M+3*(i-1)+(1:3)) = drudX_i;
@@ -1226,7 +1225,7 @@ bool MotionEstimator::localBundleAdjustment(const std::shared_ptr<Keyframes>& kf
                 // J(idx_vert, idx_hori) = drudX_i;
                 idx_hori0 = 6*N + 3*i; 
                 idx_hori1 = idx_hori0 + 2;
-                this->fillTriplet(Tplist, idx_hori0, idx_hori1, idx_vert0_l, idx_vert1_l, drdX_i);
+                this->fillTriplet(Tplist, idx_hori0, idx_hori1, idx_vert0, idx_vert1, drdX_i);
                 
                 // 5) residual
                 // ptsw_u = [fx_u*xuj*invzuj+cx_u; fy_u*yuj*invzuj+cy_u];
@@ -1238,8 +1237,8 @@ bool MotionEstimator::localBundleAdjustment(const std::shared_ptr<Keyframes>& kf
                 // r(4*(cnt-1)+(1:4),1) =...
                 //     [ptsw_u-pts_u(:,j);...
                 //     ptsw_l-pts_l(:,j)];
-                r.coeffRef(cnt4  ,0) = ptw.x - pt.x;
-                r.coeffRef(cnt4+1,0) = ptw.y - pt.y;
+                r.coeffRef(cnt2  ,0) = ptw.x - pt.x;
+                r.coeffRef(cnt2+1,0) = ptw.y - pt.y;
                 ++cnt;
             } // END j
         } // END i 
@@ -1247,7 +1246,7 @@ bool MotionEstimator::localBundleAdjustment(const std::shared_ptr<Keyframes>& kf
         // Fill Jacobian
         // 'cnt' should be same with 'n_obs'
         // printf("cnt : %d, n_obs : %d\n", cnt, n_obs);
-        size_t residual_size = 4*cnt;
+        size_t residual_size = 2*cnt;
         // std::cout << "iter : " << iter << ", # of Tplist: " << Tplist.size() <<"/" << 4*n_obs*(6*N+3*M) << ", percent: " << (float)Tplist.size() / (float)(len_parameter*len_residual)*100.0f << "%" << std::endl;
         J.setFromTriplets(Tplist.begin(), Tplist.end());
         J.makeCompressed();
@@ -1279,9 +1278,9 @@ bool MotionEstimator::localBundleAdjustment(const std::shared_ptr<Keyframes>& kf
         SpMat W(len_residual,len_residual);
         W.reserve(Eigen::VectorXi::Constant(len_residual,1));
         for(int ii = 0; ii < cnt; ++ii){
-            int idx0 = 4*ii;
+            int idx0 = 2*ii;
             float w_tmp = weight[ii];
-            for(int jj = 0; jj < 4; ++jj) W.coeffRef(idx0 + jj, idx0 + jj) = w_tmp;
+            for(int jj = 0; jj < 2; ++jj) W.coeffRef(idx0 + jj, idx0 + jj) = w_tmp;
         }
         std::cout << "  iter: " << iter << ", errsum: " << err_sum <<", meanerr: " << err_sum/(float)cnt << " [px]" << std::endl;
 
