@@ -17,13 +17,15 @@
 #include "core/type_defines.h"
 
 #include "core/camera.h"
+#include "core/frame.h"
+#include "core/keyframes.h"
 #include "core/mapping.h"
 #include "core/landmark.h"
 
 #include "util/histogram.h"
 #include "util/geometry_library.h"
+#include <sstream>
 
-class MotionEstimator;
 
 class MotionEstimator{
 public:
@@ -43,10 +45,9 @@ public:
     bool calcPoseOnlyBundleAdjustment(const LandmarkPtrVec& lms, const PixelVec& pts1, const std::shared_ptr<Camera>& cam,
         Rot3& R01_true, Pos3& t01_true, MaskVec& mask_inlier);
 
-    bool localBundleAdjustment(const PointVec& X, const PixelVec& pts1, const std::shared_ptr<Camera>& cam,
-        Rot3& R01_true, Pos3& t01_true, MaskVec& mask_inlier);
-
     float calcSteeringAngleFromRotationMat(const Rot3& R);
+
+    bool localBundleAdjustment(const std::shared_ptr<Keyframes>& kfs, const std::shared_ptr<Camera>& cam);
 
 public:
     void calcSampsonDistance(const PixelVec& pts0, const PixelVec& pts1, const std::shared_ptr<Camera>& cam, 

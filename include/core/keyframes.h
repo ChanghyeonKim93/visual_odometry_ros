@@ -20,7 +20,7 @@
 
 class Keyframes{
 private:
-    std::list<FramePtr>  keyframes_;
+    std::list<FramePtr>  kfs_list_;
     std::vector<FramePtr> all_keyframes_;
     int n_max_keyframes_;
 
@@ -32,11 +32,16 @@ private:
 public:
     Keyframes();
 
-    void setMaxKeyframes(int max_kf);
     void addNewKeyframe(const FramePtr& frame);
     bool checkUpdateRule(const FramePtr& frame_curr);
 
-    void localBundleAdjustment();
+public:
+    void setMaxKeyframes(int max_kf);
+
+public:
+    const std::list<FramePtr>& getList() const;
+    int getCurrentNumOfKeyframes() const;
+    int getMaxNumOfKeyframes() const;
 };
 
 #endif

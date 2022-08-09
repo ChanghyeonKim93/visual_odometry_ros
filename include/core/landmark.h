@@ -18,8 +18,6 @@
     address of visual landmarks observed in the frame.
     a 6-DoF motion w.r.t. the global frame {W}.
 */
-class Landmark;
-
 class Landmark{
 private:
     uint32_t id_;
@@ -32,6 +30,13 @@ private:
     PixelVec observations_;
     FramePtrVec related_frames_;
 
+// keyframes
+private:
+    PixelVec observations_on_keyframes_;
+    FramePtrVec related_keyframes_;
+
+// status
+private:
     bool is_alive_;
     bool is_triangulated_;
 
@@ -59,12 +64,14 @@ public:
     ~Landmark();
 
     void addObservationAndRelatedFrame(const Pixel& p, const FramePtr& frame);
+    void addObservationAndRelatedKeyframe(const Pixel& p, const FramePtr& frame);
     
     void set3DPoint(const Point& Xw);
     void setInverseDepth(float invd_curr);
-    void setCovarianceInverseDepth(float cov_invd_curr);
-    void updateInverseDepth(float invd_curr, float cov_invd_curr);
     void setDead();
+    
+    void updateInverseDepth(float invd_curr, float cov_invd_curr);
+    void setCovarianceInverseDepth(float cov_invd_curr);
     
     // void setTrackInView(bool value);
     // void setTrackProjUV(float u, float v);
@@ -77,7 +84,9 @@ public:
     float              getCovarianceInverseDepth() const;
     const Point&       get3DPoint() const;
     const PixelVec&    getObservations() const;
+    const PixelVec&    getObservationsOnKeyframes() const;
     const FramePtrVec& getRelatedFramePtr() const;
+    const FramePtrVec& getRelatedKeyframePtr() const;
     
     const bool&        isAlive() const;
     const bool&        isTriangulated() const;
@@ -99,5 +108,11 @@ struct LandmarkTracking{
     LandmarkPtrVec lms;
 
     LandmarkTracking(){ };
+};
+
+struct LandmarkBA{
+    LandmarkPtr lm;
+    FramePtrVec kfs_seen; // 해당 키프레임에서 어떤 좌표로 보였는지를 알아야 함.
+    PixelVec pts_on_kfs; // 각 키프레임에서 추적된 pixel 좌표.
 };
 #endif

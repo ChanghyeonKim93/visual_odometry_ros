@@ -425,8 +425,10 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 	// Check keyframe update rules.
 	if(keyframes_->checkUpdateRule(frame_curr)){
 		keyframes_->addNewKeyframe(frame_curr);
+		
 		// Do local bundle adjustment for keyframes.
-		keyframes_->localBundleAdjustment();
+		motion_estimator_->localBundleAdjustment(keyframes_, cam_);
+
 	}
 	
 	// Replace the 'frame_prev_' with 'frame_curr'

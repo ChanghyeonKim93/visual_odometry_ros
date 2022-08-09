@@ -968,3 +968,407 @@ float MotionEstimator::calcSteeringAngleFromRotationMat(const Rot3& R){
     if(vjdot < 0) psi = -psi;
     return psi;
 };
+
+bool MotionEstimator::localBundleAdjustment(const std::shared_ptr<Keyframes>& kfs, const std::shared_ptr<Camera>& cam)
+{
+    std::cout << "======= Local Bundle adjustment =======\n";
+
+    int THRES_AGE          = 3;
+    int THRES_MINIMUM_SEEN = 2;
+    float THRES_PARALLAX   = 0.2*D2R;
+
+    // Optimization paarameters
+    int   MAX_ITER         = 250;
+
+    float lam              = 1e-3;  // for Levenberg-Marquardt algorithm
+    float MAX_LAM          = 1.0f;  // for Levenberg-Marquardt algorithm
+    float MIN_LAM          = 1e-4f; // for Levenberg-Marquardt algorithm
+
+    float THRES_HUBER      = 3.0f;
+    float THRES_HUBER_MIN  = 0.5f;
+    float THRES_HUBER_MAX  = 20.0f;
+
+    bool DO_RECALC          = true;
+    bool IS_DECREASE        = false;
+    bool IS_STRICT_DECREASE = false;
+    bool IS_BAD_DIVERGE     = false;
+
+
+    if(kfs->getCurrentNumOfKeyframes() < 4){
+        std::cout << "  -- Not enough keyframes... at least four keyframes are needed. local BA is skipped.\n";
+        return false;
+    }
+    
+    bool flag_success = true;
+
+    // Make keyframe vector
+    std::vector<FramePtr> kfs_all; // all keyframes
+    for(auto kf : kfs->getList()) kfs_all.push_back(kf);
+    std::vector<FramePtr> kfs_fixed; // fixed two frames
+    kfs_fixed.push_back(kfs_all[0]);
+    kfs_fixed.push_back(kfs_all[1]); // first two frames are fixed.
+    std::cout << "# of all keyframes: " << kfs_all.size() << std::endl;
+
+    // Landmark sets to generate observation graph
+    std::vector<std::set<LandmarkPtr>> lmset_per_frame;
+    std::set<LandmarkPtr> lmset_all;
+    
+    // 각 keyframe에서 보였던 lm을 저장. 단, age 가 3 이상인 경우만 포함.
+    for(auto kf : kfs_all){
+        std::set<LandmarkPtr> lmset_cur;
+        for(auto lm : kf->getRelatedLandmarkPtr()){ 
+            if(lm->getAge() >= THRES_AGE){ // age thresholding
+                lmset_cur.insert(lm);
+                lmset_all.insert(lm);
+            }
+        }
+        lmset_per_frame.push_back(lmset_cur);
+    }
+    std::cout << " landmark set size: ";
+    for(auto lmset : lmset_per_frame) std::cout << lmset.size() << " ";
+    std::cout << "\n Unique landmarks: " << lmset_all.size() << std::endl;
+
+    // 각 lm이 보였던 keyframe의 FramePtr을 저장.
+    // 단, 최소 2개 이상의 keyframe 에서 관측되어야 local BA에서 사용함.    
+    std::vector<LandmarkBA> lms_ba;
+    for(auto lm : lmset_all){ // 모든 landmark를 순회.
+        // 현재 landmark가 보였던 keyframes 중, 현재 active한 keyframe들만 추려냄. 
+        LandmarkBA lm_ba;
+        lm_ba.lm = lm;
+        const FramePtrVec& kfs_related = lm->getRelatedKeyframePtr();
+        const PixelVec& pts_on_kfs = lm->getObservationsOnKeyframes();
+        
+        for(int j = 0; j < kfs_related.size(); ++j){
+            if(kfs_related[j]->isKeyframeInWindow()){
+                lm_ba.kfs_seen.push_back(kfs_related[j]);
+                lm_ba.pts_on_kfs.push_back(pts_on_kfs[j]);
+            }
+        }
+
+        if(lm_ba.kfs_seen.size() >= THRES_MINIMUM_SEEN) lms_ba.push_back(lm_ba);
+    }
+
+    std::cout << "Landmark to be optimized: " << lms_ba.size() << std::endl;
+    int n_obs = 0; // the number of total observations (2*n_obs == len_residual)
+    for(auto lm_ba : lms_ba){
+        // std::cout << lm_ba.lm->getID() <<" lm is recon?: " << lm_ba.lm->isTriangulated() << ", related to : ";
+        for(auto kf : lm_ba.kfs_seen) std::cout << kf->getID() << " ";
+        std::cout << std::endl;
+        n_obs += lm_ba.kfs_seen.size();
+    }
+
+    // Intrinsic of lower camera
+    Mat33 K = cam->K(); Mat33 Kinv = cam->Kinv();
+    float fx = cam->fx(); float fy = cam->fy();
+    float cx = cam->cx(); float cy = cam->cy();
+    float invfx = cam->fyinv(); float invfy = cam->fxinv();
+
+    // Parameter vector
+    int N = kfs_all.size(); // the number of total frames
+    int M = lms_ba.size(); // the number of total landmarks
+
+    // initialize optimization parameter vector.
+    int len_residual  = 2*n_obs;
+    int len_parameter = 6*(N - 2) + 3*M;
+    printf("======================================================\n");
+    printf("Bundle Adjustment Statistics:\n");
+    printf(" -        # of total images: %d images \n",    N);
+    printf(" -        # of  opt. images: %d images \n",  N-2);
+    printf(" -        # of total points: %d landmarks \n", M);
+    printf(" -  # of total observations: %d \n", n_obs);
+    printf(" -     Jacobian matrix size: %d rows x %d cols\n", len_residual, len_parameter);
+    printf(" -     Residual vector size: %d rows\n", len_residual);
+
+
+    // SE3 vector consisting of T_wj (world to a camera at each epoch)
+    std::vector<PoseSE3> T_wj;         T_wj.reserve(N); // for optimization
+    std::vector<PoseSE3> T_jw;         T_jw.reserve(N); // for optimization
+    std::vector<PoseSE3Tangent> xi_jw; xi_jw.reserve(N); // for optimization
+    for(int i = 0; i < N; ++i) {
+        T_wj.push_back(kfs_all[i]->getPose());
+        T_jw.push_back(T_wj[i].inverse());
+        
+        PoseSE3Tangent xi_jw_tmp;
+        geometry::SE3Log_f(T_jw[i], xi_jw_tmp);
+        xi_jw.push_back(xi_jw_tmp);
+    }
+
+    // initialize optimization parameter vector.
+    SpVec parameter(len_parameter, 1);
+    for(int i = 0; i < N-2; ++i){
+        int idx0 = 6*i;
+        PoseSE3Tangent xi_temp;
+        geometry::SE3Log_f(T_jw[i+2], xi_temp);
+        for(int j = 0; j < 6; ++j) {
+            parameter.coeffRef(idx0+j,0) = xi_temp(j,0);
+            // std::cout << "idx : " << idx0+j << std::endl;
+        }
+    }
+    // X part (6*N + 3*m)~(6*N + 3*m + 2), ... ,(6*N + 3*(M-1))~(6*N + 3*(M-1) + 2)
+    for(int i = 0; i < M; ++i){
+        int idx0 = 6*(N-2) + 3*i;
+        for(int j = 0; j < 3; ++j) {
+            parameter.coeffRef(idx0+j,0) = lms_ba[i].lm->get3DPoint()(j);
+            // std::cout << "idx : " << idx0+j << std::endl;
+        }
+    }
+
+    // misc.
+    std::vector<float> r_prev(n_obs, 0.0f);
+    // for(int iter = 0; iter < MAX_ITER; ++iter) {       
+    //     printf("ITERATION : %d\n", iter);
+    //     // Generate parameters
+    //     // xi part (0~5, 6~11, ... , 6*(N-1)~6*(N-1)+5)
+    //     for(int i = 0; i < N; ++i){
+    //         int idx0 = 6*i;
+    //         se3 xi_temp;
+    //         for(int j = 0; j < 6; ++j){
+    //             xi_temp(j,0) = parameter.coeffRef(idx0+j,0);
+    //             // std::cout << " j;" << j <<" : " << xi_temp(j,0) << std::endl;
+    //         }
+    //         SE3 T_tmp;
+    //         sophuslie::se3Exp(  xi_temp,  T_tmp);
+    //         T_w2l_inv[i] << T_tmp;
+    //     }
+    //     // X part (6*N + 3*m)~(6*N + 3*m + 2), ... ,(6*N + 3*(M-1))~(6*N + 3*(M-1) + 2)
+    //     for(int i = 0; i < M; ++i){
+    //         int idx0 = 6*N + 3*i;
+    //         for(int j = 0; j < 3; ++j) db_valid[i]->X(j) = parameter.coeffRef(idx0+j,0);
+    //     }
+
+    //     // Generate Jacobian, Hessian, and residual.
+    //     SpMat J(len_residual, len_parameter);
+    //     SpVec r(len_residual, 1);
+    //     SpTripletList Tplist;
+    //     J.reserve(Eigen::VectorXi::Constant(len_parameter, 2000));
+
+    //     // Set THRES_HUBER. 
+    //     if(iter > 1){
+    //         // printf("Recalculates THRES_HUBER.\n");
+    //         std::sort(r_prev.begin(), r_prev.end(), [](int a, int b){return a < b;});
+            
+    //         THRES_HUBER = r_prev[(int)(0.6f*(float)r_prev.size())];
+    //         if(THRES_HUBER > MAX_THRES_HUBER) THRES_HUBER = MAX_THRES_HUBER;
+    //         if(THRES_HUBER < MIN_THRES_HUBER) THRES_HUBER = MIN_THRES_HUBER;
+    //         printf("  -- THRES_HUBER is reset.: %0.3f [px]\n", THRES_HUBER);
+    //         // sort(v.begin(), v.end(), [](int a, int b){ // 익명 함수를 이용한 compare
+    //         //     if (a/10 > b/10){ // 왼쪽항의 십의 자리 수가 더 높다면
+    //         //         return true; // 먼저 정렬한다.
+    //         //     }
+    //         //     else return a < b; // 그 외는 오름차순으로 정렬
+    //         // });
+    //     }
+
+    //     // Calculate Jacobian and residual.
+    //     int cnt = 0;
+    //     for(int ii = 0; ii < M; ++ii){
+    //         // image index where the i-th 3-D point is observed.
+    //         const Point& Xi                = db_valid[ii]->X; // represented in the global frame.
+    //         const Pixels& pts_l            = db_valid[ii]->pts_l;
+    //         const Pixels& pts_u            = db_valid[ii]->pts_u;
+    //         const std::vector<int>& id_kfs = db_valid[ii]->id_kfs;
+
+    //         // printf("%d-th point = age: %ld\n",ii, db_valid[ii]->id_kfs.size());
+    //         for(int jj = 0; jj < id_kfs.size(); ++jj){ 
+    //             // One observation consists of onne point and one frame 
+    //             // --> it generates four residual values.
+    //             const Pixel& pt_l = pts_l[jj];
+    //             const Pixel& pt_u = pts_u[jj];
+
+    //             // Current image number
+    //             const int& j = id_kfs[jj];
+
+    //             const SE3& T_j2w = T_w2l_inv[j];
+    //             SE3 T_uj2w  = T_ul*T_j2w;
+    //             SO3 R_j2w   = T_j2w.block<3,3>(0,0);
+    //             SO3 R_uj2w  = T_uj2w.block<3,3>(0,0);
+    //             Vec3 t_j2w  = T_j2w.block<3,1>(0,3);
+    //             Vec3 t_uj2w = T_uj2w.block<3,1>(0,3);
+
+    //             Point Xi_lj = R_j2w *Xi    + t_j2w;
+    //             Point Xi_uj =  R_ul *Xi_lj + t_ul;
+
+    //             Eigen::Matrix3f hat_Xi_lj;
+    //             hat_Xi_lj <<        0,-Xi_lj(2), Xi_lj(1), 
+    //                          Xi_lj(2),        0,-Xi_lj(0),
+    //                         -Xi_lj(1), Xi_lj(0),        0;
+
+    //             const float& xlj = Xi_lj(0), ylj = Xi_lj(1), zlj = Xi_lj(2);
+    //             const float& xuj = Xi_uj(0), yuj = Xi_uj(1), zuj = Xi_uj(2);
+    //             // if(zlj < 1.0 || zuj < 1.0){
+    //             //     std::cout << "zlj: " << zlj << ", zuj: " << zuj << std::endl;
+    //             // }
+
+    //             float invzlj = 1.0f/zlj; float invzlj2 = invzlj*invzlj;
+    //             float invzuj = 1.0f/zuj; float invzuj2 = invzuj*invzuj;
+                
+    //             //     drudw = [fx_u*invzuj, 0,  -fx_u*xuj*invzuj2;...
+    //             //         0, fy_u*invzuj,  -fy_u*yuj*invzuj2];
+    //             Eigen::Matrix<float,2,3> drldw;
+    //             drldw     << fx_l*invzlj, 0, -fx_l*xlj*invzlj2,
+    //                          0, fy_l*invzlj, -fy_l*ylj*invzlj2;
+                
+    //             //     drudxi_jw = [drudw,-drudw*hat_Xi_uj];
+    //             Eigen::Matrix<float,2,6> drldxi_jw;
+    //             drldxi_jw << drldw, -drldw*hat_Xi_lj;
+                
+    //             //     drudX_i   = drudw*R_j2w;
+    //             Eigen::Matrix<float,2,3> drldX_i;
+    //             drldX_i   << drldw*R_j2w;
+
+    //             //     drdw_l = [fx_l*invzlj, 0,  -fx_l*xlj*invzlj2;...
+    //             //         0, fy_l*invzlj,  -fy_l*ylj*invzlj2];
+    //             Eigen::Matrix<float,2,3> drudw;
+    //             drudw     << fx_u*invzuj, 0, -fx_u*xuj*invzuj2,
+    //                          0, fy_u*invzuj, -fy_u*yuj*invzuj2;
+    //             //     drldxi_jw = drdw_l*[R_lu,-R_lu*hat_Xi_uj];
+    //             Eigen::Matrix<float,2,6> drudxi_jw;
+    //             Eigen::Matrix<float,2,3> drudwR_ul;
+    //             drudwR_ul << drudw*R_ul;
+    //             drudxi_jw << drudwR_ul, -drudwR_ul*hat_Xi_lj;
+                
+    //             //     drldX_i   = drdw_l*R_lj2w; // drldX_i   = drdw_l*R_lu*R_j2w;
+    //             Eigen::Matrix<float,2,3> drudX_i;
+    //             drudX_i << drudw*R_uj2w;
+
+    //             // Fill Jacobian matrix!
+    //             int j6 = j*6; int cnt4 = cnt*4;
+    //             int idx_hori0, idx_hori1; 
+    //             int idx_vert0_l, idx_vert1_l, idx_vert0_u, idx_vert1_u;
+    //             idx_hori0 = j6; idx_hori1 = j6+5;
+    //             idx_vert0_l = cnt4;   idx_vert1_l = cnt4+1;
+    //             idx_vert0_u = cnt4+2; idx_vert1_u = cnt4+3;
+    //             // 1) dru / dxi_jw
+    //             // idx_hori = 6*(j-1)+(1:6); --> 6*(jj-1)+(0:5)
+    //             // idx_vert = 4*(cnt-1)+(1:2); --> 4*(cnt-1)+0:1
+    //             // % J(4*(cnt-1)+(1:2), 6*(j-1)+(1:6)) = drudxi_jw;
+    //             // J(idx_vert, idx_hori) = drudxi_jw;
+    //             this->fillTriplet(Tplist, idx_hori0, idx_hori1, idx_vert0_l, idx_vert1_l, drldxi_jw);
+
+    //             // 2) drl / dxi_jw
+    //             // % J(4*(cnt-1)+(3:4), 6*(j-1)+(1:6)) = drldxi_jw;
+    //             // J(idx_vert+2, idx_hori) = drldxi_jw;
+    //             this->fillTriplet(Tplist, idx_hori0, idx_hori1, idx_vert0_u, idx_vert1_u, drudxi_jw);
+
+    //             // 3) dru / dX_i
+    //             // % J(4*(cnt-1)+(1:2), 6*M+3*(ii-1)+(1:3)) = drudX_i;
+    //             // idx_hori = 6*M+3*(ii-1)+(1:3);
+    //             // J(idx_vert, idx_hori) = drudX_i;
+    //             idx_hori0 = 6*N + 3*ii; 
+    //             idx_hori1 = idx_hori0 + 2;
+    //             this->fillTriplet(Tplist, idx_hori0, idx_hori1, idx_vert0_l, idx_vert1_l, drldX_i);
+                
+    //             // 4) drl / dX_i
+    //             // % J(4*(cnt-1)+(3:4), 6*M+3*(ii-1)+(1:3)) = drldX_i;
+    //             // J(idx_vert+2, idx_hori) = drldX_i;
+    //             this->fillTriplet(Tplist, idx_hori0, idx_hori1, idx_vert0_u, idx_vert1_u, drudX_i);
+                
+    //             // 5) residual
+    //             // ptsw_u = [fx_u*xuj*invzuj+cx_u; fy_u*yuj*invzuj+cy_u];
+    //             // ptsw_l = [fx_l*xlj*invzlj+cx_l; fy_l*ylj*invzlj+cy_l];
+    //             Pixel ptw_l, ptw_u;
+    //             ptw_l.x = fx_l*xlj*invzlj + cx_l;
+    //             ptw_l.y = fy_l*ylj*invzlj + cy_l;
+    //             ptw_u.x = fx_u*xuj*invzuj + cx_u;
+    //             ptw_u.y = fy_u*yuj*invzuj + cy_u;
+
+    //             // r(4*(cnt-1)+(1:4),1) =...
+    //             //     [ptsw_u-pts_u(:,jj);...
+    //             //     ptsw_l-pts_l(:,jj)];
+    //             r.coeffRef(cnt4  ,0) = ptw_l.x - pt_l.x;
+    //             r.coeffRef(cnt4+1,0) = ptw_l.y - pt_l.y;
+    //             r.coeffRef(cnt4+2,0) = ptw_u.x - pt_u.x;
+    //             r.coeffRef(cnt4+3,0) = ptw_u.y - pt_u.y;
+
+    //             ++cnt;
+    //         } // END jj
+    //     } // END ii 
+
+    //     // Fill Jacobian
+    //     // 'cnt' should be same with 'n_obs'
+    //     // printf("cnt : %d, n_obs : %d\n", cnt, n_obs);
+    //     size_t residual_size = 4*cnt;
+    //     // std::cout << "iter : " << iter << ", # of Tplist: " << Tplist.size() <<"/" << 4*n_obs*(6*N+3*M) << ", percent: " << (float)Tplist.size() / (float)(len_parameter*len_residual)*100.0f << "%" << std::endl;
+    //     J.setFromTriplets(Tplist.begin(), Tplist.end());
+    //     J.makeCompressed();
+    //     // std::cout << "residual nnz : " << r.nonZeros() <<" / " << residual_size << ", residual size : " << r.size() <<std::endl;
+
+    //     // Huber loss calculation
+    //     std::vector<float> err_per_db;
+    //     std::vector<float> weight;
+    //     err_per_db.resize(cnt);
+    //     weight.resize(cnt);
+    //     double err_sum = 0.0f;
+    //     double* r_ptr = r.valuePtr();
+    //     for(int ii = 0; ii < cnt; ++ii){
+    //         float err_tmp = 0;
+    //         int idx = 4*ii;
+    //         const float u_l = r.coeff(idx  ,0); const float v_l = r.coeff(++idx,0);
+    //         const float u_u = r.coeff(++idx,0); const float v_u = r.coeff(++idx,0);
+    //         err_tmp += std::sqrt(u_l*u_l + v_l*v_l);
+    //         err_tmp += std::sqrt(u_u*u_u + v_u*v_u);
+    //         err_tmp *= 0.5f;
+
+    //         // Huber calc.
+    //         if(err_tmp > THRES_HUBER) weight[ii] = THRES_HUBER/err_tmp;
+    //         else weight[ii] = 1.0f;
+
+    //         r_prev[ii]     = err_tmp*weight[ii];
+    //         err_per_db[ii] = err_tmp;
+    //         err_sum += (double)(err_tmp*weight[ii]);
+    //     }
+
+    //     SpMat W(len_residual,len_residual);
+    //     W.reserve(Eigen::VectorXi::Constant(len_residual,1));
+    //     for(int ii = 0; ii < cnt; ++ii){
+    //         int idx0 = 4*ii;
+    //         float w_tmp = weight[ii];
+    //         for(int jj = 0; jj < 4; ++jj) W.coeffRef(idx0 + jj, idx0 + jj) = w_tmp;
+    //     }
+    //     std::cout << "  iter: " << iter << ", errsum: " << err_sum <<", meanerr: " << err_sum/(float)cnt << " [px]" << std::endl;
+
+    //     // Calc JtJ and Jtr
+    //     // timer::tic();
+    //     SpMat JtW = J.transpose()*W;
+    //     SpMat JtWJ = JtW*J;
+    //     for(int i = 0; i < JtWJ.cols(); ++i) JtWJ.coeffRef(i,i) *= (1.0f+lam); 
+
+    //     // std::cout << "JtJ time : " << timer::toc() <<" [ms], ";
+    //     // timer::tic();
+    //     SpMat JtWr = JtW*r;
+    //     // std::cout << "Jtr time : " << timer::toc() << " [ms], ";
+
+    //     SpMat AA(6*N, 6*N);
+    //     AA.reserve(Eigen::VectorXi::Constant(6*N, 6*N));
+    //     SpMat BB(6*N, 3*M);
+    //     BB.reserve(Eigen::VectorXi::Constant(6*N, 3*M));
+    //     SpMat CC(3*M, 3*M);
+    //     CC.reserve(Eigen::VectorXi::Constant(3*M,3));
+        
+    //     // SpMat CC(3*M, 3*M);
+    //     // CC.reserve(Eigen::VectorXi::Constant(3*M,3));
+        
+
+    //     // Solve! (Cholesky decomposition based solver. JtJ is sym. positive definite.)
+    //     // timer::tic();
+    //     Eigen::SimplicialCholesky<SpMat> chol(JtWJ);
+    //     Eigen::VectorXd delta_theta = chol.solve(JtWr);
+    //     // std::cout << "chol time : " << timer::toc() << " [ms]" << std::endl;
+    //     // std::cout << "dimension : " << delta_theta.rows() << ", 6*N+3*M: " << 6*N+3*M << std::endl;
+        
+    //     // Update parameters (T_w2l, T_w2l_inv, xi_w2l, database->X)
+    //     // Should omit the first image pose update. (index = 0)
+    //     double step_size = 0.2;
+    //     SpVec delta_parameter(len_parameter, 1);
+    //     for(int i = 0; i < 6; ++i) delta_parameter.coeffRef(i,0) = 0.0f;
+    //     for(int i = 6; i < delta_theta.rows(); ++i) delta_parameter.coeffRef(i,0) = step_size*delta_theta(i);
+        
+    //     parameter -= delta_parameter; 
+
+    // } // END iter
+
+
+    // Finish
+    std::cout << "======= Local Bundle adjustment - sucess:" << (flag_success ? "SUCCESS" : "FAILED") << "=======\n";
+    return flag_success;
+};

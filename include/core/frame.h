@@ -44,6 +44,7 @@ private:
     double timestamp_;
 
     bool is_keyframe_;
+    bool is_keyframe_in_window_;
     bool is_turning_frame_;
     
 public: // static counter.
@@ -58,11 +59,12 @@ public:
     void setPoseDiff10(const Eigen::Matrix4f& dT10);
     void setSteeringAngle(float st_angle);
     void setScale(float scale);
+    void makeThisKeyframe();
+    void outOfKeyframeWindow();
     void makeThisTurningFrame();
     void setImageAndTimestamp(const cv::Mat& img, const double& timestamp); 
     void setRelatedLandmarks(const LandmarkPtrVec& landmarks);
     void setPtsSeen(const PixelVec& pts);
-    void makeThisKeyframe();
 
     // Get
     const uint32_t& getID() const;
@@ -79,6 +81,7 @@ public:
     const PixelVec& getPtsSeen() const;
     const double& getTimestamp() const;
     bool isKeyframe() const;
+    bool isKeyframeInWindow() const;
     bool isTurningFrame() const;
 };
 

@@ -114,6 +114,11 @@ void Landmark::addObservationAndRelatedFrame(const Pixel& p, const FramePtr& fra
 
 };    
 
+void Landmark::addObservationAndRelatedKeyframe(const Pixel& p, const FramePtr& kf){
+    related_keyframes_.push_back(kf);
+    observations_on_keyframes_.push_back(p);
+};
+
 void               Landmark::setDead()                  { is_alive_ = false; };
 
 uint32_t           Landmark::getID() const              { return id_; };
@@ -123,6 +128,8 @@ float              Landmark::getCovarianceInverseDepth() const { return cov_invd
 const Point&       Landmark::get3DPoint() const         { return Xw_; };
 const PixelVec&    Landmark::getObservations() const    { return observations_; };
 const FramePtrVec& Landmark::getRelatedFramePtr() const { return related_frames_; };
+const PixelVec&    Landmark::getObservationsOnKeyframes() const { return observations_on_keyframes_; };
+const FramePtrVec& Landmark::getRelatedKeyframePtr() const      { return related_keyframes_; };
 
 const bool&        Landmark::isAlive() const           { return is_alive_; };
 const bool&        Landmark::isTriangulated() const    { return is_triangulated_; };

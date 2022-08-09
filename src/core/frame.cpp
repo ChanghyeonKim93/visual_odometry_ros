@@ -1,7 +1,7 @@
 #include "core/frame.h"
 std::shared_ptr<Camera> Frame::cam_ = nullptr;
 
-Frame::Frame() : is_keyframe_(false), is_turning_frame_(false) {
+Frame::Frame() : is_keyframe_(false), is_keyframe_in_window_(false), is_turning_frame_(false) {
     Twc_ = PoseSE3::Identity();
     Tcw_ = PoseSE3::Identity();
     steering_angle_ = 0.0f;
@@ -55,7 +55,13 @@ void Frame::setPtsSeen(const PixelVec& pts){
 
 void Frame::makeThisKeyframe(){
     is_keyframe_ = true;
+    is_keyframe_in_window_ = true;
 };
+
+void Frame::outOfKeyframeWindow(){
+    is_keyframe_in_window_ = false;
+};
+
 void Frame::makeThisTurningFrame(){
     is_turning_frame_ = true;
 };
@@ -110,6 +116,9 @@ const double& Frame::getTimestamp() const {
 
 bool Frame::isKeyframe() const{
     return is_keyframe_;
+};
+bool Frame::isKeyframeInWindow() const{
+    return is_keyframe_in_window_;
 };
 bool Frame::isTurningFrame() const {
     return is_turning_frame_;

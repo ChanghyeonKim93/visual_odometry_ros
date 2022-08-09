@@ -14,22 +14,30 @@ void Keyframes::setMaxKeyframes(int max_kf){
 };
 
 void Keyframes::addNewKeyframe(const FramePtr& frame){
-    if(keyframes_.size() == n_max_keyframes_) {
-        all_keyframes_.push_back(keyframes_.front());
-        keyframes_.pop_front();
+    if(kfs_list_.size() == n_max_keyframes_) {
+        all_keyframes_.push_back(kfs_list_.front()); // keyframe window에서 제외된 키프레임들을 저장.
+        kfs_list_.front()->outOfKeyframeWindow(); // keyframe window에서 제거됨을 표시.
+        kfs_list_.pop_front(); // keyframe window에서 제거.
     }
-    keyframes_.push_back(frame);
+    frame->makeThisKeyframe(); // 새 keyframe이 됨을 표시. (추가시에는 당연히 keyframe window로 들어옴)
+    kfs_list_.push_back(frame); // 새 keyframe을 추가.
 
+    // 새로 추가된 keyframe과 관련된 landmark 정보를 업데이트.
+    const LandmarkPtrVec& lms = frame->getRelatedLandmarkPtr();
+    for(int i = 0; i < lms.size(); ++i){
+        const LandmarkPtr& lm = lms[i];
+        lm->addObservationAndRelatedKeyframe(lm->getObservations().back(), frame);
+    }
 };
 
 bool Keyframes::checkUpdateRule(const FramePtr& frame_curr){
     bool flag_addkeyframe = false;
-    if(keyframes_.empty()) flag_addkeyframe = true;
+    if(kfs_list_.empty()) flag_addkeyframe = true;
 
     if(!flag_addkeyframe){
         
         std::vector<float> tracking_ratios;
-        for(std::list<FramePtr>::iterator it = keyframes_.begin(); it != keyframes_.end(); ++it){
+        for(std::list<FramePtr>::iterator it = kfs_list_.begin(); it != kfs_list_.end(); ++it){
             const FramePtr& kf = *it;
             // calculate tracking ratio
             int cnt_tracked = 0;
@@ -51,7 +59,7 @@ bool Keyframes::checkUpdateRule(const FramePtr& frame_curr){
         if(tracking_ratios.back() <= THRES_OVERLAP_FEATURE_RATIO_) flag_addkeyframe = true;
         
         // Check rotation & translation
-        const PoseSE3& Twk_last = keyframes_.back()->getPose();
+        const PoseSE3& Twk_last = kfs_list_.back()->getPose();
         const PoseSE3& Twc = frame_curr->getPose();
         PoseSE3 dT = Twk_last.inverse()*Twc;
         if(!flag_addkeyframe){
@@ -67,7 +75,7 @@ bool Keyframes::checkUpdateRule(const FramePtr& frame_curr){
     }
     if(flag_addkeyframe) {
         std::cout << "       ADD NEW KEYFRAME. keyframe id: ";
-        for(std::list<FramePtr>::iterator it = keyframes_.begin(); it != keyframes_.end(); ++it){
+        for(std::list<FramePtr>::iterator it = kfs_list_.begin(); it != kfs_list_.end(); ++it){
             std::cout << (*it)->getID() << " ";
         }
         std::cout << "\n";
@@ -77,34 +85,14 @@ bool Keyframes::checkUpdateRule(const FramePtr& frame_curr){
     return flag_addkeyframe;
 };
 
-void Keyframes::localBundleAdjustment(){
-    std::cout << "Local Bundle adjustment\n";
-    int n_keyframes = keyframes_.size();
+const std::list<FramePtr>& Keyframes::getList() const {
+    return kfs_list_;
+};
 
-    std::vector<std::set<LandmarkPtr>> landmark_sets;
-    std::set<LandmarkPtr> landmark_set_all;
-    
-    for(std::list<FramePtr>::iterator it = keyframes_.begin(); it != keyframes_.end(); ++it){
-        landmark_sets.push_back(std::set<LandmarkPtr>());
-        
-        for(auto lm : (*it)->getRelatedLandmarkPtr()){
-            landmark_sets.back().insert(lm);
-            landmark_set_all.insert(lm);
-        }
-    }
+int Keyframes::getCurrentNumOfKeyframes() const {
+    return kfs_list_.size();
+};
 
-    std::cout << "landmark set size: ";
-    for(auto lmset : landmark_sets){
-        std::cout << lmset.size() << " " ;
-    }
-    std::cout << std::endl;
-    std::cout << "distinguished landmarks: " << landmark_set_all.size() << std::endl;
-
-    //존재 하는 원소 찾기    
-    std::set<LandmarkPtr>::iterator iter;
-    iter = landmark_set_all.find(keyframes_.back()->getRelatedLandmarkPtr().back());
-    if(iter != landmark_set_all.end()) std::cout << *iter << ":존재 "<< std::endl;
-    else std::cout << "존재하지않음.\n";
-    
-        
+int Keyframes::getMaxNumOfKeyframes() const {
+    return n_max_keyframes_;
 };
