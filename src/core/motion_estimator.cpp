@@ -984,8 +984,8 @@ bool MotionEstimator::localBundleAdjustment(const std::shared_ptr<Keyframes>& kf
     float MAX_LAM          = 1.0f;  // for Levenberg-Marquardt algorithm
     float MIN_LAM          = 1e-4f; // for Levenberg-Marquardt algorithm
 
-    float THRES_HUBER      = 3.0f;
-    float THRES_HUBER_MIN  = 0.5f;
+    float THRES_HUBER      = 1.5f;
+    float THRES_HUBER_MIN  = 0.3f;
     float THRES_HUBER_MAX  = 20.0f;
 
     // optimization status flags
@@ -993,6 +993,9 @@ bool MotionEstimator::localBundleAdjustment(const std::shared_ptr<Keyframes>& kf
     bool IS_DECREASE        = false;
     bool IS_STRICT_DECREASE = false;
     bool IS_BAD_DIVERGE     = false;
+
+    float THRES_DELTA_THETA = 1e-7;
+    float THRES_ERROR       = 1e-7;
 
     int NUM_MINIMUM_REQUIRED_KEYFRAMES = 4; // 최소 keyframe 갯수.
     int NUM_FIX_KEYFRAMES              = 2; // optimization에서 제외 할 keyframe 갯수. 과거 순.
@@ -1095,9 +1098,6 @@ bool MotionEstimator::localBundleAdjustment(const std::shared_ptr<Keyframes>& kf
     for(int j = 0; j < N; ++j) {
         T_wj_kfs[j] = kfs_all[j]->getPose();
         T_jw_kfs[j] = T_wj_kfs[j].inverse();
-
-        std::cout << j << "-th Twj:\n";
-        std::cout <<T_wj_kfs[j] <<std::endl;
         
         PoseSE3Tangent xi_jw_tmp;
         geometry::SE3Log_f(T_jw_kfs[j], xi_jw_tmp);
@@ -1107,8 +1107,6 @@ bool MotionEstimator::localBundleAdjustment(const std::shared_ptr<Keyframes>& kf
     // initialize optimization parameter vector.
     SpVec parameter(len_parameter, 1);
     for(int j = 0; j < N_opt; ++j){
-        std::cout << j << "-th opt. Twj:\n";
-        std::cout <<T_wj_kfs[j + NUM_FIX_KEYFRAMES] <<std::endl;
         int idx = 6*j;
         PoseSE3Tangent xi_jw;
         geometry::SE3Log_f(T_jw_kfs[j + NUM_FIX_KEYFRAMES], xi_jw);
@@ -1135,9 +1133,13 @@ bool MotionEstimator::localBundleAdjustment(const std::shared_ptr<Keyframes>& kf
     SpMat JtWJ(len_parameter,len_parameter);
     SpMat mJtWr(len_parameter,1);
     float err = 0.f;
+
+    SpTripletList Tplist_JtWJ; Tplist_JtWJ.reserve(100000);
+    SpTripletList Tplist_mJtWr; Tplist_mJtWr.reserve(50000); 
     JtWJ.reserve(Eigen::VectorXf::Constant(len_parameter,6+N*3));
     mJtWr.reserve(Eigen::VectorXf::Constant(len_parameter,1));
     for(int iter = 0; iter < MAX_ITER; ++iter){
+        timer::tic();
         // Initialize JtWJ, mJtWr, err
         err = 0.0f;
         JtWJ.setZero();
@@ -1169,14 +1171,14 @@ bool MotionEstimator::localBundleAdjustment(const std::shared_ptr<Keyframes>& kf
         // Set THRES_HUBER
         if(iter > 1){
             // printf("Recalculates THRES_HUBER.\n");
-            float percentage_threshold = 0.7f;
-            std::sort(r_prev.begin(), r_prev.end(), [](int a, int b) {return a < b;});
+            // float percentage_threshold = 0.6f;
+            // std::sort(r_prev.begin(), r_prev.end(), [](int a, int b) {return a < b;});
             
-            THRES_HUBER = r_prev[(int)(percentage_threshold*(float)r_prev.size())];
-            if(THRES_HUBER > THRES_HUBER_MAX) THRES_HUBER = THRES_HUBER_MAX;
-            if(THRES_HUBER < THRES_HUBER_MIN) THRES_HUBER = THRES_HUBER_MIN;
+            // THRES_HUBER = r_prev[(int)(percentage_threshold*(float)r_prev.size())];
+            // if(THRES_HUBER > THRES_HUBER_MAX) THRES_HUBER = THRES_HUBER_MAX;
+            // if(THRES_HUBER < THRES_HUBER_MIN) THRES_HUBER = THRES_HUBER_MIN;
+            // printf("  -- THRES_HUBER is: %0.3f [px]\n", THRES_HUBER);
         }
-        printf("  -- THRES_HUBER is: %0.3f [px]\n", THRES_HUBER);
 
         // Calculate Jacobian and residual.
         int cnt = 0;
@@ -1198,7 +1200,7 @@ bool MotionEstimator::localBundleAdjustment(const std::shared_ptr<Keyframes>& kf
                 Rot3 R_jw = T_jw.block<3,3>(0,0);
                 Pos3 t_jw = T_jw.block<3,1>(0,3);
 
-                Point Xij = R_jw * Xi + t_jw; // transform a 3D point.
+                Point Xij = R_jw*Xi + t_jw; // transform a 3D point.
 
                 // 1) Qij and Rij calculation.
                 const float& xj = Xij(0), yj = Xij(1), zj = Xij(2);
@@ -1221,7 +1223,7 @@ bool MotionEstimator::localBundleAdjustment(const std::shared_ptr<Keyframes>& kf
 
 
                 Mat26 Qij;
-                if(j > NUM_FIX_KEYFRAMES){ // opt. frames.
+                if(j >= NUM_FIX_KEYFRAMES){ // opt. frames.
                     Qij << fxinvz,0,-fx_xinvz2,-fx*xinvz_yinvz,fx*(1.f+xinvz*xinvz), -fx*yinvz,
                            0,fyinvz,-fy_yinvz2,-fy*(1.f+yinvz*yinvz),fy*xinvz_yinvz,  fy*xinvz;
                 }
@@ -1235,6 +1237,7 @@ bool MotionEstimator::localBundleAdjustment(const std::shared_ptr<Keyframes>& kf
 
                 // 3) HUBER weight calculation (Manhattan distance)
                 float absrxry = abs(rij(0))+abs(rij(1));
+                r_prev[cnt] = absrxry;
 
                 float weight = 1.0f;
                 bool flag_weight = false;
@@ -1262,11 +1265,10 @@ bool MotionEstimator::localBundleAdjustment(const std::shared_ptr<Keyframes>& kf
                     }
                     // JtWJ(idx_pose0:idx_pose1, idx_pose0:idx_pose1)  += weight*Qij.'*Qij;
                     // JtWJ(idx_pose0:idx_pose1, idx_point0:idx_point1) = weight*Qij.'*Rij;
+                    // mJtWr(idx_pose0:idx_pose1,0)   -= weight*Qij.'*rij;
                     addData(JtWJ, Qij_t_Qij, idx_pose0, idx_pose0, 6,6);
                     insertData(JtWJ, Qij_t_Rij, idx_pose0, idx_point0, 6,3);
                     insertData(JtWJ, Rij_t_Qij, idx_point0, idx_pose0, 3,6);          
-                    
-                    // mJtWr(idx_pose0:idx_pose1,0)   -= weight*Qij.'*rij;
                     addData(mJtWr,-Qij_t_rij, idx_pose0, 0, 6,1);
                 }
 
@@ -1278,10 +1280,10 @@ bool MotionEstimator::localBundleAdjustment(const std::shared_ptr<Keyframes>& kf
                 }
 
                 // JtWJ(idx_point0:idx_point1,idx_point0:idx_point1) += weight*Rij.'*Rij;
-                addData(JtWJ, Rij_t_Rij, idx_point0, idx_point0, 3,3);
-
                 // mJtWr(idx_point0:idx_point1,0) -= weight*Rij.'*rij;
+                addData(JtWJ, Rij_t_Rij, idx_point0, idx_point0, 3,3);
                 addData(mJtWr,-Rij_t_rij, idx_point0, 0, 3,1);
+
                 float err_tmp = weight*rij.transpose()*rij;
                 err += err_tmp;
                
@@ -1297,19 +1299,23 @@ bool MotionEstimator::localBundleAdjustment(const std::shared_ptr<Keyframes>& kf
         JtWJ.makeCompressed();
         mJtWr.makeCompressed();
         // std::cout << "residual nnz : " << r.nonZeros() <<" / " << residual_size << ", residual size : " << r.size() <<std::endl;
-
-        std::cout << "  iter: " << iter << ", errsum: " << err <<", meanerr: " << err/(float)cnt << " [px]" << std::endl;
+        timer::toc(1);
 
         // Damping (lambda)
         for(int i = 0; i < JtWJ.cols(); ++i) JtWJ.coeffRef(i,i) *= (1.0f+lam); 
 
+        timer::tic();
         SpMat AA(6*N_opt, 6*N_opt);
         SpMat BB(6*N_opt, 3*M);
         SpMat CC(3*M,     3*M);
         AA.reserve(Eigen::VectorXf::Constant(6*N_opt, 6));
         BB.reserve(Eigen::VectorXf::Constant(6*N_opt, 3*N));
         CC.reserve(Eigen::VectorXf::Constant(3*M,3));
-        
+        AA = JtWJ.block(0,0, 6*N_opt, 6*N_opt);
+        BB = JtWJ.block(0,6*N_opt, 6*N_opt, 3*M);
+        CC = JtWJ.block(6*N_opt,6*N_opt,3*M,3*M);
+        timer::toc(1);
+
         // SpMat CC(3*M, 3*M);
         // CC.reserve(Eigen::VectorXi::Constant(3*M,3));
         
@@ -1325,13 +1331,21 @@ bool MotionEstimator::localBundleAdjustment(const std::shared_ptr<Keyframes>& kf
         
         // Update parameters (T_w2l, T_w2l_inv, xi_w2l, database->X)
         // Should omit the first image pose update. (index = 0)
-        double step_size = 0.1;
+        double step_size = 1.0;
         SpVec delta_parameter(len_parameter, 1);
-        for(int i = 0; i < delta_theta.rows(); ++i) delta_parameter.coeffRef(i,0) = step_size*delta_theta(i);
-        
+        for(int i = 0; i < delta_theta.rows(); ++i) delta_parameter.coeffRef(i,0) = delta_theta(i);
+        std::cout << "  iter: " << iter << ", meanerr: " << err/(float)cnt << " [px], delta xi: " << delta_theta.block<12,1>(0,0).norm() << std::endl;
+
         parameter += delta_parameter; 
     } // END iter
 
+    // update parameters
+    for(int j = NUM_FIX_KEYFRAMES; j < kfs_all.size(); ++j){
+        kfs_all[j]->setPose(T_jw_kfs[j].inverse());
+    }
+    for(int i = 0; i < lms_ba.size(); ++i){
+        lms_ba[i].lm->set3DPoint(lms_ba[i].X);
+    }
 
     // Finish
     std::cout << "======= Local Bundle adjustment - sucess:" << (flag_success ? "SUCCESS" : "FAILED") << "=======\n";
@@ -1358,3 +1372,19 @@ void MotionEstimator::insertData(SpMat& mat, const Eigen::MatrixXf& mat_part, in
         }
     }
 }
+
+inline void MotionEstimator::fillTriplet(SpTripletList& Tri, const int& idx_hori0, const int& idx_hori1, 
+    const int& idx_vert0, const int& idx_vert1, const Eigen::MatrixXf& mat)
+{
+    int dim_hori = idx_hori1 - idx_hori0 + 1;
+    int dim_vert = idx_vert1 - idx_vert0 + 1;
+
+    if(mat.cols() != dim_hori) throw std::runtime_error("BundleAdjustmentSolver::fillJacobian(...), mat.cols() != dim_hori\n");
+    if(mat.rows() != dim_vert) throw std::runtime_error("BundleAdjustmentSolver::fillJacobian(...), mat.rows() != dim_vert\n");
+
+    for(int u = 0; u < dim_hori; ++u){
+        for(int v = 0; v < dim_vert; ++v){
+            Tri.push_back(SpTriplet(v + idx_vert0, u + idx_hori0, mat(v,u)));
+        }
+    }
+};

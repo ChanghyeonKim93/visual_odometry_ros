@@ -82,6 +82,10 @@ private:
 
     void addData(SpMat& mat, const Eigen::MatrixXf& mat_part, int row_start, int col_start, int row_sz, int col_sz);
     void insertData(SpMat& mat, const Eigen::MatrixXf& mat_part, int row_start, int col_start, int row_sz, int col_sz);
+
+    inline void fillTriplet(SpTripletList& Tri, const int& idx_hori0, const int& idx_hori1, 
+        const int& idx_vert0, const int& idx_vert1, const Eigen::MatrixXf& mat);
+
 private:
     float thres_1p_;
     float thres_5p_;
