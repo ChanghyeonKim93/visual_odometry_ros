@@ -5,6 +5,8 @@
 #include <exception>
 #include <string>
 #include <vector>
+#include <set>
+#include <map>
 
 #include <Eigen/Dense>
 
@@ -24,6 +26,7 @@
 
 #include "util/histogram.h"
 #include "util/geometry_library.h"
+#include "util/timer.h"
 #include <sstream>
 
 
@@ -76,6 +79,9 @@ private:
 
     void refineEssentialMatIRLS(const PixelVec& pts0, const PixelVec& pts1, const MaskVec& mask, const std::shared_ptr<Camera>& cam,
         Mat33& E);
+
+    void addData(SpMat& mat, const Eigen::MatrixXf& mat_part, int row_start, int col_start, int row_sz, int col_sz);
+    void insertData(SpMat& mat, const Eigen::MatrixXf& mat_part, int row_start, int col_start, int row_sz, int col_sz);
 private:
     float thres_1p_;
     float thres_5p_;

@@ -39,8 +39,22 @@ typedef Eigen::Vector3f           Pos3;
 typedef Eigen::Matrix3f           Rot3;
 typedef Eigen::Matrix4f           PoseSE3;
 
+typedef Eigen::Matrix2f           Mat22;
 typedef Eigen::Matrix3f           Mat33;
+typedef Eigen::Matrix4f           Mat44;
+typedef Eigen::Matrix<float,6,6>  Mat66;
+
+typedef Eigen::Matrix<float,2,3>  Mat23;
+typedef Eigen::Matrix<float,3,2>  Mat32;
+typedef Eigen::Matrix<float,2,6>  Mat26;
+typedef Eigen::Matrix<float,6,2>  Mat62;
+typedef Eigen::Matrix<float,6,3>  Mat63;
+typedef Eigen::Matrix<float,3,6>  Mat36;
+
+typedef Eigen::Vector2f           Vec2;
 typedef Eigen::Vector3f           Vec3;
+typedef Eigen::Vector4f           Vec4;
+typedef Eigen::Matrix<float,6,1>  Vec6;
 
 typedef Eigen::Matrix<float,6,1>  PoseSE3Tangent;
 
