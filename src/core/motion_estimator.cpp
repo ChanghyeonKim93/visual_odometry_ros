@@ -3,6 +3,8 @@
 MotionEstimator::MotionEstimator(){
     thres_1p_ = 10.0; // pixels
     thres_5p_ = 1.5; // pixels
+
+    ba_solver_ = std::make_shared<BundleAdjustmentSolver>();
 };
 
 MotionEstimator::~MotionEstimator(){
@@ -1523,7 +1525,7 @@ bool MotionEstimator::localBundleAdjustment2(const std::shared_ptr<Keyframes>& k
     printf(" -     Jacobian matrix size: %d rows x %d cols\n", len_residual, len_parameter);
     printf(" -     Residual vector size: %d rows\n", len_residual);
 
-
+    
     // SE3 vector consisting of T_wj (world to a camera at each epoch)
     std::vector<PoseSE3> T_wj_kfs(N); // for optimization
     std::vector<PoseSE3> T_jw_kfs(N); // for optimization
@@ -1536,5 +1538,10 @@ bool MotionEstimator::localBundleAdjustment2(const std::shared_ptr<Keyframes>& k
         geometry::SE3Log_f(T_jw_kfs[j], xi_jw_tmp);
         xi_jw_kfs[j] = xi_jw_tmp;
     }
+
+    // BA solver.
+    ba_solver_->reset();
+    ba_solver_->setProblemSize(N,N_opt,M);
+    ba_solver_->setVariables(T_jw_kfs, lms_ba);
 
 };

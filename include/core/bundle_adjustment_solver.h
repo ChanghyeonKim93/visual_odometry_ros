@@ -88,10 +88,7 @@ public:
         // observation 숫자를 셀 필요자체가 없다 ....
         T_jw_ = T_jw_kfs;
         lms_ba_.resize(lms_ba.size());
-        for(int i = 0; i < lms_ba.size(); ++i){
-            lms_ba_[i] = lms_ba[i];
-            std::cout << lms_ba_[i].X.transpose() <<", " << lms_ba[i].X.transpose() << std::endl;
-        }        
+        for(int i = 0; i < lms_ba.size(); ++i) lms_ba_[i] = lms_ba[i];
     };
 
     void reset(){
@@ -111,6 +108,8 @@ public:
 
         dx_.resize(0); // N_opt blocks (6x1)
         dy_.resize(0); // M blocks (3x1)
+
+        std::cout << "Reset bundle adjustment solver.\n";
     };
 
 

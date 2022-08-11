@@ -93,6 +93,9 @@ private:
 private:
     float thres_1p_;
     float thres_5p_;
+
+private:
+    std::shared_ptr<BundleAdjustmentSolver> ba_solver_;
 };
 
 #endif
