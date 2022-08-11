@@ -116,5 +116,18 @@ struct LandmarkBA{
     FramePtrVec kfs_seen; // 해당 키프레임에서 어떤 좌표로 보였는지를 알아야 함.
     std::vector<int> kfs_index; // 해당 키프레임이 window에서 몇번째인가 저장.
     PixelVec pts_on_kfs; // 각 키프레임에서 추적된 pixel 좌표.
+
+    LandmarkBA(){
+        lm = nullptr;
+        X = Vec3::Zero();
+    };
+    LandmarkBA(const LandmarkBA& lmba){
+        lm         = lmba.lm;
+        X          = lmba.X;
+        kfs_seen   = lmba.kfs_seen;
+        kfs_index  = lmba.kfs_index;
+        pts_on_kfs = lmba.pts_on_kfs;
+    };
 };
+typedef std::vector<LandmarkBA> LandmarkBAVec;
 #endif

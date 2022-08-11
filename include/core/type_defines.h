@@ -38,6 +38,7 @@ typedef std::vector<LandmarkPtr>  LandmarkPtrVec;
 typedef Eigen::Vector3f           Pos3;
 typedef Eigen::Matrix3f           Rot3;
 typedef Eigen::Matrix4f           PoseSE3;
+typedef std::vector<PoseSE3>      PoseSE3Vec;
 
 typedef Eigen::Matrix2f           Mat22;
 typedef Eigen::Matrix3f           Mat33;
@@ -56,7 +57,8 @@ typedef Eigen::Vector3f           Vec3;
 typedef Eigen::Vector4f           Vec4;
 typedef Eigen::Matrix<float,6,1>  Vec6;
 
-typedef Eigen::Matrix<float,6,1>  PoseSE3Tangent;
+typedef Eigen::Matrix<float,6,1>    PoseSE3Tangent;
+typedef std::vector<PoseSE3Tangent> PoseSE3TangentVec;
 
 // For large matrix
 typedef Eigen::SparseMatrix<float> SpMat;

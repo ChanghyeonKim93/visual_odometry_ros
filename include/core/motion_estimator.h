@@ -24,6 +24,8 @@
 #include "core/mapping.h"
 #include "core/landmark.h"
 
+#include "core/bundle_adjustment_solver.h"
+
 #include "util/histogram.h"
 #include "util/geometry_library.h"
 #include "util/timer.h"
@@ -51,6 +53,8 @@ public:
     float calcSteeringAngleFromRotationMat(const Rot3& R);
 
     bool localBundleAdjustment(const std::shared_ptr<Keyframes>& kfs, const std::shared_ptr<Camera>& cam);
+
+    bool localBundleAdjustment2(const std::shared_ptr<Keyframes>& kfs, const std::shared_ptr<Camera>& cam);
 
 public:
     void calcSampsonDistance(const PixelVec& pts0, const PixelVec& pts1, const std::shared_ptr<Camera>& cam, 
