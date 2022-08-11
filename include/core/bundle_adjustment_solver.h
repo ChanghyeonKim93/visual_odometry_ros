@@ -23,20 +23,20 @@ private:
         H = [Hpp_, Hpl_;
             Hlp_, Hll_];
     */
-    BlockDiagonalMat66 Hpp_; // block diagonal part for poses
-    BlockFullMat63     Hpl_; // block part (side)
-    BlockFullMat36     Hlp_; // block part (side, transposed)
-    BlockDiagonalMat33 Hll_; // block diagonal part for landmarks' 3D points
+    BlockDiagonalMat66 Hpp_; // N_opt (6x6) block diagonal part for poses
+    BlockFullMat63     Hpl_; // N_opt x M (6x3) block part (side)
+    BlockFullMat36     Hlp_; // M x N_opt (3x6) block part (side, transposed)
+    BlockDiagonalMat33 Hll_; // M (3x3) block diagonal part for landmarks' 3D points
     
-    BlockVec6 a_; // 6*N_opt x 1 
-    BlockVec3 b_; // 3*M x 1
+    BlockVec6 a_; // N_opt x 1 (6x1) 
+    BlockVec3 b_; // M x 1 (3x1)
 
     // Variables to solve Schur Complement
     BlockDiagonalMat33 Hll_inv_; // block diagonal part for landmarks' 3D points (inverse)
-    BlockFullMat63     HplHll_inv_; // N_opt X M blocks (6x3)
-    BlockFullMat66     HplHll_inv_Hpl_t_; // N_opt x N_opt blocks (6x6)
-    BlockVec6          HplHll_inv_b_; // N_opt x 1 blocks (6x1)
-    BlockVec3          Hpl_t_dx_; // M x 1 blocks (3x1)
+    BlockFullMat63     HplHll_inv_; // N_opt X M  (6x3)
+    BlockFullMat66     HplHll_inv_Hpl_t_; // N_opt x N_opt (6x6)
+    BlockVec6          HplHll_inv_b_; // N_opt x 1 (6x1)
+    BlockVec3          Hpl_t_dx_; // M x 1 (3x1)
 
     BlockVec6 dx_; // N_opt blocks (6x1)
     BlockVec3 dy_; // M blocks (3x1)
