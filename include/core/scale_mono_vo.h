@@ -234,6 +234,7 @@ public:
 
 	void trackImage(const cv::Mat& img, const double& timestamp);
 	void trackImageLocalBundle(const cv::Mat& img, const double& timestamp);
+	void trackImageLocalBundle2(const cv::Mat& img, const double& timestamp);
 	void trackImageAP3P(const cv::Mat& img, const double& timestamp);
 	void trackImageNaiveThreeviews(const cv::Mat& img, const double& timestamp);
 

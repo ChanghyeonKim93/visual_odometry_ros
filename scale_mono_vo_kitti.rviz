@@ -8,6 +8,7 @@ Panels:
         - /image_right1
         - /VO_pose1/Status1
         - /VO_pose1/Shape1
+        - /VO_map_points1
       Splitter Ratio: 0.5010846257209778
     Tree Height: 165
   - Class: rviz/Selection
@@ -207,16 +208,16 @@ Visualization Manager:
       Topic: /scale_mono_vo/trajectory
       Unreliable: false
       Value: true
-    - Alpha: 1
+    - Alpha: 0.6000000238418579
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 10
-        Min Value: -10
+        Max Value: 9565.8095703125
+        Min Value: 4.516323089599609
         Value: true
       Axis: Z
       Channel Name: y
       Class: rviz/PointCloud2
-      Color: 255; 255; 255
+      Color: 243; 243; 243
       Color Transformer: FlatColor
       Decay Time: 0
       Enabled: true
@@ -228,7 +229,7 @@ Visualization Manager:
       Queue Size: 1
       Selectable: true
       Size (Pixels): 1
-      Size (m): 0.5
+      Size (m): 0.30000001192092896
       Style: Squares
       Topic: /scale_mono_vo/map_points
       Unreliable: false
@@ -303,7 +304,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 1483.5523681640625
+      Distance: 180.37612915039062
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -311,17 +312,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7799999713897705
       Focal Point:
-        X: -112.39434051513672
-        Y: -14.664401054382324
-        Z: 316.2303771972656
+        X: -23.69239044189453
+        Y: -24.769325256347656
+        Z: 64.9277572631836
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.030203014612197876
+      Pitch: 0.020203016698360443
       Target Frame: <Fixed Frame>
-      Yaw: 4.669976711273193
+      Yaw: 4.679976463317871
     Saved: ~
 Window Geometry:
   Displays:

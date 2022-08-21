@@ -980,10 +980,10 @@ bool MotionEstimator::localBundleAdjustment(const std::shared_ptr<Keyframes>& kf
 
     int THRES_AGE          = 3; // landmark의 최소 age
     int THRES_MINIMUM_SEEN = 2; // landmark의 최소 관측 keyframes
-    float THRES_PARALLAX   = 0.2*D2R; // landmark의 최소 parallax
+    float THRES_PARALLAX   = 0.5*D2R; // landmark의 최소 parallax
 
     // Optimization paarameters
-    int   MAX_ITER         = 250;
+    int   MAX_ITER         = 3;
 
     float lam              = 1e-3;  // for Levenberg-Marquardt algorithm
     float MAX_LAM          = 1.0f;  // for Levenberg-Marquardt algorithm
@@ -1308,10 +1308,12 @@ bool MotionEstimator::localBundleAdjustment(const std::shared_ptr<Keyframes>& kf
                 ++cnt;
             } // END j
         } // END i 
+        timer::toc(1);
 
         // Fill Jacobian
         // 'cnt' should be same with 'n_obs'
         // printf("cnt : %d, n_obs : %d\n", cnt, n_obs);
+        timer::tic();
         int residual_size = 2*cnt;
         // std::cout << "iter : " << iter << ", # of Tplist: " << Tplist.size() <<"/" << 4*n_obs*(6*N+3*M) << ", percent: " << (float)Tplist.size() / (float)(len_parameter*len_residual)*100.0f << "%" << std::endl;
         JtWJ.makeCompressed();
@@ -1332,18 +1334,41 @@ bool MotionEstimator::localBundleAdjustment(const std::shared_ptr<Keyframes>& kf
         AA = JtWJ.block(0,0, 6*N_opt, 6*N_opt);
         BB = JtWJ.block(0,6*N_opt, 6*N_opt, 3*M);
         CC = JtWJ.block(6*N_opt,6*N_opt,3*M,3*M);
+        for(int i = 0; i < N_opt; ++i){
+            int idx = 3*i;
+            Mat33 C_tmp = CC.block(idx,idx,3,3);
+            C_tmp = C_tmp.inverse();
+            CC.coeffRef(idx  ,idx  ) = C_tmp(0,0);
+            CC.coeffRef(idx  ,idx+1) = C_tmp(0,1);
+            CC.coeffRef(idx  ,idx+2) = C_tmp(0,2);
+            CC.coeffRef(idx+1,idx  ) = C_tmp(1,0);
+            CC.coeffRef(idx+1,idx+1) = C_tmp(1,1);
+            CC.coeffRef(idx+1,idx+2) = C_tmp(1,2);
+            CC.coeffRef(idx+2,idx  ) = C_tmp(2,0);
+            CC.coeffRef(idx+2,idx+1) = C_tmp(2,1);
+            CC.coeffRef(idx+2,idx+2) = C_tmp(2,2);
+        }
+        // SpMat BCinv = BB*CC;
         timer::toc(1);
 
         // SpMat CC(3*M, 3*M);
         // CC.reserve(Eigen::VectorXi::Constant(3*M,3));
         
         // Solve! (Cholesky decomposition based solver. JtJ is sym. positive definite.)
+        // timer::tic();
+        // SpMat a = mJtWr.block(0,0,6*N_opt,1);
+        // SpMat b = mJtWr.block(6*N_opt,0,3*M,1);
+        // Eigen::SimplicialCholesky<SpMat> chol11(AA-BCinv*BB.transpose());
+        // Eigen::VectorXf x = chol11.solve(a-BCinv*b);
+        // Eigen::VectorXf y = CC*b-BCinv.transpose()*x;
+        // Eigen::VectorXf delta_theta;
+        // delta_theta << x, y;
+        // timer::toc(1);
         timer::tic();
         Eigen::SimplicialCholesky<SpMat> chol(JtWJ);
-        Eigen::VectorXf delta_theta = chol.solve(mJtWr);
+        Eigen::VectorXf  delta_theta = chol.solve(mJtWr);
         // std::cout << delta_theta.transpose() <<std::endl;
-        // std::cout << "ff\n";
-        std::cout << "chol time : " << timer::toc(0) << " [ms]" << std::endl; // 그냥 통째로 풀면 한 iteration 당 0.5 ms (desktop)
+        std::cout << "chol time : " << timer::toc(0) << " [ms]" << std::endl; // 그냥 통째로 풀면 한 iteration 당 40 ms (desktop)
 
         // std::cout << "dimension : " << delta_theta.rows() << ", 6*N+3*M: " << 6*N+3*M << std::endl;
         

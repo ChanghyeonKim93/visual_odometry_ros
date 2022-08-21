@@ -2,7 +2,7 @@
 
 Keyframes::Keyframes()
 : THRES_OVERLAP_FEATURE_RATIO_(0.7f),
-THRES_ROTATION_(3.0f*D2R),
+THRES_ROTATION_(2.0f*D2R),
 THRES_TRANSLATION_(2.0f),
 n_max_keyframes_(7)
 { 
