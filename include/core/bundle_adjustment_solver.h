@@ -84,7 +84,7 @@ public:
         dy_.resize(M_); // M blocks (3x1)
     };
 
-    void setVariables(const std::vector<PoseSE3>& T_jw_kfs, const LandmarkBAVec& lms_ba){
+    void setVariables(const PoseSE3Vec& T_jw_kfs, const LandmarkBAVec& lms_ba){
         // observation 숫자를 셀 필요자체가 없다 ....
         T_jw_ = T_jw_kfs;
         lms_ba_.resize(lms_ba.size());

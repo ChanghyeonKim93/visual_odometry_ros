@@ -1017,6 +1017,8 @@ bool MotionEstimator::localBundleAdjustment(const std::shared_ptr<Keyframes>& kf
     for(int i = 0; i < kfs_all.size(); ++i)
         kfs_map.insert(std::pair<FramePtr,int>(kfs_all[i],i));   
     std::cout << "# of all keyframes: " << kfs_all.size() << std::endl;
+    for(auto kf : kfs_all) std::cout << kf->getID() << " ";
+    std::cout << std::endl;
 
     // Landmark sets to generate observation graph
     std::vector<std::set<LandmarkPtr>> lmset_per_frame;
@@ -1443,12 +1445,14 @@ bool MotionEstimator::localBundleAdjustment2(const std::shared_ptr<Keyframes>& k
     bool flag_success = true;
 
     // Make keyframe vector
-    std::vector<FramePtr> kfs_all; // all keyframes
+    FramePtrVec kfs_all; // all keyframes
     for(auto kf : kfs->getList()) kfs_all.push_back(kf);
     std::map<FramePtr,int> kfs_map;
     for(int i = 0; i < kfs_all.size(); ++i)
         kfs_map.insert(std::pair<FramePtr,int>(kfs_all[i],i));   
     std::cout << "# of all keyframes: " << kfs_all.size() << std::endl;
+    for(auto kf : kfs_all) std::cout << kf->getID() <<" ";
+    std::cout << std::endl;
 
     // Landmark sets to generate observation graph
     std::vector<std::set<LandmarkPtr>> lmset_per_frame;
@@ -1471,7 +1475,7 @@ bool MotionEstimator::localBundleAdjustment2(const std::shared_ptr<Keyframes>& k
 
     // 각 lm이 보였던 keyframe의 FramePtr을 저장.
     // 단, 최소 2개 이상의 keyframe 에서 관측되어야 local BA에서 사용함.    
-    std::vector<LandmarkBA> lms_ba;
+    LandmarkBAVec lms_ba;
     for(auto lm : lmset_all){ // 모든 landmark를 순회.
         // 현재 landmark가 보였던 keyframes 중, 현재 active한 keyframe들만 추려냄. 
         LandmarkBA lm_ba;
@@ -1527,9 +1531,9 @@ bool MotionEstimator::localBundleAdjustment2(const std::shared_ptr<Keyframes>& k
 
     
     // SE3 vector consisting of T_wj (world to a camera at each epoch)
-    std::vector<PoseSE3> T_wj_kfs(N); // for optimization
-    std::vector<PoseSE3> T_jw_kfs(N); // for optimization
-    std::vector<PoseSE3Tangent> xi_jw_kfs(N); // for optimization
+    PoseSE3Vec T_wj_kfs(N); // for optimization
+    PoseSE3Vec T_jw_kfs(N); // for optimization
+    PoseSE3TangentVec xi_jw_kfs(N); // for optimization
     for(int j = 0; j < N; ++j) {
         T_wj_kfs[j] = kfs_all[j]->getPose();
         T_jw_kfs[j] = T_wj_kfs[j].inverse();
@@ -1543,5 +1547,7 @@ bool MotionEstimator::localBundleAdjustment2(const std::shared_ptr<Keyframes>& k
     ba_solver_->reset();
     ba_solver_->setProblemSize(N,N_opt,M);
     ba_solver_->setVariables(T_jw_kfs, lms_ba);
+    std::cout << " ba ok \n";
 
+    return true;
 };

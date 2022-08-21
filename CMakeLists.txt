@@ -78,3 +78,7 @@ include_directories( ${Eigen_INCLUDE_DIRS} )
 # executables
 add_executable(vo_node src/main.cpp ${SRC})
 target_link_libraries (vo_node ${catkin_LIBRARIES} ${Eigen_LIBRARIES})
+
+# executables
+add_executable(backend_node src/main_backend_only.cpp src/backend_node.cpp ${SRC})
+target_link_libraries (backend_node ${catkin_LIBRARIES} ${Eigen_LIBRARIES})
