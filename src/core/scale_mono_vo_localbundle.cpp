@@ -12,7 +12,7 @@
 void ScaleMonoVO::trackImageLocalBundle(const cv::Mat& img, const double& timestamp){
 	
 	float THRES_ZNCC    = 0.90f;
-	float THRES_SAMPSON = 10.0f;
+	float THRES_SAMPSON = 2.0f;
 
 	// Generate statistics
 	AlgorithmStatistics::LandmarkStatistics  statcurr_landmark;
@@ -179,7 +179,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			// lms1_final 중, depth가 복원되지 않은 경우 복원해준다.
 			uint32_t cnt_recon = 0 ;
 			for(auto lm : lms1_final){
-				if( !lm->isTriangulated() && lm->getMaxParallax() >= 0.2f*D2R){
+				if( !lm->isTriangulated() && lm->getMaxParallax() >= 0.3f*D2R){
 					if(lm->getObservations().size() != lm->getRelatedFramePtr().size())
 						throw std::runtime_error("lm->getObservations().size() != lm->getRelatedFramePtr().size()\n");
 
@@ -265,7 +265,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			PixelVec pts1_project;
 			for(int i = 0; i < lmtrack_scaleok.pts0.size(); ++i){
 				const LandmarkPtr& lm = lmtrack_scaleok.lms[i];
-				if(lm->isTriangulated() && lm->getAge() > 1 && lm->getMaxParallax() > 0.2*D2R){ 
+				if(lm->isTriangulated() && lm->getAge() > 1 && lm->getMaxParallax() > 0.3*D2R){ 
 					Point Xp = Rcw_prev * lm->get3DPoint() + tcw_prev;
 					if(Xp(2) > 0){
 						pts1_depth_ok.push_back(lmtrack_scaleok.pts1[i]);
@@ -355,7 +355,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			extractor_->extractORBwithBinning(I1, pts1_new);
 
 			if( true )
-			this->showTrackingBA("img_feautues", I1, pts1_depth_ok, pts1_project);
+			this->showTrackingBA("img_feautues", I1, pts1_depth_ok, pts1_project, mask_sampson);
 				// this->showTracking("img_features", I1, lmtrack_final.pts0, lmtrack_final.pts1, pts1_new);
 			
 			if( pts1_new.size() > 0 ){
@@ -384,7 +384,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			// lms1_final 중, depth가 복원되지 않은 경우 복원해준다.
 			uint32_t cnt_recon = 0 ;
 			for(auto lm : lmtrack_final.lms){
-				if( lm->getLastParallax() >= 0.1f*D2R){
+				if(lm->getLastParallax() >= 0.3f*D2R){
 					if(lm->getObservations().size() != lm->getRelatedFramePtr().size())
 						throw std::runtime_error("lm->getObservations().size() != lm->getRelatedFramePtr().size()\n");
 

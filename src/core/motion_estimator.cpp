@@ -803,7 +803,7 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const LandmarkPtrVec& lms, co
     bool is_success = true;
 
     int n_pts = lms.size();
-    mask_inlier.resize(n_pts);
+    mask_inlier.resize(n_pts, true);
     
     int MAX_ITER = 250;
     float THRES_HUBER = 1.0f; // pixels
@@ -811,7 +811,8 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const LandmarkPtrVec& lms, co
 
     float lambda = 0.01f;
     float step_size = 1.0f;
-    float THRES_REPROJ_ERROR = 3.0; // pixels
+    float THRES_REPROJ_ERROR = 4.0; // pixels
+    float THRES_REPROJ_ERROR_INLIER = 3.0; // pixels
     
     float fx = cam->fx();
     float fy = cam->fy();
@@ -871,10 +872,12 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const LandmarkPtrVec& lms, co
                 flag_weight = true;
             } 
 
-            if(absrxry >= THRES_REPROJ_ERROR)
-                mask_inlier[i] = false;
-            else 
-                mask_inlier[i] = true;
+            if(iter > 2){
+                if(absrxry >= THRES_REPROJ_ERROR_INLIER)
+                    mask_inlier[i] = false;
+                else 
+                    mask_inlier[i] = true;
+            }
 
             // JtWJ, JtWr for x
             Eigen::Matrix<float,6,1> Jt;
