@@ -616,6 +616,8 @@ statcurr_landmark.n_new = pxvec1_new.size();
 	cond_var_scale_estimator_->notify_all();
 };
 
+
+
 /**
  * @brief Prune out invalid landmarks and their trackings.
  * @details Prune out invalid landmarks and their trackings.

@@ -1,5 +1,8 @@
 #include "core/scale_mono_vo.h"
 
+
+
+
 /**
  * @brief function to track a new image (local bundle mode)
  * @details 새로 들어온 이미지의 자세를 구하는 함수. 만약, scale mono vo가 초기화되지 않은 경우, 해당 이미지를 초기 이미지로 설정. 

@@ -31,13 +31,15 @@ public:
 
 private:
     void getParameters();
-
-private:
-    void imageCallback(const sensor_msgs::ImageConstPtr& msg);
-    void poseCallback(const geometry_msgs::PoseStampedConstPtr& msg);
-    void groundtruthCallback(const geometry_msgs::PoseStampedConstPtr& msg);
+    void doTracking(const cv::Mat& img, const PoseSE3& pose, const PoseSE3& dT01);
     void run();
 
+private:
+    void imageFromExternalVOCallback(const sensor_msgs::ImageConstPtr& msg);
+    void poseFromExternalVOCallback(const geometry_msgs::PoseStampedConstPtr& msg);
+
+    void groundtruthCallback(const geometry_msgs::PoseStampedConstPtr& msg);
+ 
 private:
     void convertPointVecToPointCloud2(const PointVec& X, sensor_msgs::PointCloud2& dst, std::string frame_id);
 
@@ -46,7 +48,19 @@ private:
     
     // subscriber
     ros::Subscriber img_sub_;
-    std::string topicname_image_;
+    std::string topicname_image_from_external_vo_;
+
+    ros::Subscriber pose_sub_;
+    std::string topicname_pose_from_external_vo_;
+
+    bool flag_image_got_;
+    bool flag_pose_got_;
+
+    double time_img_cur_;
+    double time_pose_cur_;
+    cv::Mat img_cur_;
+    PoseSE3 pose_cur_;
+    PoseSE3 pose_prev_;
 
     ros::Subscriber gt_sub_;
     std::string topicname_gt_;

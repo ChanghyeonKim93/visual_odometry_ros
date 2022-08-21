@@ -1,7 +1,8 @@
 <launch>
     <node pkg="scale_mono_vo_ros" name="backend_node" type="backend_node" output="screen">
         <!-- Image topicname to be subscribed -->
-        <param name="topicname_image" type="string" value="/kitti_odometry/left/image_raw"/>
+        <param name="topicname_image_from_external_vo" type="string" value="/scale_mono_vo/external_vo/image"/>
+        <param name="topicname_pose_from_external_vo"  type="string" value="/scale_mono_vo/external_vo/pose"/>
         
         <!-- Topicname of the groundtruth -->
         <param name="topicname_gt" type="string" value="/kitti_odometry/groundtruth"/>
