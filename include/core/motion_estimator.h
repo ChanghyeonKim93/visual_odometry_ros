@@ -33,6 +33,13 @@
 
 
 class MotionEstimator{
+private:
+    float thres_1p_;
+    float thres_5p_;
+
+private:
+    std::shared_ptr<BundleAdjustmentSolver> ba_solver_;
+    
 public:
     MotionEstimator();
     ~MotionEstimator();
@@ -90,12 +97,6 @@ private:
     inline void fillTriplet(SpTripletList& Tri, const int& idx_hori0, const int& idx_hori1, 
         const int& idx_vert0, const int& idx_vert1, const Eigen::MatrixXf& mat);
 
-private:
-    float thres_1p_;
-    float thres_5p_;
-
-private:
-    std::shared_ptr<BundleAdjustmentSolver> ba_solver_;
 };
 
 #endif

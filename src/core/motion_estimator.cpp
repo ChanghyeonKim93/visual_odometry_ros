@@ -1549,7 +1549,6 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     int len_parameter = 6*N_opt + 3*M;
     printf("| Bundle Adjustment Statistics:\n");
     printf("|  -        # of total images: %d images \n", N);
-    printf("|  - \n");
     printf("|  -        # of opti. images: %d images \n", N_opt);
     printf("|  -        # of opti. points: %d landmarks \n", M);
     printf("|  -        # of observations: %d \n", n_obs);
@@ -1565,7 +1564,10 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     ba_solver_->setHuberThreshold(1.5f);
     std::cout << "time to prepare: " << timer::toc(0) << " [ms]\n";
 
-    ba_solver_->solveInFiniteIterations(10);
+    timer::tic();
+    ba_solver_->solveForFiniteIterations(10);
+    std::cout << "time to solve: " << timer::toc(0) << " [ms]\n";
+
     timer::tic();
     ba_solver_->reset();
     std::cout << "time to reset: "<< timer::toc(0) << " [ms]\n";
