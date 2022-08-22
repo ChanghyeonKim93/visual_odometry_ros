@@ -277,6 +277,7 @@ public:
                     ++cnt;
                 } // END jj
 
+
                 // For i-th landmark, fill other storages
                 Cinv_[i]  = C_[i].inverse(); // FILL STORAGE (3-1)
                 Cinvb_[i] = Cinv_[i]*b_[i];  // FILL STORAGE (10)
@@ -315,6 +316,7 @@ public:
                     }
                 } // END jj
             } // END i
+                std::cout << iter << "-th iter, error : " << 0.5f*err/(float)n_obs_ << std::endl;
 
             for(int m = 0; m < N_opt_; ++m)
                 for(int n = m; n < N_opt_; ++n)
