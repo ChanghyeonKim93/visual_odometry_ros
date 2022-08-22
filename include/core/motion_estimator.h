@@ -54,7 +54,7 @@ public:
 
     bool localBundleAdjustment(const std::shared_ptr<Keyframes>& kfs, const std::shared_ptr<Camera>& cam);
 
-    bool localBundleAdjustment2(const std::shared_ptr<Keyframes>& kfs, const std::shared_ptr<Camera>& cam);
+    bool localBundleAdjustmentSparseSolver(const std::shared_ptr<Keyframes>& kfs, const std::shared_ptr<Camera>& cam);
 
 public:
     void calcSampsonDistance(const PixelVec& pts0, const PixelVec& pts1, const std::shared_ptr<Camera>& cam, 

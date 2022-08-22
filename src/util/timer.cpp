@@ -7,7 +7,8 @@ namespace timer{
     void tic(){
         start = std::chrono::high_resolution_clock::now();
     };
-    
+
+    // return elapsed time from "tic()" in milliseconds.
     double toc(bool flag_verbose){
         finish = std::chrono::high_resolution_clock::now();
         gap = finish - start;
