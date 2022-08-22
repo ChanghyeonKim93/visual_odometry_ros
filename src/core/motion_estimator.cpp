@@ -1539,12 +1539,6 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     
     // 필요한 것. kfs_poses, lms_ba (Xw, pts_on_kfs, idx_kfs, ptr_kfs) 이렇게만 있으면 된다...
 
-    // Intrinsic of lower camera
-    const Mat33& K = cam->K(); const Mat33& Kinv = cam->Kinv();
-    const float& fx = cam->fx(); const float& fy = cam->fy();
-    const float& cx = cam->cx(); const float& cy = cam->cy();
-    const float& invfx = cam->fxinv(); const float& invfy = cam->fyinv();
-
     // Parameter vector
     int N     = kfset_all_related.size(); // the number of total keyframes in window
     int N_opt = kfvec_in_window.size() - NUM_FIX_KEYFRAMES_IN_WINDOW; // the number of optimization frames
@@ -1565,12 +1559,16 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     // BA solver.
     timer::tic();
     ba_solver_->reset();
-    ba_solver_->setProblemSize(N, N_opt, M);
+    ba_solver_->setCamera(cam);
+    ba_solver_->setProblemSize(N, N_opt, M, n_obs);
     ba_solver_->setInitialValues(Tjw_map, lms_ba, kfmap_optimize);
-    ba_solver_->solveInFiniteIterations(10);
-    ba_solver_->reset();
+    ba_solver_->setHuberThreshold(1.5f);
+    std::cout << "time to prepare: " << timer::toc(0) << " [ms]\n";
 
-    std::cout << "Local BA time : " << timer::toc(0) << " [ms]\n";
+    ba_solver_->solveInFiniteIterations(10);
+    timer::tic();
+    ba_solver_->reset();
+    std::cout << "time to reset: "<< timer::toc(0) << " [ms]\n";
 
     return true;
 };
