@@ -62,6 +62,10 @@ private:
     BlockVec3      Bt_x_; // M x 1 (3x1)
     BlockVec3      Cinvb_; // M_ x 1 (3x1)
 
+    BlockFullMat66 Am_BCinvBt_; // N_opt x N_opt (6x6)
+    BlockVec6 am_BCinv_b_; // N_opt x 1 (6x1)
+    BlockVec3 CinvBt_x_; // M_ x 1 (3x1)
+
     // Input variables  
     LandmarkBAVec lms_ba_; // landmarks to be optimized
     std::map<FramePtr,PoseSE3> Tjw_map_; // map containing Tjw_map_
@@ -129,6 +133,10 @@ public:
         BCinv_b_.resize(N_opt_); // 6x1, N_opt x 1 blocks
         Bt_x_.resize(M_);        // 3x1, M x 1 blocks
         Cinvb_.resize(M_);
+
+        Am_BCinvBt_.resize(N_opt_); for(int j = 0; j < N_opt_; ++j) Am_BCinvBt_[j].resize(N_opt_, Mat66::Zero());   // 6x6, N_opt X N_opt blocks
+        am_BCinv_b_.resize(N_opt_); // 6x1, N_opt x 1 blocks
+        CinvBt_x_.resize(M_);
     };
 
     // Set Input Values.
@@ -244,11 +252,7 @@ public:
                         Rij_t_Rij *= weight;
                         Rij_t_rij *= weight;
                     }
-
-                    // JtWJ(idx_point0:idx_point1,idx_point0:idx_point1) += weight*Rij.'*Rij;
-                    // mJtWr(idx_point0:idx_point1,0) -= weight*Rij.'*rij;
-                    // addData(JtWJ, Rij_t_Rij, idx_point0, idx_point0, 3,3);
-                    // addData(mJtWr,-Rij_t_rij, idx_point0, 0, 3,1);
+ 
                     C_[i]   += Rij_t_Rij; // FILL STORAGE (3)
                     b_[i]   -= Rij_t_rij; // FILL STORAGE (5)
 
@@ -260,24 +264,16 @@ public:
                         int j = kfmap_optimize_[kf]; // j_opt < N_opt_
                         Mat66 Qij_t_Qij = Qij.transpose()*Qij; // fixed pose, opt. pose
                         Mat63 Qij_t_Rij = Qij.transpose()*Rij; // fixed pose, opt. pose
-                        Mat36 Rij_t_Qij = Qij_t_Rij.transpose(); // fixed pose, opt. pose
                         Vec6 Qij_t_rij = Qij.transpose()*rij; // fixed pose, opt. pose
                         if(flag_weight){
                             Qij_t_Qij *= weight;
                             Qij_t_Rij *= weight;
-                            Rij_t_Qij = Qij_t_Rij.transpose();
                             Qij_t_rij *= weight;
                         }
-                        // JtWJ(idx_pose0:idx_pose1, idx_pose0:idx_pose1)  += weight*Qij.'*Qij;
-                        // JtWJ(idx_pose0:idx_pose1, idx_point0:idx_point1) = weight*Qij.'*Rij;
-                        // mJtWr(idx_pose0:idx_pose1,0)   -= weight*Qij.'*rij;
-                        // addData(JtWJ, Qij_t_Qij, idx_pose0, idx_pose0, 6,6);
-                        // insertData(JtWJ, Qij_t_Rij, idx_pose0, idx_point0, 6,3);
-                        // insertData(JtWJ, Rij_t_Qij, idx_point0, idx_pose0, 3,6);          
-                        // addData(mJtWr,-Qij_t_rij, idx_pose0, 0, 6,1);
+
                         A_[j]    += Qij_t_Qij; // FILL STORAGE (1)
                         B_[j][i]  = Qij_t_Rij; // FILL STORAGE (2)
-                        Bt_[i][j] = Rij_t_Qij; // FILL STORAGE (2-1)
+                        Bt_[i][j] = Qij_t_Rij.transpose(); // FILL STORAGE (2-1)
                         a_[j]    -= Qij_t_rij; // FILL STORAGE (4)
                     } 
                     float err_tmp = weight*rij.transpose()*rij;
@@ -320,46 +316,70 @@ public:
                         if(is_optimizable_keyframe_j && is_optimizable_keyframe_k){
                             Mat66 BCinvBt_tmp = BCinv_[j][i]*Bt_[i][k];
                             BCinvBt_[j][k] += BCinvBt_tmp;  // FILL STORAGE (7)
-                            BCinvBt_[k][j] += BCinvBt_tmp;  // FILL STORAGE (7) (transpose)
                         }
                     }
                 } // END jj
             } // END i
+
+            for(int m = 0; m < N_opt_; ++m)
+                for(int n = m; n < N_opt_; ++n)
+                    BCinvBt_[n][m] = BCinvBt_[m][n];
+                
+            for(int m = 0; m < N_opt_; ++m){
+                for(int n = 0; n < N_opt_; ++n){
+                    if(m != n) Am_BCinvBt_[m][n] = -BCinvBt_[m][n];
+                    else Am_BCinvBt_[m][n] = A_[m]-BCinvBt_[m][n];
+                }
+            }
+            for(int j = 0; j < N_opt_; ++j) 
+                am_BCinv_b_[j] = a_[j] - BCinv_b_[j];
             
             // Solve problem.
-            // Damping (lambda)
-
-            // SpMat CC(3*M, 3*M);
-            // CC.reserve(Eigen::VectorXi::Constant(3*M,3));
+            // 1) solve x
+            Eigen::MatrixXf Am_BCinvBt_mat(6*N_opt_,6*N_opt_);
+            Eigen::MatrixXf am_BCinvb_mat(6*N_opt_,1);
             
-            // Solve! (Cholesky decomposition based solver. JtJ is sym. positive definite.)
-            // timer::tic();
-            // SpMat a = mJtWr.block(0,0,6*N_opt,1);
-            // SpMat b = mJtWr.block(6*N_opt,0,3*M,1);
-            // Eigen::SimplicialCholesky<SpMat> chol11(AA-BCinv*BB.transpose());
-            // Eigen::VectorXf x = chol11.solve(a-BCinv*b);
-            // Eigen::VectorXf y = CC*b-BCinv.transpose()*x;
-            // Eigen::VectorXf delta_theta;
-            // delta_theta << x, y;
-            // timer::toc(1);
-            // timer::tic();
-            // Eigen::SimplicialCholesky<SpMat> chol(JtWJ);
-            // Eigen::VectorXf  delta_theta = chol.solve(mJtWr);
-            // // std::cout << delta_theta.transpose() <<std::endl;
-            // std::cout << "chol time : " << timer::toc(0) << " [ms]" << std::endl; // 그냥 통째로 풀면 한 iteration 당 40 ms (desktop)
+            for(int j = 0; j < N_opt_; ++j){
+                int idx0 = 6*j;
+                for(int k = 0; k < N_opt_; ++k){
+                    int idx1 = 6*k;
+                    Am_BCinvBt_mat.block(idx0,idx1,6,6) = Am_BCinvBt_[j][k];
+                }
+                am_BCinvb_mat.block(idx0,0,6,1) = am_BCinv_b_[j];
+            }
+            Eigen::MatrixXf x_mat = Am_BCinvBt_mat.ldlt().solve(am_BCinvb_mat);
+            std::cout << x_mat.transpose() << std::endl;
+            std::cout << "Pose update done\n";
 
-            // std::cout << "dimension : " << delta_theta.rows() << ", 6*N+3*M: " << 6*N+3*M << std::endl;
+            for(int j = 0; j < N_opt_; ++j){
+                int idx = 6*j;
+                x_[j] = x_mat.block<6,1>(6*j,0);
+            }
+            for(int i = 0; i < M_; ++i){
+                const FramePtrVec& kfs = lms_ba_[i].kfs_seen;
+                for(int jj = 0; jj < kfs.size(); ++jj){
+                    const FramePtr& kf = kfs[jj];
+                    int j = -1;
+                    if(kfmap_optimize_.find(kf) != kfmap_optimize_.end() ) { // this is a opt. keyframe.
+                        j = kfmap_optimize_[kf]; // j_opt < N_opt_
+                        CinvBt_x_[i] += CinvBt_[i][j]*x_[j];
+                    }
+                }
+                y_[i] = Cinvb_[i] - CinvBt_x_[i];
+            }
             
-            // Update parameters (T_w2l, T_w2l_inv, xi_w2l, database->X)
-            // Should omit the first image pose update. (index = 0)
-            // double step_size = 1.0;
-            // SpVec delta_parameter(len_parameter, 1);
-            // for(int i = 0; i < delta_theta.rows(); ++i) delta_parameter.coeffRef(i,0) = delta_theta(i);
-            // std::cout << "  iter: " << iter << ", meanerr: " << err/(float)cnt << " [px], delta xi: " << delta_theta.block<12,1>(0,0).norm() << std::endl;
+            for(int i = 0; i < M_; ++i){
+                std::cout << y_[i].transpose() <<" // ";
+            }
+            std::cout << "\n";
+            
+            // Update step
+            for(int j = 0; j < N_opt_; ++j)
+                params_poses_[j] += x_[j];
+            for(int i = 0; i < M_; ++i)
+                params_points_[i] += y_[i];
 
-            // parameter += delta_parameter; 
-
-            // Update Poses and Points.
+            // set Poses and Points.
             getPosesPointsFromParameterVector();
 
 
@@ -369,12 +389,15 @@ public:
         } // END iter
 
         // Finally, update parameters
-        // for(int j = NUM_FIX_KEYFRAMES; j < kfs_all.size(); ++j){
-        //     kfs_all[j]->setPose(T_jw_kfs[j].inverse());
-        // }
-        // for(int i = 0; i < lms_ba.size(); ++i){
-        //     lms_ba[i].lm->set3DPoint(lms_ba[i].X);
-        // }
+        for(int j = 0; j < N_opt_; ++j){
+            PoseSE3 T_jw;
+            geometry::se3Exp_f(params_poses_[j], T_jw);
+            kfvec_optimize_[j]->setPose(T_jw.inverse());
+            Tjw_map_[kfvec_optimize_[j]] = T_jw;
+        }
+        for(int i = 0; i < M_; ++i){
+            lms_ba_[i].lm->set3DPoint(lms_ba_[i].X);
+        }
 
         // Finish
         // std::cout << "======= Local Bundle adjustment - sucess:" << (flag_success ? "SUCCESS" : "FAILED") << "=======\n";
@@ -400,6 +423,10 @@ public:
 
         x_.resize(0); // N_opt blocks (6x1)
         y_.resize(0); // M blocks (3x1)
+
+        Am_BCinvBt_.resize(0);
+        am_BCinv_b_.resize(0); 
+        CinvBt_x_.resize(0);
 
         Tjw_map_.clear();
         kfmap_optimize_.clear();
@@ -447,6 +474,7 @@ private:
             x_[j].setZero();
             params_poses_[j].setZero();
             BCinv_b_[j].setZero();
+            am_BCinv_b_[j].setZero();
 
             for(int i = 0; i < M_; ++i){
                 B_[j][i].setZero();
@@ -456,6 +484,7 @@ private:
             }
             for(int i = 0; i < N_opt_;++i){
                 BCinvBt_[j][i].setZero();
+                Am_BCinvBt_[j][i].setZero();
             }
         }
         for(int i = 0; i < M_; ++i){
@@ -466,6 +495,7 @@ private:
             params_points_[i].setZero();
             Bt_x_[i].setZero();
             Cinvb_[i].setZero();
+            CinvBt_x_[i].setZero();
         }
     };    
 };
