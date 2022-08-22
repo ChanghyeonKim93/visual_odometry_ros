@@ -186,7 +186,7 @@ public:
                 const FramePtrVec& kfs = lms_ba_[i].kfs_seen;
                 const PixelVec&    pts = lms_ba_[i].pts_on_kfs;
 
-                for(int jj = 0; jj < pts.size(); ++jj){
+                for(int jj = 0; jj < kfs.size(); ++jj){
                     // For j-th keyframe
                     const Pixel&   pij = pts[jj];
                     const FramePtr& kf = kfs[jj];
@@ -210,12 +210,9 @@ public:
                     const float& xj = Xij(0), yj = Xij(1), zj = Xij(2);
                     float invz = 1.0f/zj; float invz2 = invz*invz;
                     
-                    float fxinvz      = fx*invz;
-                    float fyinvz      = fy*invz;
-                    float xinvz       = xj*invz;
-                    float yinvz       = yj*invz;
-                    float fx_xinvz2   = fxinvz*xinvz;
-                    float fy_yinvz2   = fyinvz*yinvz;
+                    float fxinvz      = fx*invz;      float fyinvz      = fy*invz;
+                    float xinvz       = xj*invz;      float yinvz       = yj*invz;
+                    float fx_xinvz2   = fxinvz*xinvz; float fy_yinvz2   = fyinvz*yinvz;
                     float xinvz_yinvz = xinvz*yinvz;
 
                     Mat23 Rij;
@@ -224,7 +221,6 @@ public:
                     const float& r31 = R_jw(2,0), r32 = R_jw(2,1), r33 = R_jw(2,2);
                     Rij << fxinvz*r11-fx_xinvz2*r31, fxinvz*r12-fx_xinvz2*r32, fxinvz*r13-fx_xinvz2*r33, 
                            fyinvz*r21-fy_yinvz2*r31, fyinvz*r22-fy_yinvz2*r32, fyinvz*r23-fy_yinvz2*r33;
-                  
 
                     // 2) residual calculation
                     Vec2 rij;
@@ -235,7 +231,6 @@ public:
 
                     // 3) HUBER weight calculation (Manhattan distance)
                     float absrxry = abs(rij(0))+abs(rij(1));
-                    // std::cout << cnt << "-th absrxry: " << absrxry << std::endl;
                     r_prev[cnt] = absrxry;
 
                     float weight = 1.0f;
