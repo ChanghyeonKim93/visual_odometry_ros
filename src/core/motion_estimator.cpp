@@ -1446,12 +1446,12 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
 
     std::cout << "===================== Local Bundle adjustment2 ============================\n";
 
-    int THRES_AGE           = 3; // landmark의 최소 age
+    int THRES_AGE           = 2; // landmark의 최소 age
     int THRES_MINIMUM_SEEN  = 2; // landmark의 최소 관측 keyframes
-    float THRES_PARALLAX    = 0.4*D2R; // landmark의 최소 parallax
+    float THRES_PARALLAX    = 0.5*D2R; // landmark의 최소 parallax
 
     // Optimization paarameters
-    int   MAX_ITER          = 10;
+    int   MAX_ITER          = 7;
 
     float lam               = 1e-3;  // for Levenberg-Marquardt algorithm
     float MAX_LAM           = 1.0f;  // for Levenberg-Marquardt algorithm

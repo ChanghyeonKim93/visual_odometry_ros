@@ -320,10 +320,10 @@ void BundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
                 
         // Update step
         for(int j = 0; j < N_opt_; ++j)
-            params_poses_[j] += 0.2*x_[j];
+            params_poses_[j] += 0.3*x_[j];
         for(int i = 0; i < M_; ++i){
             if(abs(C_[i].determinant()) >= 0.0001) {
-                params_points_[i] += 0.2*y_[i];
+                params_points_[i] += 0.3*y_[i];
             }
         }
 
@@ -337,7 +337,7 @@ void BundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
         
         PoseSE3 T_jw_original = kfvec_optimize_[j]->getPoseInv();
 
-        std::cout << j << "-th pose: \n" << T_jw_original.inverse()*T_jw << std::endl;
+        // std::cout << j << "-th pose: \n" << T_jw_original.inverse()*T_jw << std::endl;
 
         kfvec_optimize_[j]->setPose(T_jw.inverse());
         Tjw_map_[kfvec_optimize_[j]] = T_jw;

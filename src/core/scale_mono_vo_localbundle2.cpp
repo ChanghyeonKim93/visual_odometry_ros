@@ -179,7 +179,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			// lms1_final 중, depth가 복원되지 않은 경우 복원해준다.
 			uint32_t cnt_recon = 0 ;
 			for(auto lm : lms1_final){
-				if( !lm->isTriangulated() && lm->getMaxParallax() >= 0.2f*D2R){
+				if( !lm->isTriangulated() && lm->getMaxParallax() >= 0.3f*D2R){
 					if(lm->getObservations().size() != lm->getRelatedFramePtr().size())
 						throw std::runtime_error("lm->getObservations().size() != lm->getRelatedFramePtr().size()\n");
 
@@ -227,7 +227,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			lmtrack_prev.pts1.resize(lmtrack_prev.pts0.size());
 			for(int i = 0; i < lmtrack_prev.pts0.size(); ++i){
 				const LandmarkPtr& lm = lmtrack_prev.lms[i];
-				if(lm->isTriangulated() && lm->getMaxParallax() > 0.2*D2R){
+				if(lm->isTriangulated() && lm->getMaxParallax() > 0.5*D2R){
 					const Point& Xw = lm->get3DPoint();
 					Point Xc = Tcw_prior.block<3,3>(0,0)*Xw + Tcw_prior.block<3,1>(0,3);
 					if(Xc(2) > 0) lmtrack_prev.pts1[i] = cam_->projectToPixel(Xc);
@@ -266,7 +266,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			for(int i = 0; i < lmtrack_scaleok.pts0.size(); ++i){
 				const LandmarkPtr& lm = lmtrack_scaleok.lms[i];
 				if(lm->isTriangulated() && lm->getAge() > 1 
-				&& lm->getMaxParallax() > 0.5*D2R){ 
+				&& lm->getMaxParallax() > 0.4*D2R){ 
 					Point Xp = Rcw_prev * lm->get3DPoint() + tcw_prev;
 					if(Xp(2) > 0){
 						pts1_depth_ok.push_back(lmtrack_scaleok.pts1[i]);
@@ -282,7 +282,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			Rot3 dR01; Pos3 dt01; PoseSE3 dT01;
 
 			bool flag_do_5point = false;
-			if(cnt_depth_ok > 10){
+			if(cnt_depth_ok > 15){
 				// Do Local BA
 				std::cout << " DO pose-only Bundle Adjustment... with [" << cnt_depth_ok <<"] points.\n";
 
@@ -396,7 +396,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 		uint32_t cnt_recon = 0;
 		
 		for(auto lm : frame_curr->getRelatedLandmarkPtr()){
-			if(!lm->isTriangulated() && lm->getLastParallax() >= 0.4f*D2R){
+			if(!lm->isTriangulated() && lm->getLastParallax() >= 0.5f*D2R){
 				if(lm->getObservationsOnKeyframes().size() > 1){ // 2번 이상 keyframe에서 보였다.
 					const Pixel& pt0 = lm->getObservationsOnKeyframes().front();
 					const Pixel& pt1 = lm->getObservationsOnKeyframes().back();
@@ -457,11 +457,13 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 	std::cout << "# of all landmarks: " << X_world_recon.size() << std::endl;
 
 #ifdef RECORD_FRAME_STAT
+statcurr_frame.mappoints.resize(0);
 statcurr_frame.mappoints = X_world_recon;
 #endif
 
 	// Update statistics
 	stat_.stats_landmark.push_back(statcurr_landmark);
+	stat_.stats_frame.resize(0);
 	stat_.stats_frame.push_back(statcurr_frame);
 	stat_.stats_execution.push_back(statcurr_execution);
 	std::cout << "Statistics Updated. size: " << stat_.stats_landmark.size() << "\n";
