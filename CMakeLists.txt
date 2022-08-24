@@ -56,6 +56,7 @@ set(SRC ${SRC}
   src/core/feature_extractor.cpp
   src/core/feature_tracker.cpp
   src/core/motion_estimator.cpp
+  src/core/bundle_adjustment_solver.cpp
 
   src/core/scale_estimator.cpp
 

@@ -12,7 +12,7 @@
 void ScaleMonoVO::trackImageLocalBundle2(const cv::Mat& img, const double& timestamp){
 	
 	float THRES_ZNCC    = 0.90f;
-	float THRES_SAMPSON = 2.0f;
+	float THRES_SAMPSON = 10.0f;
 
 	// Generate statistics
 	AlgorithmStatistics::LandmarkStatistics  statcurr_landmark;
@@ -179,7 +179,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			// lms1_final 중, depth가 복원되지 않은 경우 복원해준다.
 			uint32_t cnt_recon = 0 ;
 			for(auto lm : lms1_final){
-				if( !lm->isTriangulated() && lm->getMaxParallax() >= 0.3f*D2R){
+				if( !lm->isTriangulated() && lm->getMaxParallax() >= 0.2f*D2R){
 					if(lm->getObservations().size() != lm->getRelatedFramePtr().size())
 						throw std::runtime_error("lm->getObservations().size() != lm->getRelatedFramePtr().size()\n");
 
@@ -227,7 +227,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			lmtrack_prev.pts1.resize(lmtrack_prev.pts0.size());
 			for(int i = 0; i < lmtrack_prev.pts0.size(); ++i){
 				const LandmarkPtr& lm = lmtrack_prev.lms[i];
-				if(lm->isTriangulated() && lm->getMaxParallax() > 0.5*D2R){
+				if(lm->isTriangulated() && lm->getMaxParallax() > 0.2*D2R){
 					const Point& Xw = lm->get3DPoint();
 					Point Xc = Tcw_prior.block<3,3>(0,0)*Xw + Tcw_prior.block<3,1>(0,3);
 					if(Xc(2) > 0) lmtrack_prev.pts1[i] = cam_->projectToPixel(Xc);
@@ -265,7 +265,8 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			PixelVec pts1_project;
 			for(int i = 0; i < lmtrack_scaleok.pts0.size(); ++i){
 				const LandmarkPtr& lm = lmtrack_scaleok.lms[i];
-				if(lm->isTriangulated() && lm->getAge() > 1 && lm->getMaxParallax() > 0.1*D2R){ 
+				if(lm->isTriangulated() && lm->getAge() > 1 
+				&& lm->getMaxParallax() > 0.5*D2R){ 
 					Point Xp = Rcw_prev * lm->get3DPoint() + tcw_prev;
 					if(Xp(2) > 0){
 						pts1_depth_ok.push_back(lmtrack_scaleok.pts1[i]);
@@ -395,7 +396,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 		uint32_t cnt_recon = 0;
 		
 		for(auto lm : frame_curr->getRelatedLandmarkPtr()){
-			if(!lm->isTriangulated() && lm->getLastParallax() >= 0.5f*D2R){
+			if(!lm->isTriangulated() && lm->getLastParallax() >= 0.4f*D2R){
 				if(lm->getObservationsOnKeyframes().size() > 1){ // 2번 이상 keyframe에서 보였다.
 					const Pixel& pt0 = lm->getObservationsOnKeyframes().front();
 					const Pixel& pt1 = lm->getObservationsOnKeyframes().back();

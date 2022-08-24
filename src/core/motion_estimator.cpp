@@ -980,10 +980,10 @@ bool MotionEstimator::localBundleAdjustment(const std::shared_ptr<Keyframes>& kf
 
     int THRES_AGE          = 3; // landmark의 최소 age
     int THRES_MINIMUM_SEEN = 2; // landmark의 최소 관측 keyframes
-    float THRES_PARALLAX   = 0.5*D2R; // landmark의 최소 parallax
+    float THRES_PARALLAX   = 0.3*D2R; // landmark의 최소 parallax
 
     // Optimization paarameters
-    int   MAX_ITER         = 3;
+    int   MAX_ITER         = 5;
 
     float lam              = 1e-3;  // for Levenberg-Marquardt algorithm
     float MAX_LAM          = 1.0f;  // for Levenberg-Marquardt algorithm
@@ -1002,8 +1002,8 @@ bool MotionEstimator::localBundleAdjustment(const std::shared_ptr<Keyframes>& kf
     float THRES_DELTA_THETA = 1e-7;
     float THRES_ERROR       = 1e-7;
 
-    int NUM_MINIMUM_REQUIRED_KEYFRAMES = 4; // 최소 keyframe 갯수.
-    int NUM_FIX_KEYFRAMES              = 2; // optimization에서 제외 할 keyframe 갯수. 과거 순.
+    int NUM_MINIMUM_REQUIRED_KEYFRAMES = 5; // 최소 keyframe 갯수.
+    int NUM_FIX_KEYFRAMES              = 3; // optimization에서 제외 할 keyframe 갯수. 과거 순.
 
 
     if(kfs->getCurrentNumOfKeyframes() < NUM_MINIMUM_REQUIRED_KEYFRAMES){
@@ -1434,22 +1434,21 @@ inline void MotionEstimator::fillTriplet(SpTripletList& Tri, const int& idx_hori
 
 bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Keyframes>& kfs_window, const std::shared_ptr<Camera>& cam)
 {
-    std::cout << "===================== Local Bundle adjustment2 ============================\n";
-
 // Variables
-
+// 
 // LandmarkBAVec lms_ba; 
 //  - Xi
 //  - pts_on_kfs
 //  - kfs_seen
-
+// 
 // std::map<FramePtr,int>     kfmap_optimizable
 // std::map<FramePtr,PoseSE3> Tjw_map;
 
+    std::cout << "===================== Local Bundle adjustment2 ============================\n";
 
     int THRES_AGE           = 3; // landmark의 최소 age
     int THRES_MINIMUM_SEEN  = 2; // landmark의 최소 관측 keyframes
-    float THRES_PARALLAX    = 0.3*D2R; // landmark의 최소 parallax
+    float THRES_PARALLAX    = 0.4*D2R; // landmark의 최소 parallax
 
     // Optimization paarameters
     int   MAX_ITER          = 10;
@@ -1472,7 +1471,7 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     float THRES_ERROR       = 1e-7;
 
     int NUM_MINIMUM_REQUIRED_KEYFRAMES = 5; // 최소 keyframe 갯수.
-    int NUM_FIX_KEYFRAMES_IN_WINDOW    = 2; // optimization에서 제외 할 keyframe 갯수. 과거 순.
+    int NUM_FIX_KEYFRAMES_IN_WINDOW    = 3; // optimization에서 제외 할 keyframe 갯수. 과거 순.
 
 
     if(kfs_window->getCurrentNumOfKeyframes() < NUM_MINIMUM_REQUIRED_KEYFRAMES){
@@ -1481,6 +1480,8 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     }
     
     bool flag_success = true;
+
+
 
     // Landmarks seen within the keyframe window.
     std::set<LandmarkPtr> lmset_in_window;
@@ -1492,14 +1493,14 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     }
 
     FramePtrVec kfvec_in_window; // all keyframes
-    for(auto kf : kfs_window->getList()) kfvec_in_window.push_back(kf);
+    for(auto kf : kfs_window->getList()) 
+        kfvec_in_window.push_back(kf);
 
     // 각 lm이 보였던 keyframe의 FramePtr을 저장.
     // 단, 최소 2개 이상의 keyframe 에서 관측되어야 local BA에서 사용함.  
     LandmarkBAVec lms_ba;
     std::set<FramePtr> kfset_all_related; // 현재 landmark들이 보였던 모든 keyframes.
-    for(auto lm : lmset_in_window) // keyframe window 내에서 보였던 모든 landmark를 순회.
-    { 
+    for(auto lm : lmset_in_window) { // keyframe window 내에서 보였던 모든 landmark를 순회.
         LandmarkBA lm_ba;
         lm_ba.lm = lm;
         lm_ba.X  = lm->get3DPoint();
@@ -1530,21 +1531,18 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
 
     // Pose map
     std::map<FramePtr,PoseSE3> Tjw_map;
-    for(auto kf : kfset_all_related){
+    for(auto kf : kfset_all_related)
         Tjw_map.insert(std::pair<FramePtr,PoseSE3>(kf, kf->getPoseInv()));
-    }
-
-    int n_obs = 0; // the number of total observations (2*n_obs == len_residual)
-    for(auto lm_ba : lms_ba) n_obs += lm_ba.kfs_seen.size(); // residual 크기.
     
-    // 필요한 것. kfs_poses, lms_ba (Xw, pts_on_kfs, idx_kfs, ptr_kfs) 이렇게만 있으면 된다...
-
-    // Parameter vector
+    int n_obs = 0; // the number of total observations (2*n_obs == len_residual)
+    for(auto lm_ba : lms_ba) 
+        n_obs += lm_ba.kfs_seen.size(); // residual 크기.
+    
+    // Optimization statistics
     int N     = kfset_all_related.size(); // the number of total keyframes in window
     int N_opt = kfvec_in_window.size() - NUM_FIX_KEYFRAMES_IN_WINDOW; // the number of optimization frames
     int M     = lms_ba.size(); // the number of total landmarks
 
-    // initialize optimization parameter vector.
     int len_residual  = 2*n_obs;
     int len_parameter = 6*N_opt + 3*M;
     printf("| Bundle Adjustment Statistics:\n");
@@ -1561,11 +1559,11 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     ba_solver_->setCamera(cam);
     ba_solver_->setProblemSize(N, N_opt, M, n_obs);
     ba_solver_->setInitialValues(Tjw_map, lms_ba, kfmap_optimize);
-    ba_solver_->setHuberThreshold(1.5f);
+    ba_solver_->setHuberThreshold(THRES_HUBER);
     std::cout << "time to prepare: " << timer::toc(0) << " [ms]\n";
 
     timer::tic();
-    ba_solver_->solveForFiniteIterations(10);
+    ba_solver_->solveForFiniteIterations(MAX_ITER);
     std::cout << "time to solve: " << timer::toc(0) << " [ms]\n";
 
     timer::tic();
