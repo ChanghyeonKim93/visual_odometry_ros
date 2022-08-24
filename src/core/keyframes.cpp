@@ -1,10 +1,10 @@
 #include "core/keyframes.h"
 
 Keyframes::Keyframes()
-: THRES_OVERLAP_FEATURE_RATIO_(0.8f),
+: THRES_OVERLAP_FEATURE_RATIO_(0.7f),
 THRES_ROTATION_(1.0f*D2R),
-THRES_TRANSLATION_(3.0f),
-n_max_keyframes_(5)
+THRES_TRANSLATION_(2.0f),
+n_max_keyframes_(7)
 { 
 
 };
@@ -56,7 +56,8 @@ bool Keyframes::checkUpdateRule(const FramePtr& frame_curr){
         std::cout << "\n";
         
 
-        if(tracking_ratios.back() <= THRES_OVERLAP_FEATURE_RATIO_) flag_addkeyframe = true;
+        if(tracking_ratios.back() <= THRES_OVERLAP_FEATURE_RATIO_) 
+            flag_addkeyframe = true;
         
         // Check rotation & translation
         const PoseSE3& Twk_last = kfs_list_.back()->getPose();

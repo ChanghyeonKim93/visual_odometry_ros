@@ -12,7 +12,7 @@
 void ScaleMonoVO::trackImageLocalBundle2(const cv::Mat& img, const double& timestamp){
 	
 	float THRES_ZNCC    = 0.90f;
-	float THRES_SAMPSON = 10.0f;
+	float THRES_SAMPSON = 5.0f;
 
 	// Generate statistics
 	AlgorithmStatistics::LandmarkStatistics  statcurr_landmark;
@@ -56,7 +56,7 @@ void ScaleMonoVO::trackImageLocalBundle2(const cv::Mat& img, const double& times
 
 			frame_curr->setPose(PoseSE3::Identity());
 			PoseSE3 T_init = PoseSE3::Identity();
-			T_init.block<3,1>(0,3) << 0,0,-0.90;
+			T_init.block<3,1>(0,3) << 0,0,-0.85;
 			frame_curr->setPoseDiff10(T_init);
 			
 			this->saveLandmarks(lms1);	
@@ -75,8 +75,6 @@ void ScaleMonoVO::trackImageLocalBundle2(const cv::Mat& img, const double& times
 			// 이전 자세의 변화량을 가져온다. 
 			PoseSE3 Twc_prev   = frame_prev_->getPose();
 			PoseSE3 dT01_prior = frame_prev_->getPoseDiff01();
-			PoseSE3 Twc_prior  = Twc_prev*dT01_prior;
-			PoseSE3 Tcw_prior  = Twc_prior.inverse();
 
 			// frame_prev_ 의 lms 를 현재 이미지로 track. 5ms
 			PixelVec pts1;
@@ -132,6 +130,7 @@ void ScaleMonoVO::trackImageLocalBundle2(const cv::Mat& img, const double& times
 
 
 			// Frame_curr의 자세를 넣는다.
+			dt10 = dt10/dt10.norm()*params_.scale_estimator.initial_scale;
 			PoseSE3 dT10; dT10 << dR10, dt10, 0.0f, 0.0f, 0.0f, 1.0f;
 			PoseSE3 dT01 = dT10.inverse();
 
@@ -179,7 +178,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			// lms1_final 중, depth가 복원되지 않은 경우 복원해준다.
 			uint32_t cnt_recon = 0 ;
 			for(auto lm : lms1_final){
-				if( !lm->isTriangulated() && lm->getMaxParallax() >= 0.3f*D2R){
+				if( !lm->isTriangulated() && lm->getMaxParallax() >= 0.5f*D2R){
 					if(lm->getObservations().size() != lm->getRelatedFramePtr().size())
 						throw std::runtime_error("lm->getObservations().size() != lm->getRelatedFramePtr().size()\n");
 
@@ -397,7 +396,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 		
 		for(auto lm : frame_curr->getRelatedLandmarkPtr()){
 			if(!lm->isTriangulated() && lm->getLastParallax() >= 0.5f*D2R){
-				if(lm->getObservationsOnKeyframes().size() > 1){ // 2번 이상 keyframe에서 보였다.
+				if(lm->getObservationsOnKeyframes().size() > 3){ // 2번 이상 keyframe에서 보였다.
 					const Pixel& pt0 = lm->getObservationsOnKeyframes().front();
 					const Pixel& pt1 = lm->getObservationsOnKeyframes().back();
 
@@ -415,14 +414,14 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 					pt0_proj.y = cam_->fy()*X0(1)*invz0 + cam_->cy();
 					Pixel dpt0 = pt0 - pt0_proj;
 					float dpt0_norm2 = dpt0.x*dpt0.x + dpt0.y*dpt0.y;
-					if(dpt0_norm2 > 1.00) continue;
+					if(dpt0_norm2 > 1.5) continue;
 
 					Pixel pt1_proj; float invz1 = 1.0f/X1(2);
 					pt1_proj.x = cam_->fx()*X1(0)*invz1 + cam_->cx();
 					pt1_proj.y = cam_->fy()*X1(1)*invz1 + cam_->cy();
 					Pixel dpt1 = pt1 - pt1_proj;
 					float dpt1_norm2 = dpt1.x*dpt1.x + dpt1.y*dpt1.y;
-					if(dpt1_norm2 > 1.00) continue;
+					if(dpt1_norm2 > 1.5) continue;
 
 					// std::cout << "dpt0 and dpt1 : " << dpt0_norm2 <<", " << dpt1_norm2 << "\n";
 

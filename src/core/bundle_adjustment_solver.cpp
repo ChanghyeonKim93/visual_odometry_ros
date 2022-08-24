@@ -323,7 +323,7 @@ void BundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
             params_poses_[j] += 0.3*x_[j];
         for(int i = 0; i < M_; ++i){
             if(abs(C_[i].determinant()) >= 0.0001) {
-                params_points_[i] += 0.3*y_[i];
+                params_points_[i] += 0.5*y_[i];
             }
         }
 
