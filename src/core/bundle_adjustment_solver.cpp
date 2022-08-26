@@ -342,8 +342,10 @@ void BundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
         kfvec_optimize_[j]->setPose(T_jw.inverse());
         Tjw_map_[kfvec_optimize_[j]] = T_jw;
     }
-    for(int i = 0; i < M_; ++i)
+    for(int i = 0; i < M_; ++i){
+        lms_ba_[i].lm->setBundled();
         lms_ba_[i].lm->set3DPoint(lms_ba_[i].X);
+    }
 
     // Finish
     // std::cout << "======= Local Bundle adjustment - sucess:" << (flag_success ? "SUCCESS" : "FAILED") << "=======\n";

@@ -208,7 +208,7 @@ Visualization Manager:
       Topic: /scale_mono_vo/trajectory
       Unreliable: false
       Value: true
-    - Alpha: 0.800000011920929
+    - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
         Max Value: 6916.58154296875
@@ -229,7 +229,7 @@ Visualization Manager:
       Queue Size: 1
       Selectable: true
       Size (Pixels): 1
-      Size (m): 0.15000000596046448
+      Size (m): 0.5
       Style: Spheres
       Topic: /scale_mono_vo/map_points
       Unreliable: false
@@ -304,7 +304,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 2133.732666015625
+      Distance: 1902.211181640625
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -312,17 +312,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7799999713897705
       Focal Point:
-        X: -102.07950592041016
-        Y: 21.4190616607666
-        Z: 167.66725158691406
+        X: -20.7061767578125
+        Y: 37.10562515258789
+        Z: -129.133544921875
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.005203192122280598
+      Pitch: 0.005202491767704487
       Target Frame: <Fixed Frame>
-      Yaw: 4.709972381591797
+      Yaw: 4.719954967498779
     Saved: ~
 Window Geometry:
   Displays:

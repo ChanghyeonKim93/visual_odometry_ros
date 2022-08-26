@@ -235,6 +235,7 @@ public:
 	void trackImage(const cv::Mat& img, const double& timestamp);
 	void trackImageLocalBundle(const cv::Mat& img, const double& timestamp);
 	void trackImageLocalBundle2(const cv::Mat& img, const double& timestamp);
+	void trackImageLocalBundle3(const cv::Mat& img, const double& timestamp);
 	void trackImageAP3P(const cv::Mat& img, const double& timestamp);
 	void trackImageNaiveThreeviews(const cv::Mat& img, const double& timestamp);
 
@@ -243,9 +244,9 @@ public:
 	AlgorithmStatistics getStatistics() const;
 
 private:
-	void pruneInvalidLandmarks(const PixelVec& pts0, const PixelVec& pts1, const LandmarkPtrVec& lms, const MaskVec& mask,
+	int pruneInvalidLandmarks(const PixelVec& pts0, const PixelVec& pts1, const LandmarkPtrVec& lms, const MaskVec& mask,
 		PixelVec& pts0_alive, PixelVec& pts1_alive, LandmarkPtrVec& lms_alive);
-	void pruneInvalidLandmarks(const LandmarkTracking& lmtrack, const MaskVec& mask,
+	int pruneInvalidLandmarks(const LandmarkTracking& lmtrack, const MaskVec& mask,
 		LandmarkTracking& lmtrack_alive);
 	void updateKeyframe(const FramePtr& frame);
 	void saveLandmarks(const LandmarkPtrVec& lms, bool verbose = false);

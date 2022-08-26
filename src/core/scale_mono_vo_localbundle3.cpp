@@ -9,7 +9,7 @@
  * @author Changhyeon Kim (hyun91015@gmail.com)
  * @date 10-July-2022
  */
-void ScaleMonoVO::trackImageLocalBundle2(const cv::Mat& img, const double& timestamp){
+void ScaleMonoVO::trackImageLocalBundle3(const cv::Mat& img, const double& timestamp){
 	
 	float THRES_ZNCC    = 0.90f;
 	float THRES_SAMPSON = 5.0f;

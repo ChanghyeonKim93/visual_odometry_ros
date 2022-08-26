@@ -3,7 +3,7 @@
 std::shared_ptr<Camera> Landmark::cam_ = nullptr;
 
 Landmark::Landmark()
-: Xw_(0,0,0), x_front_(0,0,0), invd_(0.0f), cov_invd_(100000.0f), id_(landmark_counter_++), age_(0), is_alive_(true), is_triangulated_(false)
+: Xw_(0,0,0), x_front_(0,0,0), invd_(0.0f), cov_invd_(100000.0f), id_(landmark_counter_++), age_(0), is_alive_(true), is_triangulated_(false), is_bundled_(false)
 {
     min_optflow_ = 1000.0f;
     max_optflow_ = 0.0f;
@@ -19,7 +19,7 @@ Landmark::Landmark()
     related_frames_.reserve(30);
 };  
 Landmark::Landmark(const Pixel& p, const FramePtr& frame)
-: Xw_(0,0,0), x_front_(0,0,0), invd_(0.0f), cov_invd_(100000.0f), id_(landmark_counter_++), age_(0), is_alive_(true), is_triangulated_(false)
+: Xw_(0,0,0), x_front_(0,0,0), invd_(0.0f), cov_invd_(100000.0f), id_(landmark_counter_++), age_(0), is_alive_(true), is_triangulated_(false), is_bundled_(false)
 {
     addObservationAndRelatedFrame(p, frame);
     x_front_ << (p.x-cam_->cx())*cam_->fxinv(), (p.y-cam_->cy())*cam_->fyinv(), 1.0f;
@@ -43,6 +43,7 @@ Landmark::~Landmark(){
 };
 
 void Landmark::set3DPoint(const Point& Xw) { Xw_ = Xw;  is_triangulated_ = true; };
+void Landmark::setBundled() { is_bundled_ = true; };
 
 void Landmark::setInverseDepth(float invd_curr) { invd_ = invd_curr; };
 void Landmark::setCovarianceInverseDepth(float cov_invd_curr) { cov_invd_ = cov_invd_curr; };
@@ -133,6 +134,7 @@ const FramePtrVec& Landmark::getRelatedKeyframePtr() const      { return related
 
 const bool&        Landmark::isAlive() const           { return is_alive_; };
 const bool&        Landmark::isTriangulated() const    { return is_triangulated_; };
+const bool&        Landmark::isBundled() const         { return is_bundled_; };
 
 float              Landmark::getMinParallax() const     { return min_parallax_; };
 float              Landmark::getMaxParallax() const     { return max_parallax_; };

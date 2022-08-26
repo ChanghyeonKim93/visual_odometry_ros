@@ -111,7 +111,8 @@ void MonoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
     double time_now = cv_ptr->header.stamp.toSec();
     // scale_mono_vo_->trackImage(cv_ptr->image, time_now);
     // scale_mono_vo_->trackImageLocalBundle(cv_ptr->image, time_now);
-    scale_mono_vo_->trackImageLocalBundle2(cv_ptr->image, time_now);
+    // scale_mono_vo_->trackImageLocalBundle2(cv_ptr->image, time_now);
+    scale_mono_vo_->trackImageLocalBundle3(cv_ptr->image, time_now);
     // scale_mono_vo_->trackImageAP3P(cv_ptr->image, time_now);
     // scale_mono_vo_->trackImageNaiveThreeviews(cv_ptr->image, time_now);
 

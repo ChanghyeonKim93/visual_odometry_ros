@@ -39,6 +39,7 @@ private:
 private:
     bool is_alive_;
     bool is_triangulated_;
+    bool is_bundled_;
 
     uint32_t age_;
 
@@ -67,6 +68,7 @@ public:
     void addObservationAndRelatedKeyframe(const Pixel& p, const FramePtr& frame);
     
     void set3DPoint(const Point& Xw);
+    void setBundled();
     void setInverseDepth(float invd_curr);
     void setDead();
     
@@ -90,6 +92,7 @@ public:
     
     const bool&        isAlive() const;
     const bool&        isTriangulated() const;
+    const bool&        isBundled() const;
 
     float              getMinParallax() const;  
     float              getMaxParallax() const;  
