@@ -650,7 +650,7 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
     float THRES_HUBER        = 1.5f; // pixels
     float THRES_DELTA_XI     = 1e-7;
     float THRES_DELTA_ERROR  = 1e-5;
-    float THRES_REPROJ_ERROR = 3.0f; // pixels
+    float THRES_REPROJ_ERROR = 5.0f; // pixels
 
     float lambda = 0.001f;
     float step_size = 1.0f;

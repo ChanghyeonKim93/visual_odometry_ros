@@ -111,10 +111,9 @@ void ScaleMonoVO::trackImageLocalBundle2(const cv::Mat& img, const double& times
 			motion_estimator_->calcSampsonDistance(pts0_scaleok, pts1_scaleok, cam_, dR10, dt10, symm_epi_dist);
 			MaskVec mask_sampson(pts0_scaleok.size());
 
-			for(int i = 0; i < mask_sampson.size(); ++i){
+			for(int i = 0; i < mask_sampson.size(); ++i)
 				mask_sampson[i] = mask_5p[i] && (symm_epi_dist[i] < THRES_SAMPSON);
-			}
-
+			
 			PixelVec       pts0_final;
 			PixelVec       pts1_final;
 			LandmarkPtrVec lms1_final;
@@ -122,10 +121,9 @@ void ScaleMonoVO::trackImageLocalBundle2(const cv::Mat& img, const double& times
 				pts0_final, pts1_final, lms1_final);
 			
 			// Update tracking results
-			for(int i = 0; i < lms1_final.size(); ++i){
+			for(int i = 0; i < lms1_final.size(); ++i)
 				lms1_final[i]->addObservationAndRelatedFrame(pts1_final[i], frame_curr);
-			}
-
+			
 
 			// Frame_curr의 자세를 넣는다.
 			dt10 = dt10/dt10.norm()*params_.scale_estimator.initial_scale;
@@ -262,7 +260,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			LandmarkPtrVec lms1_depthok;
 			PixelVec pts1_project;
 
-			if(keyframes_->getList().size() > 5){ // # of keyframes is over 5
+			if(keyframes_->getList().size() > 111111){ // # of keyframes is over 5
 				for(int i = 0; i < lmtrack_scaleok.pts0.size(); ++i){
 					const LandmarkPtr& lm = lmtrack_scaleok.lms[i];
 					if(lm->isBundled()){ 

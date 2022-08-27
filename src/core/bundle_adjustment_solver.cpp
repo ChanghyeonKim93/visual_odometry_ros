@@ -420,7 +420,6 @@ void BundleAdjustmentSolver::zeroizeStorageMatrices(){
         A_[j].setZero();
         a_[j].setZero();
         x_[j].setZero();
-        // params_poses_[j].setZero();
         BCinv_b_[j].setZero();
         am_BCinv_b_[j].setZero();
 
@@ -440,7 +439,6 @@ void BundleAdjustmentSolver::zeroizeStorageMatrices(){
         Cinv_[i].setZero();
         b_[i].setZero();
         y_[i].setZero();
-        // params_points_[i].setZero();
         Bt_x_[i].setZero();
         Cinv_b_[i].setZero();
         CinvBt_x_[i].setZero();
