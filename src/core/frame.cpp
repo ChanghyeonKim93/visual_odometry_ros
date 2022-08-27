@@ -5,10 +5,9 @@ Frame::Frame() : is_keyframe_(false), is_keyframe_in_window_(false), is_turning_
     Twc_ = PoseSE3::Identity();
     Tcw_ = PoseSE3::Identity();
     steering_angle_ = 0.0f;
-    scale_ = 0.0f;
-    id_  = frame_counter_;
-    timestamp_ = 0;
-    ++frame_counter_;
+    scale_          = 0.0f;
+    timestamp_      = 0.0;
+    id_             = frame_counter_++;
 };
 
 void Frame::setPose(const PoseSE3& Twc) { 
@@ -65,10 +64,10 @@ void Frame::outOfKeyframeWindow(){
 void Frame::makeThisTurningFrame(){
     is_turning_frame_ = true;
 };
+
 const uint32_t& Frame::getID() const { 
     return id_; 
 };
-
 const PoseSE3& Frame::getPose() const { 
     return Twc_; 
 };
@@ -88,7 +87,7 @@ const float& Frame::getSteeringAngle() const{
 };
 const float& Frame::getScale() const {
     return scale_;
-}
+};
 
 const cv::Mat& Frame::getImage() const {
     return image_; 

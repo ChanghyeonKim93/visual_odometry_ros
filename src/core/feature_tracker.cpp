@@ -78,7 +78,7 @@ void FeatureTracker::trackBidirection(const cv::Mat& img0, const cv::Mat& img1, 
     std::vector<float> err_backward;
     cv::calcOpticalFlowPyrLK(img1, img0, 
         pts_track, pts0_backward,
-        status_backward, err_backward, cv::Size(window_size,window_size), maxLevel-2, {}, cv::OPTFLOW_USE_INITIAL_FLOW, {});
+        status_backward, err_backward, cv::Size(window_size,window_size), maxLevel-1, {}, cv::OPTFLOW_USE_INITIAL_FLOW, {});
 
     // Check validity.
     for(int i = 0; i < n_pts; ++i){
@@ -93,7 +93,7 @@ void FeatureTracker::trackBidirection(const cv::Mat& img0, const cv::Mat& img1, 
             && status_forward[i]
             && status_backward[i]
             && err_forward[i]  <= thres_err
-            && err_backward[i] <= thres_err*0.5
+            && err_backward[i] <= thres_err
             && dist2 <= thres_bidirection2
         );
     }
@@ -162,9 +162,6 @@ void FeatureTracker::trackWithPrior(const cv::Mat& img0, const cv::Mat& img1, co
 
     int n_pts = pts0.size();
     mask_valid.resize(n_pts, true);
-
-    // Prior vector
-    PixelVec pts_prior = pts_track;
 
     // KLT tracking
     int maxLevel = max_pyr_lvl;
@@ -249,7 +246,7 @@ void FeatureTracker::refineScale(const cv::Mat& img0, const cv::Mat& img1, const
     int win_len    = 2*win_sz+1;
     int win_len_sq = win_len*win_len;
 
-    int MAX_ITER = 150;
+    int   MAX_ITER  = 150;
     float EPS_SCALE = 1e-4;
     float EPS_PIXEL = 1e-3;
     float EPS_TOTAL = 1e-5;
@@ -274,8 +271,8 @@ void FeatureTracker::refineScale(const cv::Mat& img0, const cv::Mat& img1, const
 
     // temporal container
     PixelVec pts_warp(win_len_sq);
-    MaskVec mask_warp_I0(win_len_sq);
-    MaskVec mask_warp_I1(win_len_sq);
+    MaskVec  mask_warp_I0(win_len_sq);
+    MaskVec  mask_warp_I1(win_len_sq);
     
     // Iteratively update for each point.
     for(int i = 0; i < n_pts; ++i) { 
@@ -285,7 +282,7 @@ void FeatureTracker::refineScale(const cv::Mat& img0, const cv::Mat& img1, const
         Eigen::MatrixXf theta(3,1);
         theta(0,0) = 0.0;
         theta(1,0) = 0.0;
-        theta(2,0) = 1.25f; // initial scale. We assume increasing scale.
+        theta(2,0) = 1.15f; // initial scale. We assume increasing scale.
 
         for(int j = 0; j < win_len_sq; ++j) {
             pts_warp[j] = patt[j] + pts0[i];
@@ -320,7 +317,7 @@ void FeatureTracker::refineScale(const cv::Mat& img0, const cv::Mat& img1, const
             Eigen::MatrixXf r(win_len_sq, 1); // R^{N x 1}
             int idx_tmp = 0;
             for(int j = 0; j < win_len_sq; ++j) {
-                if(mask_warp_I0[j] && mask_warp_I1[j]){
+                if(mask_warp_I0[j] && mask_warp_I1[j]) {
                     J(idx_tmp,0) = dI1u_patt[j];
                     J(idx_tmp,1) = dI1v_patt[j];
                     J(idx_tmp,2) = dI1u_patt[j]*patt[j].x + dI1u_patt[j]*patt[j].y;
@@ -334,9 +331,9 @@ void FeatureTracker::refineScale(const cv::Mat& img0, const cv::Mat& img1, const
             Eigen::MatrixXf H(3,3);                // equal to J^t*J, R^{3 x 3}
             Eigen::MatrixXf HinvJt(3,win_len_sq); // R^{3 x N}
 
-            J = J.block(0,0,idx_tmp,3);
-            r = r.block(0,0,idx_tmp,1);
-            H = J.transpose()*J;
+            J      = J.block(0,0,idx_tmp,3);
+            r      = r.block(0,0,idx_tmp,1);
+            H      = J.transpose()*J;
             HinvJt = H.inverse()*J.transpose();
             HinvJt = HinvJt;
 
@@ -357,7 +354,6 @@ void FeatureTracker::refineScale(const cv::Mat& img0, const cv::Mat& img1, const
 
         // push results
         if(err_curr < 20 && theta(2,0) > 0.8 && theta(2,0) < 1.3) {
-            
             pts_track[i].x += theta(0,0);
             pts_track[i].y += theta(1,0);
             mask_valid[i] = true;

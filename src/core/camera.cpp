@@ -164,7 +164,7 @@ void Camera::undistortImage(const cv::Mat& raw, cv::Mat& rectified) {
 	cv::remap(img_float, rectified, this->distorted_map_u_, this->distorted_map_v_, cv::INTER_LINEAR);
 };
 
-void Camera::undistortPixels(const PixelVec& pts_raw, PixelVec& pts_undist){
+void Camera::undistortPixels(const PixelVec& pts_raw, PixelVec& pts_undist){ // 점만 undistort 하는 것. 연산량 매우 줄여줄 수 있다.
 	uint32_t n_pts = pts_raw.size();
 	pts_undist.resize(n_pts);
 

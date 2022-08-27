@@ -45,8 +45,8 @@ void FeatureExtractor::initParams(int n_cols, int n_rows, int n_bins_u, int n_bi
 	this->params_orb_.n_bins_v = this->n_bins_v_;
 
 	extractor_orb_->setMaxFeatures(100);
-	extractor_orb_->setScaleFactor(1.05);
-	extractor_orb_->setNLevels(1);
+	extractor_orb_->setScaleFactor(1.1);
+	extractor_orb_->setNLevels(8);
 	extractor_orb_->setEdgeThreshold(6);
 	extractor_orb_->setFirstLevel(0);
 	extractor_orb_->setWTA_K(2);
@@ -65,8 +65,8 @@ void FeatureExtractor::resetWeightBin() {
 };
 
 void FeatureExtractor::suppressCenterBins(){
-	int u_cent = params_orb_.n_bins_u/2;	
-	int v_cent = params_orb_.n_bins_v/2;
+	int u_cent = params_orb_.n_bins_u*0.5;	
+	int v_cent = params_orb_.n_bins_v*0.5;
 
 
 	int win_sz_u = (int)(0.15f*params_orb_.n_bins_u);
@@ -167,10 +167,10 @@ void FeatureExtractor::extractORBwithBinning(const cv::Mat& img, PixelVec& pts_e
 					else u_offset = u_idx[u] - overlap - 1;
 
 					std::sort(fts_tmp.begin(), fts_tmp.end(), [](const cv::KeyPoint &a, const cv::KeyPoint &b) { return a.response > b.response; });
-					if (flag_nonmax_ == true && fts_tmp.size() > NUM_NONMAX_) { // select most responsive point in a bin
+					if (flag_nonmax_ == true && fts_tmp.size() > NUM_NONMAX_) // select most responsive point in a bin
 						fts_tmp.resize(NUM_NONMAX_); // maximum two points.
-					}
-					else fts_tmp.resize(1);
+					else 
+						fts_tmp.resize(1);
 
 					cv::Point2f pt_offset(u_offset, v_offset);
 					for (auto it : fts_tmp) {
