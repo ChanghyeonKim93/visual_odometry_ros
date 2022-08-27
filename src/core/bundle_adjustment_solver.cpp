@@ -267,8 +267,7 @@ void BundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
                     }
 
                     if(is_optimizable_keyframe_j && is_optimizable_keyframe_k){
-                        Mat66 BCinvBt_tmp = BCinv_[j][i]*Bt_[i][k];
-                        BCinvBt_[j][k] += BCinvBt_tmp;  // FILL STORAGE (7)
+                        BCinvBt_[j][k] += BCinv_[j][i]*Bt_[i][k];  // FILL STORAGE (7)
                     }
                 }
             } // END jj
@@ -276,7 +275,7 @@ void BundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
 
         for(int j = 0; j < N_opt_; ++j)
             for(int k = j; k < N_opt_; ++k)
-                BCinvBt_[k][j] = BCinvBt_[j][k];
+                BCinvBt_[k][j] = BCinvBt_[j][k].transpose();
             
         for(int j = 0; j < N_opt_; ++j){
             for(int k = 0; k < N_opt_; ++k){
@@ -320,10 +319,10 @@ void BundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
                 
         // Update step
         for(int j = 0; j < N_opt_; ++j)
-            params_poses_[j] += 0.3*x_[j];
+            params_poses_[j] += x_[j];
         for(int i = 0; i < M_; ++i){
             if(abs(C_[i].determinant()) >= 0.0001) {
-                params_points_[i] += 0.5*y_[i];
+                params_points_[i] += y_[i];
             }
         }
 

@@ -1451,7 +1451,7 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     float THRES_PARALLAX    = 0.2*D2R; // landmark의 최소 parallax
 
     // Optimization paarameters
-    int   MAX_ITER          = 5;
+    int   MAX_ITER          = 10;
 
     float lam               = 1e-3;  // for Levenberg-Marquardt algorithm
     float MAX_LAM           = 1.0f;  // for Levenberg-Marquardt algorithm
