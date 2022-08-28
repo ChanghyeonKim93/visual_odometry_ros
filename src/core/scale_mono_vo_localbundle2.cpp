@@ -247,7 +247,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			Pos3 tcw_prev = Tcw_prev.block<3,1>(0,3);
 			LandmarkPtrVec lms1_depthok;
 			PixelVec pts1_project;
-			if(keyframes_->getList().size() > 1111115){ // # of keyframes is over 5
+			if(keyframes_->getList().size() > 50000000){ // # of keyframes is over 5
 				for(int i = 0; i < lmtrack_scaleok.pts0.size(); ++i){
 					const LandmarkPtr& lm = lmtrack_scaleok.lms[i];
 					if( lm->isBundled() ) {
@@ -264,7 +264,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 				for(int i = 0; i < lmtrack_scaleok.pts0.size(); ++i){
 					const LandmarkPtr& lm = lmtrack_scaleok.lms[i];
 					if(lm->isTriangulated() && lm->getAge() > 1 
-					&& lm->getMaxParallax() > 0.5*D2R){ 
+					&& lm->getMaxParallax() > 0.3*D2R){ 
 						Point Xp = Rcw_prev * lm->get3DPoint() + tcw_prev;
 						if(Xp(2) > 0){
 							pts1_depth_ok.push_back(lmtrack_scaleok.pts1[i]);
@@ -424,14 +424,14 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 					pt0_proj.y = cam_->fy()*X0(1)*invz0 + cam_->cy();
 					Pixel dpt0 = pt0 - pt0_proj;
 					float dpt0_norm2 = dpt0.x*dpt0.x + dpt0.y*dpt0.y;
-					if(dpt0_norm2 > 1.5) continue;
+					if(dpt0_norm2 > 1.0) continue;
 
 					Pixel pt1_proj; float invz1 = 1.0f/X1(2);
 					pt1_proj.x = cam_->fx()*X1(0)*invz1 + cam_->cx();
 					pt1_proj.y = cam_->fy()*X1(1)*invz1 + cam_->cy();
 					Pixel dpt1 = pt1 - pt1_proj;
 					float dpt1_norm2 = dpt1.x*dpt1.x + dpt1.y*dpt1.y;
-					if(dpt1_norm2 > 1.5) continue;
+					if(dpt1_norm2 > 1.0) continue;
 
 					// std::cout << "dpt0 and dpt1 : " << dpt0_norm2 <<", " << dpt1_norm2 << "\n";
 

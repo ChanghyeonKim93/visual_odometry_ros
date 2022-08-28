@@ -234,8 +234,8 @@ void BundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
             // For i-th landmark, fill other storages
             if(abs(C_[i].determinant()) < 0.0001) {
                 // std::cout << i <<"-th point C[i] det: " <<C_[i].determinant() << std::endl;
-                Cinv_[i] = 0.1*Mat33::Identity();
-                C_[i] = 100*Mat33::Identity();
+                Cinv_[i] = 0.0001*Mat33::Identity();
+                C_[i] = 1000*Mat33::Identity();
             }
             else Cinv_[i] = C_[i].inverse(); // FILL STORAGE (3-1)
             

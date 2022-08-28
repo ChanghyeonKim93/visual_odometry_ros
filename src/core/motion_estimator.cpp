@@ -647,10 +647,10 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
     mask_inlier.resize(n_pts);
     
     int MAX_ITER = 250;
-    float THRES_HUBER        = 3.0f; // pixels
+    float THRES_HUBER        = 2.5f; // pixels
     float THRES_DELTA_XI     = 1e-7;
     float THRES_DELTA_ERROR  = 1e-5;
-    float THRES_REPROJ_ERROR = 5.0f; // pixels
+    float THRES_REPROJ_ERROR = 6.0f; // pixels
 
     float lambda = 0.001f;
     float step_size = 1.0f;
@@ -1448,7 +1448,7 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
 
     int THRES_AGE           = 2; // landmark의 최소 age
     int THRES_MINIMUM_SEEN  = 2; // landmark의 최소 관측 keyframes
-    float THRES_PARALLAX    = 0.3*D2R; // landmark의 최소 parallax
+    float THRES_PARALLAX    = 0.2*D2R; // landmark의 최소 parallax
 
     // Optimization paraameters
     int   MAX_ITER          = 6;
@@ -1457,7 +1457,7 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     float MAX_LAM           = 1.0f;  // for Levenberg-Marquardt algorithm
     float MIN_LAM           = 1e-4f; // for Levenberg-Marquardt algorithm
 
-    float THRES_HUBER       = 2.0f;
+    float THRES_HUBER       = 1.0f;
     float THRES_HUBER_MIN   = 0.3f;
     float THRES_HUBER_MAX   = 20.0f;
 
@@ -1513,7 +1513,7 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
         const PixelVec&    pts_on_kfs    = lm->getObservationsOnKeyframes();
         for(int j = 0; j < kfvec_related.size(); ++j) {
             if(kfvec_related[j]->isKeyframeInWindow()){ //window keyframe만으로 제한
-            // if(kfvec_related[j]->getID() > id_latest_keyframe-THRES_NUM_MAXIMUM_PAST_KEYFRAME_ID){ // 모든 keyframe으로 확장.
+            // if(kfvec_related[j]->getID() < id_latest_keyframe-THRES_NUM_MAXIMUM_PAST_KEYFRAME_ID){ // 모든 keyframe으로 확장.
                 lm_ba.kfs_seen.push_back(kfvec_related[j]);
                 lm_ba.pts_on_kfs.push_back(pts_on_kfs[j]);
             }
