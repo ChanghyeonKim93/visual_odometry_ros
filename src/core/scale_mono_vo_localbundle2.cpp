@@ -162,7 +162,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			// lms1_final 중, depth가 복원되지 않은 경우 복원해준다.
 			uint32_t cnt_recon = 0 ;
 			for(auto lm : lmtrack_final.lms){
-				if( !lm->isTriangulated() && lm->getMaxParallax() >= 0.3f*D2R){
+				if( !lm->isTriangulated() && lm->getMaxParallax() >= 0.2f*D2R){
 					if(lm->getObservations().size() != lm->getRelatedFramePtr().size())
 						throw std::runtime_error("lm->getObservations().size() != lm->getRelatedFramePtr().size()\n");
 
@@ -221,7 +221,9 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 
 			// frame_prev_ 의 lms 를 현재 이미지로 track. 5ms
 			MaskVec  mask_track;
-			tracker_->trackWithPrior(I0, I1, lmtrack_prev.pts0, params_.feature_tracker.window_size, params_.feature_tracker.max_level, params_.feature_tracker.thres_error,
+			// tracker_->trackWithPrior(I0, I1, lmtrack_prev.pts0, params_.feature_tracker.window_size, params_.feature_tracker.max_level, params_.feature_tracker.thres_error,
+				// lmtrack_prev.pts1, mask_track);
+			tracker_->trackBidirectionWithPrior(I0, I1, lmtrack_prev.pts0, params_.feature_tracker.window_size, params_.feature_tracker.max_level, params_.feature_tracker.thres_error, params_.feature_tracker.thres_bidirection,
 				lmtrack_prev.pts1, mask_track);
 
 			LandmarkTracking lmtrack_kltok;
@@ -247,7 +249,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			Pos3 tcw_prev = Tcw_prev.block<3,1>(0,3);
 			LandmarkPtrVec lms1_depthok;
 			PixelVec pts1_project;
-			if(keyframes_->getList().size() > 50000000){ // # of keyframes is over 5
+			if(keyframes_->getList().size() > 5){ // # of keyframes is over 5
 				for(int i = 0; i < lmtrack_scaleok.pts0.size(); ++i){
 					const LandmarkPtr& lm = lmtrack_scaleok.lms[i];
 					if( lm->isBundled() ) {
@@ -264,7 +266,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 				for(int i = 0; i < lmtrack_scaleok.pts0.size(); ++i){
 					const LandmarkPtr& lm = lmtrack_scaleok.lms[i];
 					if(lm->isTriangulated() && lm->getAge() > 1 
-					&& lm->getMaxParallax() > 0.3*D2R){ 
+					&& lm->getLastParallax() > 0.2*D2R){ 
 						Point Xp = Rcw_prev * lm->get3DPoint() + tcw_prev;
 						if(Xp(2) > 0){
 							pts1_depth_ok.push_back(lmtrack_scaleok.pts1[i]);
@@ -405,7 +407,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 		uint32_t cnt_recon = 0;
 		
 		for(auto lm : frame_curr->getRelatedLandmarkPtr()){
-			if(!lm->isTriangulated() && lm->getLastParallax() >= 0.3f*D2R){
+			if(!lm->isTriangulated() && lm->getLastParallax() >= 0.2f*D2R){
 				if(lm->getObservationsOnKeyframes().size() > 1){ // 2번 이상 keyframe에서 보였다.
 					const Pixel& pt0 = lm->getObservationsOnKeyframes().front();
 					const Pixel& pt1 = lm->getObservationsOnKeyframes().back();

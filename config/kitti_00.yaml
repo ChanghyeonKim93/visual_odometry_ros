@@ -54,7 +54,7 @@ scale_estimator.thres_parallax_use: 0.5 # degrees
 scale_estimator.thres_parallax_recon: 20.0 # degrees
 
 # Parameters of keyframe update
-keyframe_update.thres_alive_ratio: 0.7
+keyframe_update.thres_alive_ratio: 0.8
 keyframe_update.thres_mean_parallax: 1.0
 
 # Parameters of map update
