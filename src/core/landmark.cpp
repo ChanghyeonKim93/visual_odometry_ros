@@ -3,39 +3,52 @@
 std::shared_ptr<Camera> Landmark::cam_ = nullptr;
 
 Landmark::Landmark()
-: Xw_(0,0,0), x_front_(0,0,0), invd_(0.0f), cov_invd_(100000.0f), id_(landmark_counter_++), age_(0), is_alive_(true), is_triangulated_(false), is_bundled_(false)
+: id_(landmark_counter_++), age_(0), 
+Xw_(0,0,0), x_front_(0,0,0), 
+invd_(0.0f), cov_invd_(100000.0f), 
+is_alive_(true), is_triangulated_(false), is_bundled_(false)
 {
-    min_optflow_ = 1000.0f;
-    max_optflow_ = 0.0f;
-    avg_optflow_ = 0.0f;
-    last_optflow_ = 0.0f;
-
     min_parallax_ = 1000.0f;
     max_parallax_ = 0.0f;
     avg_parallax_ = 0.0f;
     last_parallax_ = 0.0f;
 
-    observations_.reserve(30);
-    related_frames_.reserve(30);
+    min_optflow_ = 1000.0f;
+    max_optflow_ = 0.0f;
+    avg_optflow_ = 0.0f;
+    last_optflow_ = 0.0f;
+
+    observations_.reserve(100);
+    related_frames_.reserve(100);
+    observations_on_keyframes_.reserve(100);
+    related_keyframes_.reserve(100);
 };  
 Landmark::Landmark(const Pixel& p, const FramePtr& frame)
-: Xw_(0,0,0), x_front_(0,0,0), invd_(0.0f), cov_invd_(100000.0f), id_(landmark_counter_++), age_(0), is_alive_(true), is_triangulated_(false), is_bundled_(false)
+: id_(landmark_counter_++), age_(0), 
+Xw_(0,0,0), x_front_(0,0,0), 
+invd_(0.0f), cov_invd_(100000.0f), 
+is_alive_(true), is_triangulated_(false), is_bundled_(false)
 {
     addObservationAndRelatedFrame(p, frame);
-    x_front_ << (p.x-cam_->cx())*cam_->fxinv(), (p.y-cam_->cy())*cam_->fyinv(), 1.0f;
+ 
+    x_front_(0)= (p.x-cam_->cx())*cam_->fxinv();
+    x_front_(1)= (p.y-cam_->cy())*cam_->fyinv();
+    x_front_(2)= 1.0f;
 
-    min_optflow_ = 1000.0f;
-    max_optflow_ = 0.0f;
-    avg_optflow_ = 0.0f;
-    last_optflow_ = 0.0f;
-
-    min_parallax_ = 1000.0f;
-    max_parallax_ = 0.0f;
-    avg_parallax_ = 0.0f;
+    min_parallax_  = 1000.0f;
+    max_parallax_  = 0.0f;
+    avg_parallax_  = 0.0f;
     last_parallax_ = 0.0f;
 
-    observations_.reserve(30);
-    related_frames_.reserve(30);
+    min_optflow_   = 1000.0f;
+    max_optflow_   = 0.0f;
+    avg_optflow_   = 0.0f;
+    last_optflow_  = 0.0f;
+
+    observations_.reserve(100);
+    related_frames_.reserve(100);
+    observations_on_keyframes_.reserve(100);
+    related_keyframes_.reserve(100);
 };  
 
 Landmark::~Landmark(){
@@ -63,17 +76,17 @@ void Landmark::updateInverseDepth(float invd_curr, float cov_invd_curr)
     const PoseSE3& Twf = related_frames_.front()->getPose();
     Xw_ = Twf.block<3,3>(0,0)*Xf + Twf.block<3,1>(0,3);
 };
+
 void Landmark::addObservationAndRelatedFrame(const Pixel& p, const FramePtr& frame) {
+    ++age_;
     observations_.push_back(p);
     related_frames_.push_back(frame);
-    if(observations_.size() != related_frames_.size()){
+    if(observations_.size() != related_frames_.size())
         throw std::runtime_error("observeation.size() != related_frames_.size(). please check.");
-    }
-    ++age_;
-    if(observations_.size() == 1){
+    
+    if(observations_.size() == 1)
         return;
-    }
-
+    
     // Calculate parallax w.r.t. the oldest pixel
     // const Pixel& p0 = observations_[observations_.size()-2];
     const Pixel& p0 = observations_.front();
@@ -91,7 +104,6 @@ void Landmark::addObservationAndRelatedFrame(const Pixel& p, const FramePtr& fra
     if(costheta >=  1) costheta =  0.999f;
     if(costheta <= -1) costheta = -0.999f;
 
-    
     float parallax_curr = acos(costheta);
     last_parallax_ = parallax_curr;
     if(max_parallax_ <= parallax_curr) max_parallax_ = parallax_curr;
@@ -116,8 +128,8 @@ void Landmark::addObservationAndRelatedFrame(const Pixel& p, const FramePtr& fra
 };    
 
 void Landmark::addObservationAndRelatedKeyframe(const Pixel& p, const FramePtr& kf){
-    related_keyframes_.push_back(kf);
     observations_on_keyframes_.push_back(p);
+    related_keyframes_.push_back(kf);
 };
 
 void               Landmark::setDead()                  { is_alive_ = false; };

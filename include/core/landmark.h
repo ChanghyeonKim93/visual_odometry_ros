@@ -20,34 +20,34 @@
 */
 class Landmark{
 private:
-    uint32_t id_;
-    Point    Xw_;
-    Point    x_front_;
+    uint32_t id_; // feature unique id
+    Point    Xw_; // 3D point represented in the global frame.
+    Point    x_front_; // normalized 3D point represented in the first seen image.
 
-    float invd_;
-    float cov_invd_;
+    float invd_; // inverse depth of the 3D point represented in the first seen image.
+    float cov_invd_; // covariance of the inverse depth 
 
-    PixelVec observations_;
-    FramePtrVec related_frames_;
+    PixelVec observations_; // 2D pixel observation history of this landmark
+    FramePtrVec related_frames_; // frame history where this landmark was seen
 
 // keyframes
 private:
-    PixelVec observations_on_keyframes_;
-    FramePtrVec related_keyframes_;
+    PixelVec observations_on_keyframes_; // 2D pixel observation history of this landmark
+    FramePtrVec related_keyframes_; // frame history where this landmark was seen
 
 // status
 private:
-    bool is_alive_;
-    bool is_triangulated_;
-    bool is_bundled_;
+    bool is_alive_; // alive flag
+    bool is_triangulated_; // triangulated flag
+    bool is_bundled_; // bundled flag
 
-    uint32_t age_;
+    uint32_t age_; // tracking age
 
-    float min_parallax_;
-    float max_parallax_;
-    float avg_parallax_;
-    float last_parallax_;
-
+    float min_parallax_; // the smallest parallax 
+    float max_parallax_; // the largest parallax
+    float avg_parallax_; // average parallax
+    float last_parallax_; // the last parallax
+ 
     float min_optflow_;
     float max_optflow_;
     float avg_optflow_;
@@ -56,13 +56,13 @@ private:
     // Eigen::Vector3f normal_vector_;
 
 public: // static counter
-    inline static uint32_t landmark_counter_ = 0;
-    static std::shared_ptr<Camera> cam_;
+    inline static uint32_t landmark_counter_ = 0; // unique id counter.
+    static std::shared_ptr<Camera> cam_; // camera object.
 
 public:
-    Landmark();
-    Landmark(const Pixel& p, const FramePtr& frame);
-    ~Landmark();
+    Landmark(); // cosntructor
+    Landmark(const Pixel& p, const FramePtr& frame); // constructor with observation.
+    ~Landmark();// destructor
 
     void addObservationAndRelatedFrame(const Pixel& p, const FramePtr& frame);
     void addObservationAndRelatedKeyframe(const Pixel& p, const FramePtr& frame);

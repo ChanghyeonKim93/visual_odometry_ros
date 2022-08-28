@@ -4,30 +4,28 @@ Keyframes::Keyframes()
 : THRES_OVERLAP_FEATURE_RATIO_(0.7f),
 THRES_ROTATION_(1.0f*D2R),
 THRES_TRANSLATION_(2.0f),
-n_max_keyframes_(7)
+N_MAX_KEYFRAMES_IN_WINDOW_(7)
 { 
 
 };
 
 void Keyframes::setMaxKeyframes(int max_kf){
-    n_max_keyframes_ = max_kf;
+    N_MAX_KEYFRAMES_IN_WINDOW_ = max_kf;
 };
 
 void Keyframes::addNewKeyframe(const FramePtr& frame){
-    if(kfs_list_.size() == n_max_keyframes_) {
-        all_keyframes_.push_back(kfs_list_.front()); // keyframe window에서 제외된 키프레임들을 저장.
+    frame->makeThisKeyframe(); // 새 keyframe이 됨을 표시. (추가시에는 당연히 keyframe window로 들어옴)
+    all_keyframes_.push_back(frame); // keyframe 저장.
+
+    if(kfs_list_.size() == N_MAX_KEYFRAMES_IN_WINDOW_) {
         kfs_list_.front()->outOfKeyframeWindow(); // keyframe window에서 제거됨을 표시.
         kfs_list_.pop_front(); // keyframe window에서 제거.
     }
-    frame->makeThisKeyframe(); // 새 keyframe이 됨을 표시. (추가시에는 당연히 keyframe window로 들어옴)
     kfs_list_.push_back(frame); // 새 keyframe을 추가.
-
+    
     // 새로 추가된 keyframe과 관련된 landmark 정보를 업데이트.
-    const LandmarkPtrVec& lms = frame->getRelatedLandmarkPtr();
-    for(int i = 0; i < lms.size(); ++i){
-        const LandmarkPtr& lm = lms[i];
+    for(auto lm : frame->getRelatedLandmarkPtr())
         lm->addObservationAndRelatedKeyframe(lm->getObservations().back(), frame);
-    }
 };
 
 bool Keyframes::checkUpdateRule(const FramePtr& frame_curr){
@@ -95,5 +93,5 @@ int Keyframes::getCurrentNumOfKeyframes() const {
 };
 
 int Keyframes::getMaxNumOfKeyframes() const {
-    return n_max_keyframes_;
+    return N_MAX_KEYFRAMES_IN_WINDOW_;
 };

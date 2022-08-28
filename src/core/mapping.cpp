@@ -6,16 +6,13 @@ namespace Mapping{
                         const Eigen::Matrix3f& R10, const Eigen::Vector3f& t10, const std::shared_ptr<Camera>& cam, 
                         PointVec& X0, PointVec& X1)
     {
-
         if(pts0.size() != pts1.size() )
             throw std::runtime_error("pts0.size() != pts1.size()");
 
-        int   n_pts = pts0.size(); 
+        int n_pts = pts0.size(); 
 
-        float fx = cam->fx();
-        float fy = cam->fy();
-        float cx = cam->cx();
-        float cy = cam->cy();
+        float fx = cam->fx(); float fy = cam->fy();
+        float cx = cam->cx(); float cy = cam->cy();
 
         Eigen::Matrix<float,3,4> P00;
         Eigen::Matrix<float,3,4> P10;
@@ -23,8 +20,7 @@ namespace Mapping{
         P00 << cam->K(),Eigen::Vector3f::Zero();
         P10 << cam->K()*R10, cam->K()*t10;
 
-        Eigen::Matrix4f M; 
-        M.setZero();
+        Eigen::Matrix4f M; M.setZero();
         // Constant elements
         M(0,0) = -fx; M(0,1) =   0; M(0,3) = 0; 
         M(1,0) =   0; M(1,1) = -fy; M(1,3) = 0; 
@@ -32,8 +28,8 @@ namespace Mapping{
         X0.resize(n_pts);
         X1.resize(n_pts);
         for(int i = 0; i < n_pts; ++i){
-            float u0 = pts0[i].x; float v0 = pts0[i].y;
-            float u1 = pts1[i].x; float v1 = pts1[i].y;
+            const float& u0 = pts0[i].x; const float& v0 = pts0[i].y;
+            const float& u1 = pts1[i].x; const float& v1 = pts1[i].y;
 
             // M(0,0) = -fx; M(0,1) =   0; M(0,2) = u0-cx; M(0,3) = 0; 
             // M(1,0) =   0; M(1,1) = -fy; M(1,2) = v0-cy; M(1,3) = 0; 
@@ -57,10 +53,8 @@ namespace Mapping{
                         const Eigen::Matrix3f& R10, const Eigen::Vector3f& t10, const std::shared_ptr<Camera>& cam, 
                         Point& X0, Point& X1)
     {
-        const float& fx = cam->fx();
-        const float& fy = cam->fy();
-        const float& cx = cam->cx();
-        const float& cy = cam->cy();
+        const float& fx = cam->fx(); const float& fy = cam->fy();
+        const float& cx = cam->cx(); const float& cy = cam->cy();
 
         Eigen::Matrix<float,3,4> P00;
         Eigen::Matrix<float,3,4> P10;
@@ -68,8 +62,7 @@ namespace Mapping{
         P00 << cam->K(),Eigen::Vector3f::Zero();
         P10 << cam->K()*R10, cam->K()*t10;
 
-        Eigen::Matrix4f M; 
-        M.setZero();
+        Eigen::Matrix4f M;  M.setZero();
         // Constant elements
         M(0,0) = -fx; M(0,1) =   0; M(0,3) = 0; 
         M(1,0) =   0; M(1,1) = -fy; M(1,3) = 0; 
