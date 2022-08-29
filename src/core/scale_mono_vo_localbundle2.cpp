@@ -10,8 +10,6 @@
  * @date 10-July-2022
  */
 void ScaleMonoVO::trackImageLocalBundle2(const cv::Mat& img, const double& timestamp){
-	
-	float THRES_ZNCC    = 0.90f;
 	float THRES_SAMPSON = 5.0f;
 
 	// Generate statistics
@@ -344,8 +342,8 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			std::vector<float> symm_epi_dist;
 			motion_estimator_->calcSampsonDistance(lmtrack_motion.pts0, lmtrack_motion.pts1, cam_, dT10.block<3,3>(0,0), dT10.block<3,1>(0,3), symm_epi_dist);
 			MaskVec mask_sampson(lmtrack_motion.pts0.size(),true);
-			for(int i = 0; i < mask_sampson.size(); ++i)
-				mask_sampson[i] = symm_epi_dist[i] < THRES_SAMPSON;
+			// for(int i = 0; i < mask_sampson.size(); ++i)
+			// 	mask_sampson[i] = symm_epi_dist[i] < THRES_SAMPSON;
 			
 			LandmarkTracking lmtrack_final;
 			std::cout << "# of samps : " << this->pruneInvalidLandmarks(lmtrack_motion, mask_sampson, lmtrack_final) << std::endl;

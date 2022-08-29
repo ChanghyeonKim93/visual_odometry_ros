@@ -647,10 +647,10 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
     mask_inlier.resize(n_pts);
     
     int MAX_ITER = 250;
-    float THRES_HUBER        = 2.5f; // pixels
+    float THRES_HUBER        = 8.0f; // pixels
     float THRES_DELTA_XI     = 1e-7;
     float THRES_DELTA_ERROR  = 1e-5;
-    float THRES_REPROJ_ERROR = 6.0f; // pixels
+    float THRES_REPROJ_ERROR = 12.0f; // pixels
 
     float lambda = 0.001f;
     float step_size = 1.0f;
@@ -1274,7 +1274,7 @@ bool MotionEstimator::localBundleAdjustment(const std::shared_ptr<Keyframes>& kf
                     Mat66 Qij_t_Qij = Qij.transpose()*Qij; // fixed pose, opt. pose
                     Mat63 Qij_t_Rij = Qij.transpose()*Rij; // fixed pose, opt. pose
                     Mat36 Rij_t_Qij = Qij_t_Rij.transpose(); // fixed pose, opt. pose
-                    Vec6 Qij_t_rij = Qij.transpose()*rij; // fixed pose, opt. pose
+                    Vec6  Qij_t_rij = Qij.transpose()*rij; // fixed pose, opt. pose
                     if(flag_weight){
                         Qij_t_Qij *= weight;
                         Qij_t_Rij *= weight;
@@ -1284,10 +1284,10 @@ bool MotionEstimator::localBundleAdjustment(const std::shared_ptr<Keyframes>& kf
                     // JtWJ(idx_pose0:idx_pose1, idx_pose0:idx_pose1)  += weight*Qij.'*Qij;
                     // JtWJ(idx_pose0:idx_pose1, idx_point0:idx_point1) = weight*Qij.'*Rij;
                     // mJtWr(idx_pose0:idx_pose1,0)   -= weight*Qij.'*rij;
-                    addData(JtWJ, Qij_t_Qij, idx_pose0, idx_pose0, 6,6);
-                    insertData(JtWJ, Qij_t_Rij, idx_pose0, idx_point0, 6,3);
-                    insertData(JtWJ, Rij_t_Qij, idx_point0, idx_pose0, 3,6);          
-                    addData(mJtWr,-Qij_t_rij, idx_pose0, 0, 6,1);
+                    addData(JtWJ,    Qij_t_Qij, idx_pose0,  idx_pose0,  6,6);
+                    insertData(JtWJ, Qij_t_Rij, idx_pose0,  idx_point0, 6,3);
+                    insertData(JtWJ, Rij_t_Qij, idx_point0, idx_pose0,  3,6);          
+                    addData(mJtWr,  -Qij_t_rij, idx_pose0,  0,          6,1);
                 }
 
                 Mat33 Rij_t_Rij = Rij.transpose()*Rij; // fixed pose
@@ -1448,10 +1448,10 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
 
     int THRES_AGE           = 2; // landmark의 최소 age
     int THRES_MINIMUM_SEEN  = 2; // landmark의 최소 관측 keyframes
-    float THRES_PARALLAX    = 0.2*D2R; // landmark의 최소 parallax
+    float THRES_PARALLAX    = 0.3*D2R; // landmark의 최소 parallax
 
     // Optimization paraameters
-    int   MAX_ITER          = 7;
+    int   MAX_ITER          = 10;
 
     float lam               = 1e-3;  // for Levenberg-Marquardt algorithm
     float MAX_LAM           = 1.0f;  // for Levenberg-Marquardt algorithm
@@ -1472,20 +1472,17 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     float THRES_DELTA_THETA = 1e-7;
     float THRES_ERROR       = 1e-7;
 
-    int NUM_MINIMUM_REQUIRED_KEYFRAMES = 5; // 최소 keyframe 갯수.
-    int NUM_FIX_KEYFRAMES_IN_WINDOW    = 4; // optimization에서 제외 할 keyframe 갯수. 과거 순.
+    int NUM_MINIMUM_REQUIRED_KEYFRAMES = 4; // 최소 keyframe 갯수.
+    int NUM_FIX_KEYFRAMES_IN_WINDOW    = 3; // optimization에서 제외 할 keyframe 갯수. 과거 순.
 
-
+    // Check whether there are enough keyframes
     if(kfs_window->getCurrentNumOfKeyframes() < NUM_MINIMUM_REQUIRED_KEYFRAMES){
         std::cout << "  -- Not enough keyframes... at least four keyframes are needed. local BA is skipped.\n";
         return false;
     }
     
     bool flag_success = true;
-
-
     uint32_t id_latest_keyframe = kfs_window->getList().back()->getID();
-
     // Landmarks seen within the keyframe window.
     std::set<LandmarkPtr> lmset_in_window;
     for(auto kf : kfs_window->getList()){

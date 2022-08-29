@@ -427,7 +427,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 		keyframes_->addNewKeyframe(frame_curr);
 		
 		// Do local bundle adjustment for keyframes.
-		motion_estimator_->localBundleAdjustment(keyframes_, cam_);
+		// motion_estimator_->localBundleAdjustment(keyframes_, cam_);
 		// motion_estimator_->localBundleAdjustmentSparseSolver(keyframes_, cam_);
 	}
 	

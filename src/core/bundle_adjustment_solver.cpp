@@ -113,6 +113,8 @@ void BundleAdjustmentSolver::setInitialValues(
 // Solve the BA for fixed number of iterations
 void BundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
 
+    float THRES_DETERMINANT = 0.000000001;
+
     // Intrinsic of lower camera
     const Mat33& K = cam_->K(); const Mat33& Kinv = cam_->Kinv();
     const float& fx = cam_->fx(); const float& fy = cam_->fy();
@@ -125,6 +127,7 @@ void BundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
     // Initialize parameters
     std::vector<float> r_prev(n_obs_, 0.0f);
     float err_prev = 1e10f;
+    bool flag_nan = false;
     for(int iter = 0; iter < MAX_ITER; ++iter){
         // set Poses and Points.
         getPosesPointsFromParameterVector();
@@ -232,10 +235,10 @@ void BundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
             } // END jj
 
             // For i-th landmark, fill other storages
-            if(abs(C_[i].determinant()) < 0.0001) {
+            if(abs(C_[i].determinant()) < THRES_DETERMINANT) {
                 // std::cout << i <<"-th point C[i] det: " <<C_[i].determinant() << std::endl;
-                Cinv_[i] = 0.0001*Mat33::Identity();
-                C_[i] = 1000*Mat33::Identity();
+                Cinv_[i] = 0*Mat33::Identity();
+                C_[i] = 0*Mat33::Identity();
             }
             else Cinv_[i] = C_[i].inverse(); // FILL STORAGE (3-1)
             
@@ -321,29 +324,32 @@ void BundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
         for(int j = 0; j < N_opt_; ++j)
             params_poses_[j] += x_[j];
         for(int i = 0; i < M_; ++i){
-            if(abs(C_[i].determinant()) >= 0.0001) {
+            if(abs(C_[i].determinant()) >= THRES_DETERMINANT) {
                 params_points_[i] += y_[i];
             }
         }
 
         std::cout << iter << "-th iter, error : " << 0.5f*err/(float)n_obs_ << "\n";
+        if(std::isnan(err)) flag_nan = true;
     } // END iter
 
     // Finally, update parameters
-    for(int j = 0; j < N_opt_; ++j){
-        PoseSE3 T_jw;
-        geometry::se3Exp_f(params_poses_[j], T_jw);
-        
-        PoseSE3 T_jw_original = kfvec_optimize_[j]->getPoseInv();
+    if(!flag_nan){
+        for(int j = 0; j < N_opt_; ++j){
+            PoseSE3 T_jw;
+            geometry::se3Exp_f(params_poses_[j], T_jw);
+            
+            PoseSE3 T_jw_original = kfvec_optimize_[j]->getPoseInv();
 
-        // std::cout << j << "-th pose: \n" << T_jw_original.inverse()*T_jw << std::endl;
+            // std::cout << j << "-th pose: \n" << T_jw_original.inverse()*T_jw << std::endl;
 
-        kfvec_optimize_[j]->setPose(T_jw.inverse());
-        Tjw_map_[kfvec_optimize_[j]] = T_jw;
-    }
-    for(int i = 0; i < M_; ++i){
-        lms_ba_[i].lm->setBundled();
-        lms_ba_[i].lm->set3DPoint(lms_ba_[i].X);
+            kfvec_optimize_[j]->setPose(T_jw.inverse());
+            Tjw_map_[kfvec_optimize_[j]] = T_jw;
+        }
+        for(int i = 0; i < M_; ++i){
+            lms_ba_[i].lm->setBundled();
+            lms_ba_[i].lm->set3DPoint(lms_ba_[i].X);
+        }
     }
 
     // Finish
