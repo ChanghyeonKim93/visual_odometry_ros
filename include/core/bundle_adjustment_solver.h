@@ -49,23 +49,23 @@ private:
     BlockVec6 a_; // N_opt x 1 (6x1) +
     BlockVec3 b_; // M x 1 (3x1) +
 
-    BlockVec6 x_; // N_opt blocks (6x1)+
-    BlockVec3 y_; // M blocks (3x1) +
+    BlockVec6 x_; // N_opt  (6x1)+
+    BlockVec3 y_; // M  (3x1) +
 
-    BlockVec6 params_poses_; // parameter vector for poses // N_opt blocks (6x1)
-    BlockVec3 params_points_; // parameter vector for points // M blocks (3x1)
+    BlockVec6 params_poses_;  // N_opt (6x1) parameter vector for poses
+    BlockVec3 params_points_; // M     (3x1) parameter vector for points
 
-    BlockDiagMat33 Cinv_; // M (3x3) block diagonal part for landmarks' 3D points (inverse) +
-    BlockFullMat63 BCinv_; // N_opt X M  (6x3) +
-    BlockFullMat36 CinvBt_; // M x N_opt (3x6) +
+    BlockDiagMat33 Cinv_;    // M (3x3) block diagonal part for landmarks' 3D points (inverse) +
+    BlockFullMat63 BCinv_;   // N_opt X M  (6x3) +
+    BlockFullMat36 CinvBt_;  // M x N_opt (3x6) +
     BlockFullMat66 BCinvBt_; // N_opt x N_opt (6x6) +
-    BlockVec6      BCinv_b_; // N_opt x 1 (6x1) +
-    BlockVec3      Bt_x_; // M x 1 (3x1) +
-    BlockVec3      Cinv_b_; // M_ x 1 (3x1) +
+    BlockVec6      BCinv_b_; // N_opt (6x1) +
+    BlockVec3      Bt_x_;    // M     (3x1) +
+    BlockVec3      Cinv_b_;  // M     (3x1) +
 
     BlockFullMat66 Am_BCinvBt_; // N_opt x N_opt (6x6) +
-    BlockVec6 am_BCinv_b_; // N_opt x 1 (6x1) +
-    BlockVec3 CinvBt_x_; // M_ x 1 (3x1) +
+    BlockVec6      am_BCinv_b_;      // N_opt (6x1) +
+    BlockVec3      CinvBt_x_;        // M (3x1) +
 
     // Input variables  
     LandmarkBAVec lms_ba_; // landmarks to be optimized
@@ -73,12 +73,14 @@ private:
     std::map<FramePtr,int> kfmap_optimize_; // map containing optimizable keyframes and their indexes
     std::vector<FramePtr> kfvec_optimize_;
 
+private:
     // Problem sizes
     int N_;     // # of total poses including fixed poses
     int N_opt_; // # of poses to be optimized
     int M_;     // # of landmarks to be optimized
     int n_obs_;
 
+private:
     // Optimization parameters
     float THRES_HUBER_;
     float THRES_EPS_;

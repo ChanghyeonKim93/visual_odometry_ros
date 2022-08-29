@@ -5,8 +5,8 @@
 
     where
     - Hessian  
-            H = [A_, B_;
-                    Bt_, C_];
+            H = [A_,  B_;
+                 Bt_, C_];
 
     - Jacobian multiplied by residual vector 
             J.transpose()*r = [a;b];
@@ -112,8 +112,8 @@ void BundleAdjustmentSolver::setInitialValues(
 
 // Solve the BA for fixed number of iterations
 void BundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
-
-    float THRES_DETERMINANT = 0.000000001;
+    float MAX_LAMBDA = 20.0f;
+    float MIN_LAMBDA = 1e-5f;
 
     // Intrinsic of lower camera
     const Mat33& K = cam_->K(); const Mat33& Kinv = cam_->Kinv();
@@ -127,6 +127,7 @@ void BundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
     // Initialize parameters
     std::vector<float> r_prev(n_obs_, 0.0f);
     float err_prev = 1e10f;
+    float lambda = 0.01f;
     bool flag_nan = false;
     for(int iter = 0; iter < MAX_ITER; ++iter){
         // set Poses and Points.
@@ -234,14 +235,13 @@ void BundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
                 ++cnt;
             } // END jj
 
-            // For i-th landmark, fill other storages
-            if(abs(C_[i].determinant()) < THRES_DETERMINANT) {
-                // std::cout << i <<"-th point C[i] det: " <<C_[i].determinant() << std::endl;
-                Cinv_[i] = 0*Mat33::Identity();
-                C_[i] = 0*Mat33::Identity();
-            }
-            else Cinv_[i] = C_[i].inverse(); // FILL STORAGE (3-1)
-            
+            // Damping term
+            for(int j = 0; j < N_opt_; ++j)
+                A_[j] += lambda*Mat66::Identity();
+            for(int i = 0; i < M_; ++i)
+                C_[i] += lambda*Mat33::Identity();
+
+            Cinv_[i]   = C_[i].inverse(); // FILL STORAGE (3-1)
             Cinv_b_[i] = Cinv_[i]*b_[i];  // FILL STORAGE (10)
             for(int jj = 0; jj < kfs.size(); ++jj){
                 // For j-th keyframe
@@ -282,8 +282,8 @@ void BundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
             
         for(int j = 0; j < N_opt_; ++j){
             for(int k = 0; k < N_opt_; ++k){
-                if(j != k) Am_BCinvBt_[j][k] =       - BCinvBt_[j][k];
-                else       Am_BCinvBt_[j][k] = A_[j] - BCinvBt_[j][k];
+                if(j == k) Am_BCinvBt_[j][k] = A_[j] - BCinvBt_[j][k];
+                else       Am_BCinvBt_[j][k] =       - BCinvBt_[j][k];
             }
         }
         for(int j = 0; j < N_opt_; ++j) 
@@ -304,16 +304,15 @@ void BundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
         }
         Eigen::MatrixXf x_mat = Am_BCinvBt_mat.ldlt().solve(am_BCinv_b_mat);
         
-        for(int j = 0; j < N_opt_; ++j){
+        for(int j = 0; j < N_opt_; ++j)
             x_[j] = x_mat.block<6,1>(6*j,0);
-        }
+
         for(int i = 0; i < M_; ++i){
             const FramePtrVec& kfs = lms_ba_[i].kfs_seen;
             for(int jj = 0; jj < kfs.size(); ++jj){
                 const FramePtr& kf = kfs[jj];
-                int j = -1;
                 if(kfmap_optimize_.find(kf) != kfmap_optimize_.end() ) { // this is a opt. keyframe.
-                    j = kfmap_optimize_[kf]; // j_opt < N_opt_
+                    int j = kfmap_optimize_[kf]; // j_opt < N_opt_
                     CinvBt_x_[i] += CinvBt_[i][j]*x_[j];
                 }
             }
@@ -323,11 +322,9 @@ void BundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
         // Update step
         for(int j = 0; j < N_opt_; ++j)
             params_poses_[j] += x_[j];
-        for(int i = 0; i < M_; ++i){
-            if(abs(C_[i].determinant()) >= THRES_DETERMINANT) {
-                params_points_[i] += y_[i];
-            }
-        }
+
+        for(int i = 0; i < M_; ++i)
+            params_points_[i] += y_[i];
 
         std::cout << iter << "-th iter, error : " << 0.5f*err/(float)n_obs_ << "\n";
         if(std::isnan(err)) flag_nan = true;
