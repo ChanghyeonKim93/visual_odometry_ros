@@ -4,7 +4,7 @@ MotionEstimator::MotionEstimator(){
     thres_1p_ = 10.0; // pixels
     thres_5p_ = 1.5; // pixels
 
-    ba_solver_ = std::make_shared<BundleAdjustmentSolver>();
+    sparse_ba_solver_ = std::make_shared<SparseBundleAdjustmentSolver>();
 };
 
 MotionEstimator::~MotionEstimator(){
@@ -647,7 +647,7 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
     mask_inlier.resize(n_pts);
     
     int MAX_ITER = 250;
-    float THRES_HUBER        = 8.0f; // pixels
+    float THRES_HUBER        = 2.0f; // pixels
     float THRES_DELTA_XI     = 1e-7;
     float THRES_DELTA_ERROR  = 1e-5;
     float THRES_REPROJ_ERROR = 12.0f; // pixels
@@ -1484,39 +1484,40 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     bool flag_success = true;
     uint32_t id_latest_keyframe = kfs_window->getList().back()->getID();
     // Landmarks seen within the keyframe window.
-    std::set<LandmarkPtr> lmset_in_window;
-    for(auto kf : kfs_window->getList()){
-        for(auto lm : kf->getRelatedLandmarkPtr()){ 
-            if(lm->getAge() >= THRES_AGE && lm->isTriangulated()) // 각 keyframe에서 보였던 lm을 저장. 단, age 가 3 이상인 경우만 포함.
+    std::set<LandmarkPtr> lmset_in_window; // 중복되지않는 landmarkPtr을 저장하기 위함.
+    FramePtrVec kfvec_in_window; // 
+    for(auto kf : kfs_window->getList()) { // 모든 keyframe in window 순회 
+        kfvec_in_window.push_back(kf); // window keyframes 저장.
+
+        for(auto lm : kf->getRelatedLandmarkPtr()){ // 현재 keyframe에서 보인 모든 landmark 순회
+            if(lm->getAge() >= THRES_AGE && lm->isTriangulated()) // age > THRES, triangulate() == true 경우 포함.
                 lmset_in_window.insert(lm);
         }
     }
 
-    FramePtrVec kfvec_in_window; // all keyframes
-    for(auto kf : kfs_window->getList()) 
-        kfvec_in_window.push_back(kf);
-
-    // 각 lm이 보였던 keyframe의 FramePtr을 저장.
-    // 단, 최소 2개 이상의 keyframe 에서 관측되어야 local BA에서 사용함.  
+    // LandmarkBAVec을 만든다.
     LandmarkBAVec lms_ba;
     std::set<FramePtr> kfset_all_related; // 현재 landmark들이 보였던 모든 keyframes.
     for(auto lm : lmset_in_window) { // keyframe window 내에서 보였던 모든 landmark를 순회.
         LandmarkBA lm_ba;
-        lm_ba.lm = lm;
-        lm_ba.X  = lm->get3DPoint();
+        lm_ba.lm = lm; // landmark pointer
+        lm_ba.X  = lm->get3DPoint();  // 3D point represented in the global frame.
+        lm_ba.kfs_seen.reserve(10);   
+        lm_ba.kfs_index.reserve(10); 
+        lm_ba.pts_on_kfs.reserve(10);
 
         // 현재 landmark가 보였던 keyframes을 저장한다.
-        const FramePtrVec& kfvec_related = lm->getRelatedKeyframePtr();
-        const PixelVec&    pts_on_kfs    = lm->getObservationsOnKeyframes();
-        for(int j = 0; j < kfvec_related.size(); ++j) {
-            if(kfvec_related[j]->isKeyframeInWindow()){ //window keyframe만으로 제한
+        for(int j = 0; j < lm->getRelatedKeyframePtr().size(); ++j) {
+            const FramePtr& kf = lm->getRelatedKeyframePtr()[j];
+            const Pixel&    pt = lm->getObservationsOnKeyframes()[j];
+            if(kf->isKeyframeInWindow()){ //window keyframe만으로 제한
             // if(kfvec_related[j]->getID() < id_latest_keyframe-THRES_NUM_MAXIMUM_PAST_KEYFRAME_ID){ // 모든 keyframe으로 확장.
-                lm_ba.kfs_seen.push_back(kfvec_related[j]);
-                lm_ba.pts_on_kfs.push_back(pts_on_kfs[j]);
+                lm_ba.kfs_seen.push_back(kf);
+                lm_ba.pts_on_kfs.push_back(pt);
             }
         }
 
-        // Minimum seen 을 넘긴 경우에만 optimization에 포함.
+        // 충분히 많은 keyframes in window에서 보인 landmark만 최적화에 포함.
         if(lm_ba.kfs_seen.size() >= THRES_MINIMUM_SEEN) {
             lms_ba.push_back(lm_ba); 
             for(int j = 0; j < lm_ba.kfs_seen.size(); ++j)
@@ -1558,19 +1559,19 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
 
     // BA solver.
     timer::tic();
-    ba_solver_->reset();
-    ba_solver_->setCamera(cam);
-    ba_solver_->setProblemSize(N, N_opt, M, n_obs);
-    ba_solver_->setInitialValues(Tjw_map, lms_ba, kfmap_optimize);
-    ba_solver_->setHuberThreshold(THRES_HUBER);
+    sparse_ba_solver_->reset();
+    sparse_ba_solver_->setCamera(cam);
+    sparse_ba_solver_->setProblemSize(N, N_opt, M, n_obs);
+    sparse_ba_solver_->setInitialValues(Tjw_map, lms_ba, kfmap_optimize);
+    sparse_ba_solver_->setHuberThreshold(THRES_HUBER);
     std::cout << "time to prepare: " << timer::toc(0) << " [ms]\n";
 
     timer::tic();
-    ba_solver_->solveForFiniteIterations(MAX_ITER);
+    sparse_ba_solver_->solveForFiniteIterations(MAX_ITER);
     std::cout << "time to solve: " << timer::toc(0) << " [ms]\n";
 
     timer::tic();
-    ba_solver_->reset();
+    sparse_ba_solver_->reset();
     std::cout << "time to reset: "<< timer::toc(0) << " [ms]\n";
 
     return true;

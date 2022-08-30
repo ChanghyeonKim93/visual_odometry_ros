@@ -1,4 +1,4 @@
-#include "core/bundle_adjustment_solver.h"
+#include "core/ba_solver/sparse_bundle_adjustment.h"
 /*
     <Problem we want to solve>
         H*delta_theta = J.transpose()*r;
@@ -15,7 +15,7 @@
             delta_theta = [x;y];
 */
 // A sparse solver for a feature-based Bundle adjustment problem.
-BundleAdjustmentSolver::BundleAdjustmentSolver() {
+SparseBundleAdjustmentSolver::SparseBundleAdjustmentSolver() {
     cam_ = nullptr;
 
     A_.reserve(500); // reserve expected # of optimizable poses (N_opt)
@@ -25,17 +25,17 @@ BundleAdjustmentSolver::BundleAdjustmentSolver() {
 };
 
 // Set Huber threshold
-void BundleAdjustmentSolver::setHuberThreshold(float thres_huber){
+void SparseBundleAdjustmentSolver::setHuberThreshold(float thres_huber){
     THRES_HUBER_ = thres_huber;
 };
 
 // Set camera.
-void BundleAdjustmentSolver::setCamera(const std::shared_ptr<Camera>& cam){
+void SparseBundleAdjustmentSolver::setCamera(const std::shared_ptr<Camera>& cam){
     cam_ = cam;
 };
 
 // Set problem sizes and resize the storages.
-void BundleAdjustmentSolver::setProblemSize(int N, int N_opt, int M, int n_obs){ 
+void SparseBundleAdjustmentSolver::setProblemSize(int N, int N_opt, int M, int n_obs){ 
     // Set sizes
     N_     = N; // # of total keyframes (including fixed frames)
     N_opt_ = N_opt; // # of optimizable keyframes
@@ -91,7 +91,7 @@ void BundleAdjustmentSolver::setProblemSize(int N, int N_opt, int M, int n_obs){
 };
 
 // Set Input Values.
-void BundleAdjustmentSolver::setInitialValues(
+void SparseBundleAdjustmentSolver::setInitialValues(
     const std::map<FramePtr,PoseSE3>& Tjw_map,
     const LandmarkBAVec& lms_ba,
     const std::map<FramePtr,int>& kfmap_optimize)
@@ -106,12 +106,12 @@ void BundleAdjustmentSolver::setInitialValues(
     lms_ba_.resize(lms_ba.size()); // Landmarks
     std::copy(lms_ba.begin(),lms_ba.end(), lms_ba_.begin());
 
-    if(M_ != lms_ba.size()) throw std::runtime_error("In BundleAdjustmentSolver, 'M_ != lms_ba.size()'.");
-    if(N_ != Tjw_map_.size()) throw std::runtime_error("In BundleAdjustmentSolver, 'N_ != Tjw_map_.size()'.");
+    if(M_ != lms_ba.size()) throw std::runtime_error("In SparseBundleAdjustmentSolver, 'M_ != lms_ba.size()'.");
+    if(N_ != Tjw_map_.size()) throw std::runtime_error("In SparseBundleAdjustmentSolver, 'N_ != Tjw_map_.size()'.");
 };
 
 // Solve the BA for fixed number of iterations
-void BundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
+void SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
     float MAX_LAMBDA = 20.0f;
     float MIN_LAMBDA = 1e-5f;
 
@@ -355,7 +355,7 @@ void BundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
 };
 
 // Reset local BA solver.
-void BundleAdjustmentSolver::reset(){
+void SparseBundleAdjustmentSolver::reset(){
     A_.resize(0);
     B_.resize(0);
     Bt_.resize(0);
@@ -387,7 +387,7 @@ void BundleAdjustmentSolver::reset(){
 
     std::cout << "Reset bundle adjustment solver.\n";
 };
-void BundleAdjustmentSolver::setParameterVectorFromPosesPoints(){
+void SparseBundleAdjustmentSolver::setParameterVectorFromPosesPoints(){
     if(kfmap_optimize_.empty()) throw std::runtime_error("kfmap_optimize_.empty() == true.");        // initialize optimization parameter vector.
     // 1) Pose part
     for(auto kf : kfmap_optimize_){
@@ -403,7 +403,7 @@ void BundleAdjustmentSolver::setParameterVectorFromPosesPoints(){
         params_points_[i] = lms_ba_[i].X;
 };
 
-void BundleAdjustmentSolver::getPosesPointsFromParameterVector(){
+void SparseBundleAdjustmentSolver::getPosesPointsFromParameterVector(){
     // Generate parameters
     // xi part 0~5, 6~11, ... 
     int idx = 0;
@@ -417,7 +417,7 @@ void BundleAdjustmentSolver::getPosesPointsFromParameterVector(){
         lms_ba_[i].X = params_points_[i];
 };
 
-void BundleAdjustmentSolver::zeroizeStorageMatrices(){
+void SparseBundleAdjustmentSolver::zeroizeStorageMatrices(){
     // std::cout << "in zeroize \n";
     for(int j = 0; j < N_opt_; ++j){
         A_[j].setZero();

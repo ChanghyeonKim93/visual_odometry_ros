@@ -24,7 +24,7 @@
 #include "core/mapping.h"
 #include "core/landmark.h"
 
-#include "core/bundle_adjustment_solver.h"
+#include "core/ba_solver/sparse_bundle_adjustment.h"
 
 #include "util/histogram.h"
 #include "util/geometry_library.h"
@@ -38,7 +38,7 @@ private:
     float thres_5p_;
 
 private:
-    std::shared_ptr<BundleAdjustmentSolver> ba_solver_;
+    std::shared_ptr<SparseBundleAdjustmentSolver> sparse_ba_solver_;
     
 public:
     MotionEstimator();

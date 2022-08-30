@@ -1,15 +1,22 @@
-#ifndef _BUNDLE_ADJUSTMENT_SOLVER_H_
-#define _BUNDLE_ADJUSTMENT_SOLVER_H_
+#ifndef _SPARSE_BUNDLE_ADJUSTMENT_H_
+#define _SPARSE_BUNDLE_ADJUSTMENT_H_
 
 #include <iostream>
 #include <vector>
+#include <map>
+#include <set>
 
 #include <Eigen/Dense>
-#include "util/geometry_library.h"
-#include "util/timer.h"
+
 #include "core/camera.h"
 #include "core/landmark.h"
+#include "core/frame.h"
 #include "core/type_defines.h"
+
+#include "util/geometry_library.h"
+#include "util/timer.h"
+
+#include "core/ba_solver/ba_parameters.h"
 
 typedef std::vector<Mat66>              BlockDiagMat66; 
 typedef std::vector<Mat33>              BlockDiagMat33; 
@@ -25,8 +32,8 @@ typedef std::vector<Vec3>               BlockVec3;
 
     where
     - Hessian  
-            H = [A_, B_;
-                    Bt_, C_];
+            H = [A_,  B_;
+                 Bt_, C_];
 
     - Jacobian multiplied by residual vector 
             J.transpose()*r = [a;b];
@@ -34,8 +41,9 @@ typedef std::vector<Vec3>               BlockVec3;
     - Update parameters
             delta_theta = [x;y];
 */
+
 // A sparse solver for a feature-based Bundle adjustment problem.
-class BundleAdjustmentSolver{
+class SparseBundleAdjustmentSolver{
 private:
     std::shared_ptr<Camera> cam_;
 
@@ -88,7 +96,7 @@ private:
 public:
     // Constructor for BundleAdjustmentSolver ( se3 (6-DoF), 3D points (3-DoF) )
     // Sparse solver with 6x6 block diagonals, 3x3 block diagonals, 6x3 and 3x6 blocks.
-    BundleAdjustmentSolver();
+    SparseBundleAdjustmentSolver();
 
     // Set Huber threshold
     void setHuberThreshold(float thres_huber);
