@@ -42,8 +42,10 @@
 
 class BALandmark;
 class BAKeyframe;
+
 class LandmarkParameters;
 class KeyframeParameters;
+
 class BundleAdjustmentVariables;
 
 typedef std::shared_ptr<BALandmark> BALandmarkPtr;
@@ -143,28 +145,13 @@ public:
 // Set methods
 public:
     void addLandmark(const LandmarkPtr& lm); // Add a landmark (generate BALandmark)
-    
 
 // Get methods
 public:
-    const BALandmarkPtr& getBALandamrkPtrFromIndex(int i){ // get i-th BALandmark
-        return balms.at(i);
-    };
-    const BALandmarkPtr& getBALandamrkPtrFromOptIndex(int i_opt){ // get i-th optimizable BALandmark
-        return idx2balm.at(i_opt);
-    };
-    int getOptimizeIndex(const LandmarkPtr& lm){ // get optimization index from LandmarkPtr
-        if(lm2idx.find(lm) != lm2idx.end() ) // this is a opt. keyframe.
-            throw std::runtime_error("lm2idx.find(lm) != lm2idx.end()");
-
-        return lm2idx[lm];
-    };
-    int getOptimizeIndex(const BALandmarkPtr& balm){ // get Optimization index from BALandmarkPtr
-        if(balm2idx.find(balm) != balm2idx.end() ) // this is a opt. keyframe.
-            throw std::runtime_error("balm2idx.find(balm) != balm2idx.end()");
-
-        return balm2idx[balm];
-    };
+    const BALandmarkPtr& getBALandamrkPtrFromIndex(int i); // get i-th BALandmark
+    const BALandmarkPtr& getBALandamrkPtrFromOptIndex(int i_opt); // get i-th optimizable BALandmark
+    int getOptimizeIndex(const LandmarkPtr& lm); // get optimization index from LandmarkPtr
+    int getOptimizeIndex(const BALandmarkPtr& balm); // get Optimization index from BALandmarkPtr
 };
 
 /*

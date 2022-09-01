@@ -67,26 +67,60 @@ const FramePtr&       BAKeyframe::getOriginalFramePtr() { return frame_ptr; };
 
 */
 LandmarkParameters::LandmarkParameters(): M(0), M_opt(0){
-    lms.reserve(3000);
+    balms.reserve(3000);
 };
 LandmarkParameters::~LandmarkParameters(){
 
 };
 
 void LandmarkParameters::addLandmark(const LandmarkPtr& lm){
-    BALandmarkPtr balm_ptr = std::make_shared<BALandmark>();
+    BALandmarkPtr balm = std::make_shared<BALandmark>();
 
-    // balm_ptr->addRelatedPixelAndFrame()
+    // 최적화 대상인 keyframe을 추려낸다.
+    // balm->addRelatedPixelAndFrame()
+    const FramePtrVec& kfs_related = lm->getRelatedKeyframePtr();
+    const PixelVec& pts_related    = lm->getObservationsOnKeyframes();
+    for(int jj = 0; jj < kfs_related.size(); ++jj){
+        const FramePtr& kf = kfs_related.at(jj);
+        const Pixel&    pt = pts_related.at(jj);
+        if(kf->isKeyframeInWindow()) // window keyframes
+            balm->addRelatedPixelAndFrame(pt, kf);
+    } // set related points & keyframes.
+
+    // When # of related keyframe > 1, insert.
+    if(balm->getRelatedKeyframes().size() > 1){
+        balm->set3DPoint(lm->get3DPoint()); // set 3D point
+        balm->setLandmarkPtr(lm); // set LandmarkPtr
+
+        // Add this ba landmark.
+        this->balms.push_back(balm);
+        this->balm2idx.insert({balm, M_opt});
+        this->lm2idx.insert({lm, M_opt});
+        this->idx2balm.push_back(balm);
+
+        ++M_opt;
+        ++M;
+
+        std::cout << "# of BA landmark to be optimized: "<< M_opt << std::endl;
+    }
 };
 
-
-const BALandmarkPtr& LandmarkParameters::getLandamrkParameter(int i){
-    return lms[i];
+const BALandmarkPtr& LandmarkParameters::getBALandamrkPtrFromIndex(int i){ // get i-th BALandmark
+    return balms.at(i);
 };
-int LandmarkParameters::getIndexOfLandmark(const BALandmarkPtr& lm){
-    return lms2idx[lm];
+const BALandmarkPtr& LandmarkParameters::getBALandamrkPtrFromOptIndex(int i_opt){ // get i-th optimizable BALandmark
+    return idx2balm.at(i_opt);
 };
-
+int LandmarkParameters::getOptimizeIndex(const LandmarkPtr& lm){ // get optimization index from LandmarkPtr
+    if(lm2idx.find(lm) != lm2idx.end() ) // this is a opt. keyframe.
+        throw std::runtime_error("lm2idx.find(lm) != lm2idx.end()");
+    return lm2idx[lm];
+};
+int LandmarkParameters::getOptimizeIndex(const BALandmarkPtr& balm){ // get Optimization index from BALandmarkPtr
+    if(balm2idx.find(balm) != balm2idx.end() ) // this is a opt. keyframe.
+        throw std::runtime_error("balm2idx.find(balm) != balm2idx.end()");
+    return balm2idx[balm];
+};
 
 
 /*
@@ -95,33 +129,14 @@ int LandmarkParameters::getIndexOfLandmark(const BALandmarkPtr& lm){
 
 */
 KeyframeParameters::KeyframeParameters() : N(0), N_opt(0)  {
-    kfs.reserve(300);
+    bakfs.reserve(300);
 };
 
 KeyframeParameters::~KeyframeParameters(){
 
 };
 
-void KeyframeParameters::addKeyframeParameter(const FramePtr& kf, bool is_optimizable){
-    BAKeyframePtr bakf_ptr = std::make_shared<BAKeyframe>();
-    bakf_ptr->setKeyframePtr(kf);
-    bakf_ptr->setPose(kf->getPoseInv());
+void KeyframeParameters::addKeyframe(const FramePtr& kf, bool is_optimizable)
+{
 
-    // bakf_ptr->addRelatedLandmark;
-    
-    if(is_optimizable == true){
-
-        bakf_ptr->setOptimizableWithIndex(N_opt++);
-
-    }
-    else { // non-optimizable keyframe
-
-    }
-
-    kfs.push_back(bakf_ptr);
-    ++N;
-};
-
-const BAKeyframePtr& KeyframeParameters::getKeyframeParameter(int j){
-    return kfs[j];
 };

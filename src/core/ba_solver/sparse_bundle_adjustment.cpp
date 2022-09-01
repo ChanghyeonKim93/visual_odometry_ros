@@ -24,6 +24,39 @@ SparseBundleAdjustmentSolver::SparseBundleAdjustmentSolver() {
     C_.reserve(1000000); // reserve expected # of optimizable landmarks (M)
 };
 
+// Set connectivities, variables...
+void SparseBundleAdjustmentSolver::setBAParameters(const std::shared_ptr<SparseBAParameters>& ba_params)
+{
+    ba_params_ = ba_params;
+    
+    N_     = ba_params_->getNumOfAllFrames();
+    N_opt_ = ba_params_->getNumOfOptimizeFrames();
+    M_     = ba_params_->getNumOfOptimizeLandmarks();
+    n_obs_ = ba_params_->getNumOfObservations();
+    
+};
+
+// Set Input Values.
+void SparseBundleAdjustmentSolver::setInitialValues(
+    const std::map<FramePtr,PoseSE3>& Tjw_map,
+    const std::vector<LandmarkBA>&    lms_ba,
+    const std::map<FramePtr,int>&     kfmap_optimize)
+{
+    std::copy(Tjw_map.begin(), Tjw_map.end(), std::inserter(Tjw_map_, Tjw_map_.begin()));// Keyframes - Poses map
+    std::copy(kfmap_optimize.begin(), kfmap_optimize.end(), std::inserter(kfmap_optimize_, kfmap_optimize_.begin())); // Keyframes to be opt. - Indexes map.
+    
+    kfvec_optimize_.resize(kfmap_optimize_.size()); // Indexes to keyframes to be opt. (mutually directing)
+    for(auto kf : kfmap_optimize_) 
+        kfvec_optimize_[kf.second] = kf.first;
+
+    lms_ba_.resize(lms_ba.size()); // Landmarks
+    std::copy(lms_ba.begin(),lms_ba.end(), lms_ba_.begin());
+
+    if(M_ != lms_ba.size()) throw std::runtime_error("In SparseBundleAdjustmentSolver, 'M_ != lms_ba.size()'.");
+    if(N_ != Tjw_map_.size()) throw std::runtime_error("In SparseBundleAdjustmentSolver, 'N_ != Tjw_map_.size()'.");
+};
+
+
 // Set Huber threshold
 void SparseBundleAdjustmentSolver::setHuberThreshold(float thres_huber){
     THRES_HUBER_ = thres_huber;
@@ -88,26 +121,6 @@ void SparseBundleAdjustmentSolver::setProblemSize(int N, int N_opt, int M, int n
     Bt_x_.resize(M_);        // 3x1, M x 1 blocks
     CinvBt_x_.resize(M_);
 
-};
-
-// Set Input Values.
-void SparseBundleAdjustmentSolver::setInitialValues(
-    const std::map<FramePtr,PoseSE3>& Tjw_map,
-    const LandmarkBAVec& lms_ba,
-    const std::map<FramePtr,int>& kfmap_optimize)
-{
-    std::copy(Tjw_map.begin(), Tjw_map.end(), std::inserter(Tjw_map_, Tjw_map_.begin()));// Keyframes - Poses map
-    std::copy(kfmap_optimize.begin(), kfmap_optimize.end(), std::inserter(kfmap_optimize_, kfmap_optimize_.begin())); // Keyframes to be opt. - Indexes map.
-    
-    kfvec_optimize_.resize(kfmap_optimize_.size()); // Indexes to keyframes to be opt. (mutually directing)
-    for(auto kf : kfmap_optimize_) 
-        kfvec_optimize_[kf.second] = kf.first;
-
-    lms_ba_.resize(lms_ba.size()); // Landmarks
-    std::copy(lms_ba.begin(),lms_ba.end(), lms_ba_.begin());
-
-    if(M_ != lms_ba.size()) throw std::runtime_error("In SparseBundleAdjustmentSolver, 'M_ != lms_ba.size()'.");
-    if(N_ != Tjw_map_.size()) throw std::runtime_error("In SparseBundleAdjustmentSolver, 'N_ != Tjw_map_.size()'.");
 };
 
 // Solve the BA for fixed number of iterations
