@@ -107,7 +107,12 @@ void SparseBundleAdjustmentSolver::setProblemSize(int N, int N_opt, int M, int n
 };
 
 // Solve the BA for fixed number of iterations
-void SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
+bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
+    
+    bool flag_success = true;
+
+    float THRES_SUCCESS_AVG_ERROR = 3.0f;
+
     float MAX_LAMBDA = 20.0f;
     float MIN_LAMBDA = 1e-5f;
 
@@ -319,18 +324,23 @@ void SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
         }
                 
         // Update step
-        for(int j = 0; j < N_opt_; ++j)
-            params_poses_[j] += x_[j];
+        for(int j_opt = 0; j_opt < N_opt_; ++j_opt)
+            params_poses_[j_opt] += x_[j_opt];
 
         for(int i = 0; i < M_; ++i)
             params_points_[i] += y_[i];
 
+        float average_error = 0.5f*err/(float)n_obs_;
+            
         std::cout << iter << "-th iter, error : " << 0.5f*err/(float)n_obs_ << "\n";
-        if(std::isnan(err)) flag_nan = true;
+
+        // Check extraordinary cases.
+        flag_nan     = std::isnan(err) ? true : false;
+        flag_success = (!flag_nan || average_error <= THRES_SUCCESS_AVG_ERROR) ? true : false;
     } // END iter
 
     // Finally, update parameters
-    if(!flag_nan){
+    if(flag_success && !flag_nan){
         for(int j_opt = 0; j_opt < N_opt_; ++j_opt){
             const FramePtr& kf = ba_params_->getOptFramePtr(j_opt);
             const PoseSE3& Tjw_update = ba_params_->getPose(kf);
@@ -348,10 +358,20 @@ void SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
     // Finish
     // std::cout << "======= Local Bundle adjustment - sucess:" << (flag_success ? "SUCCESS" : "FAILED") << "=======\n";
 
+    return flag_success;
 };
 
 // Reset local BA solver.
 void SparseBundleAdjustmentSolver::reset(){
+    ba_params_ = nullptr;
+    cam_       = nullptr;
+    N_ = 0;
+    N_opt_ = 0;
+    M_ = 0;
+    n_obs_ = 0;
+    THRES_EPS_ = 0;
+    THRES_HUBER_ = 0;
+
     A_.resize(0);
     B_.resize(0);
     Bt_.resize(0);
@@ -376,10 +396,6 @@ void SparseBundleAdjustmentSolver::reset(){
     Am_BCinvBt_.resize(0);
     am_BCinv_b_.resize(0); 
     CinvBt_x_.resize(0);
-
-    // Tjw_map_.clear();
-    // kfmap_optimize_.clear();
-    // lms_ba_.resize(0);
 
     std::cout << "Reset bundle adjustment solver.\n";
 };

@@ -57,7 +57,6 @@ set(SRC ${SRC}
   src/core/feature_tracker.cpp
   src/core/motion_estimator.cpp
 
-  src/core/ba_solver/ba_parameters.cpp
   src/core/ba_solver/sparse_bundle_adjustment.cpp
 
   src/core/scale_estimator.cpp

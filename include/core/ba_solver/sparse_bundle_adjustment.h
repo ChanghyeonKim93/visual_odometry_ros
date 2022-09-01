@@ -16,8 +16,6 @@
 #include "util/geometry_library.h"
 #include "util/timer.h"
 
-#include "core/ba_solver/ba_parameters.h"
-
 typedef std::vector<Mat66>              BlockDiagMat66; 
 typedef std::vector<Mat33>              BlockDiagMat33; 
 typedef std::vector<std::vector<Mat63>> BlockFullMat63; 
@@ -330,7 +328,7 @@ public:
     void setCamera(const std::shared_ptr<Camera>& cam);
 
     // Solve the BA for fixed number of iterations
-    void solveForFiniteIterations(int MAX_ITER);
+    bool solveForFiniteIterations(int MAX_ITER);
 
     // Reset local BA solver.
     void reset();
@@ -338,7 +336,7 @@ public:
 private:
     // Set problem sizes and resize the storages.
     void setProblemSize(int N, int N_opt, int M, int n_obs);
-    
+
 // Related to parameter vector
 private:
 

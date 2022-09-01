@@ -1444,7 +1444,7 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
 // std::map<FramePtr,int>     kfmap_optimizable
 // std::map<FramePtr,PoseSE3> Tjw_map;
 
-    std::cout << "===================== Local Bundle adjustment2 ============================\n";
+    std::cout << "===============     Local Bundle adjustment (Sparse Solver)     ===============n";
 
     int THRES_AGE           = 2; // landmark의 최소 age
     int THRES_MINIMUM_SEEN  = 2; // landmark의 최소 관측 keyframes
@@ -1500,21 +1500,26 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     ba_params = std::make_shared<SparseBAParameters>();
     ba_params->setPosesAndPoints(frames, idx_fix, idx_opt);
 
-    // BA solver.
+    // BA sparse solver
     timer::tic();
-    sparse_ba_solver_->reset();
-    sparse_ba_solver_->setCamera(cam);
+    sparse_ba_solver_->reset(); // reset the solver
+    sparse_ba_solver_->setCamera(cam); // set 
     sparse_ba_solver_->setBAParameters(ba_params);
     sparse_ba_solver_->setHuberThreshold(THRES_HUBER);
-    std::cout << "LBA time to prepare: " << timer::toc(0) << " [ms]\n";
+    double dt_prepare = timer::toc(0);
 
     timer::tic();
     sparse_ba_solver_->solveForFiniteIterations(MAX_ITER);
-    std::cout << "LBA time to solve: " << timer::toc(0) << " [ms]\n";
+    double dt_solve = timer::toc(0);
 
     timer::tic();
     sparse_ba_solver_->reset();
-    std::cout << "LBA time to reset: "<< timer::toc(0) << " [ms]\n";
+    double dt_reset = timer::toc(0);
+
+    // Time analysis
+    std::cout << "== LBA time to prepare: " << dt_prepare << " [ms]\n";
+    std::cout << "== LBA time to solve: "   << dt_solve   << " [ms]\n";
+    std::cout << "== LBA time to reset: "   << dt_reset   << " [ms]\n\n";
 
     return true;
 };
