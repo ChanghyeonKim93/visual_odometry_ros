@@ -15,8 +15,11 @@
             delta_theta = [x;y];
 */
 // A sparse solver for a feature-based Bundle adjustment problem.
-SparseBundleAdjustmentSolver::SparseBundleAdjustmentSolver() {
-    cam_ = nullptr;
+SparseBundleAdjustmentSolver::SparseBundleAdjustmentSolver() 
+: N_(0), N_opt_(0), M_(0), n_obs_(0), THRES_EPS_(0), THRES_HUBER_(0)
+{
+    cam_       = nullptr;
+    ba_params_ = nullptr;
 
     A_.reserve(500); // reserve expected # of optimizable poses (N_opt)
     B_.reserve(500); // 
@@ -33,29 +36,9 @@ void SparseBundleAdjustmentSolver::setBAParameters(const std::shared_ptr<SparseB
     N_opt_ = ba_params_->getNumOfOptimizeFrames();
     M_     = ba_params_->getNumOfOptimizeLandmarks();
     n_obs_ = ba_params_->getNumOfObservations();
-    
+
+    this->setProblemSize(N_, N_opt_, M_, n_obs_);
 };
-
-// Set Input Values.
-void SparseBundleAdjustmentSolver::setInitialValues(
-    const std::map<FramePtr,PoseSE3>& Tjw_map,
-    const std::vector<LandmarkBA>&    lms_ba,
-    const std::map<FramePtr,int>&     kfmap_optimize)
-{
-    std::copy(Tjw_map.begin(), Tjw_map.end(), std::inserter(Tjw_map_, Tjw_map_.begin()));// Keyframes - Poses map
-    std::copy(kfmap_optimize.begin(), kfmap_optimize.end(), std::inserter(kfmap_optimize_, kfmap_optimize_.begin())); // Keyframes to be opt. - Indexes map.
-    
-    kfvec_optimize_.resize(kfmap_optimize_.size()); // Indexes to keyframes to be opt. (mutually directing)
-    for(auto kf : kfmap_optimize_) 
-        kfvec_optimize_[kf.second] = kf.first;
-
-    lms_ba_.resize(lms_ba.size()); // Landmarks
-    std::copy(lms_ba.begin(),lms_ba.end(), lms_ba_.begin());
-
-    if(M_ != lms_ba.size()) throw std::runtime_error("In SparseBundleAdjustmentSolver, 'M_ != lms_ba.size()'.");
-    if(N_ != Tjw_map_.size()) throw std::runtime_error("In SparseBundleAdjustmentSolver, 'N_ != Tjw_map_.size()'.");
-};
-
 
 // Set Huber threshold
 void SparseBundleAdjustmentSolver::setHuberThreshold(float thres_huber){
@@ -154,9 +137,10 @@ void SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
         float err = 0.0f;
         for(int i = 0; i < M_; ++i){
             // For i-th landmark
-            const Point&       Xi  = lms_ba_[i].X; 
-            const FramePtrVec& kfs = lms_ba_[i].kfs_seen;
-            const PixelVec&    pts = lms_ba_[i].pts_on_kfs;
+            const LandmarkBA&  lmba = ba_params_->getLandmarkBA(i);
+            const Point&       Xi   = lmba.X; 
+            const FramePtrVec& kfs  = lmba.kfs_seen;
+            const PixelVec&    pts  = lmba.pts_on_kfs;
 
             for(int jj = 0; jj < kfs.size(); ++jj){
                 // For j-th keyframe
@@ -166,13 +150,13 @@ void SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
                 // 0) check whether it is optimizable keyframe
                 bool is_optimizable_keyframe = false;
                 int j = -1;
-                if(kfmap_optimize_.find(kf) != kfmap_optimize_.end() ) { // this is a opt. keyframe.
+                if(ba_params_->isOptFrame(kf)){
                     is_optimizable_keyframe = true;
-                    j = kfmap_optimize_[kf]; // j_opt < N_opt_
+                    j = ba_params_->getOptPoseIndex(kf);
                 }
 
                 // Current poses
-                const PoseSE3& T_jw = Tjw_map_[kf];
+                const PoseSE3& T_jw = ba_params_->getPose(kf);
                 const Rot3&    R_jw = T_jw.block<3,3>(0,0);
                 const Pos3&    t_jw = T_jw.block<3,1>(0,3);
                 
@@ -263,9 +247,9 @@ void SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
                 // 0) check whether it is optimizable keyframe
                 bool is_optimizable_keyframe_j = false;
                 int j = -1;
-                if(kfmap_optimize_.find(kf) != kfmap_optimize_.end() ) { // this is a opt. keyframe.
+                if(ba_params_->isOptFrame(kf)){
                     is_optimizable_keyframe_j = true;
-                    j = kfmap_optimize_[kf]; // j_opt < N_opt_
+                    j = ba_params_->getOptPoseIndex(kf);
 
                     BCinv_[j][i]  = B_[j][i]*Cinv_[i];  // FILL STORAGE (6)
                     CinvBt_[i][j] = BCinv_[j][i].transpose(); // FILL STORAGE (11)
@@ -277,9 +261,9 @@ void SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
                     const FramePtr& kf2 = kfs[kk];
                     bool is_optimizable_keyframe_k = false;
                     int k = -1;
-                    if(kfmap_optimize_.find(kf2) != kfmap_optimize_.end() ) { // this is a opt. keyframe.
+                    if(ba_params_->isOptFrame(kf2)){
                         is_optimizable_keyframe_k = true;
-                        k = kfmap_optimize_[kf2]; // j_opt < N_opt_
+                        k = ba_params_->getOptPoseIndex(kf2);
                     }
 
                     if(is_optimizable_keyframe_j && is_optimizable_keyframe_k){
@@ -321,11 +305,13 @@ void SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
             x_[j] = x_mat.block<6,1>(6*j,0);
 
         for(int i = 0; i < M_; ++i){
-            const FramePtrVec& kfs = lms_ba_[i].kfs_seen;
+            const LandmarkBA& lmba = ba_params_->getLandmarkBA(i);
+            const FramePtrVec& kfs = lmba.kfs_seen;
             for(int jj = 0; jj < kfs.size(); ++jj){
                 const FramePtr& kf = kfs[jj];
-                if(kfmap_optimize_.find(kf) != kfmap_optimize_.end() ) { // this is a opt. keyframe.
-                    int j = kfmap_optimize_[kf]; // j_opt < N_opt_
+
+                if(ba_params_->isOptFrame(kf)){
+                    int j = ba_params_->getOptPoseIndex(kf);
                     CinvBt_x_[i] += CinvBt_[i][j]*x_[j];
                 }
             }
@@ -345,20 +331,17 @@ void SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
 
     // Finally, update parameters
     if(!flag_nan){
-        for(int j = 0; j < N_opt_; ++j){
-            PoseSE3 T_jw;
-            geometry::se3Exp_f(params_poses_[j], T_jw);
-            
-            PoseSE3 T_jw_original = kfvec_optimize_[j]->getPoseInv();
-
-            // std::cout << j << "-th pose: \n" << T_jw_original.inverse()*T_jw << std::endl;
-
-            kfvec_optimize_[j]->setPose(T_jw.inverse());
-            Tjw_map_[kfvec_optimize_[j]] = T_jw;
+        for(int j_opt = 0; j_opt < N_opt_; ++j_opt){
+            const FramePtr& kf = ba_params_->getOptFramePtr(j_opt);
+            const PoseSE3& Tjw_update = ba_params_->getPose(kf);
+            kf->setPose(Tjw_update.inverse());
         }
         for(int i = 0; i < M_; ++i){
-            lms_ba_[i].lm->setBundled();
-            lms_ba_[i].lm->set3DPoint(lms_ba_[i].X);
+            const LandmarkBA& lmba = ba_params_->getLandmarkBA(i);
+            const LandmarkPtr& lm = lmba.lm;
+
+            lm->set3DPoint(lmba.X);
+            lm->setBundled();
         }
     }
 
@@ -394,40 +377,36 @@ void SparseBundleAdjustmentSolver::reset(){
     am_BCinv_b_.resize(0); 
     CinvBt_x_.resize(0);
 
-    Tjw_map_.clear();
-    kfmap_optimize_.clear();
-    lms_ba_.resize(0);
+    // Tjw_map_.clear();
+    // kfmap_optimize_.clear();
+    // lms_ba_.resize(0);
 
     std::cout << "Reset bundle adjustment solver.\n";
 };
 void SparseBundleAdjustmentSolver::setParameterVectorFromPosesPoints(){
-    if(kfmap_optimize_.empty()) throw std::runtime_error("kfmap_optimize_.empty() == true.");        // initialize optimization parameter vector.
     // 1) Pose part
-    for(auto kf : kfmap_optimize_){
-        const FramePtr& f = kf.first;
-        int j = kf.second;
-
+    for(int j_opt = 0; j_opt < N_opt_; ++j_opt){
         PoseSE3Tangent xi_jw;
-        geometry::SE3Log_f(Tjw_map_[f],xi_jw);
-        params_poses_[j] = xi_jw;
+        geometry::SE3Log_f(ba_params_->getOptPose(j_opt),xi_jw);
+        params_poses_[j_opt] = xi_jw;
     }
+
     // 2) Point part
     for(int i = 0; i < M_; ++i) 
-        params_points_[i] = lms_ba_[i].X;
+        params_points_[i] = ba_params_->getOptPoint(i);
 };
 
 void SparseBundleAdjustmentSolver::getPosesPointsFromParameterVector(){
     // Generate parameters
     // xi part 0~5, 6~11, ... 
-    int idx = 0;
-    for(int j = 0; j < N_opt_; ++j){
-        PoseSE3 T_jw;
-        geometry::se3Exp_f(params_poses_[j], T_jw);
-        Tjw_map_[kfvec_optimize_[j]] = T_jw;
+    for(int j_opt = 0; j_opt < N_opt_; ++j_opt){
+        PoseSE3 Tjw;
+        geometry::se3Exp_f(params_poses_[j_opt], Tjw);
+        ba_params_->updateOptPose(j_opt,Tjw);
     }
     // point part
-    for(int i = 0; i < M_; ++i) 
-        lms_ba_[i].X = params_points_[i];
+    for(int i = 0; i < M_; ++i)
+        ba_params_->updateOptPoint(i, params_points_[i]);
 };
 
 void SparseBundleAdjustmentSolver::zeroizeStorageMatrices(){

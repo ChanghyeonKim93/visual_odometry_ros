@@ -1500,103 +1500,21 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     ba_params = std::make_shared<SparseBAParameters>();
     ba_params->setPosesAndPoints(frames, idx_fix, idx_opt);
 
-
-    // Generate Connectivity relationships for Local Bundle Adjustment  
-    std::vector<LandmarkBA>    balmvec_all; // All landmarks to be optimized
-
-    std::map<FramePtr,PoseSE3> posemap_all; // pose map Tjw
-    std::map<FramePtr,int>     indexmap_opt; // optimization pose index map
-    std::vector<FramePtr>      framemap_opt; // j-th optimization frame ptr
-    FramePtrVec kfvec_in_window; //
-
-    // 1) Get landmarks seen in keyframe window
-    std::set<LandmarkPtr> lmset_all; // Temporal storage for distinguished landmarks in the keyframe window 
-    for(auto kf : kfs_window->getList()) { // 모든 keyframe in window 순회 
-        kfvec_in_window.push_back(kf); // window keyframes 저장.
-
-        for(auto lm : kf->getRelatedLandmarkPtr()){ // 현재 keyframe에서 보인 모든 landmark 순회
-            if(lm->getAge() >= THRES_AGE && lm->isTriangulated()) // age > THRES, triangulate() == true 경우 포함.
-                lmset_all.insert(lm);
-        }
-    }
-
-    // LandmarkBAVec을 만든다.
-    std::set<FramePtr> kfset_all_related; // 현재 landmark들이 보였던 모든 keyframes.
-    for(auto lm : lmset_all) { // keyframe window 내에서 보였던 모든 landmark를 순회.
-        LandmarkBA lm_ba;
-        lm_ba.lm = lm; // landmark pointer
-        lm_ba.X  = lm->get3DPoint();  // 3D point represented in the global frame.
-        lm_ba.kfs_seen.reserve(10);   
-        lm_ba.kfs_index.reserve(10); 
-        lm_ba.pts_on_kfs.reserve(10);
-
-        // 현재 landmark가 보였던 keyframes을 저장한다.
-        for(int j = 0; j < lm->getRelatedKeyframePtr().size(); ++j) {
-            const FramePtr& kf = lm->getRelatedKeyframePtr()[j];
-            const Pixel&    pt = lm->getObservationsOnKeyframes()[j];
-            if(kf->isKeyframeInWindow()){ //window keyframe만으로 제한
-                lm_ba.kfs_seen.push_back(kf);
-                lm_ba.pts_on_kfs.push_back(pt);
-            }
-        }
-
-        // 충분히 많은 keyframes in window에서 보인 landmark만 최적화에 포함.
-        if(lm_ba.kfs_seen.size() >= THRES_MINIMUM_SEEN) {
-            balmvec_all.push_back(lm_ba); 
-            for(int j = 0; j < lm_ba.kfs_seen.size(); ++j)
-                kfset_all_related.insert(lm_ba.kfs_seen[j]);
-        }
-    }
-
-    // Optimizable keyframe map.
-    std::map<FramePtr,int> kfmap_optimize;
-    int cnt = 0;
-    for(int i = 0; i < kfvec_in_window.size(); ++i){
-        if(i >= NUM_FIX_KEYFRAMES_IN_WINDOW) 
-            kfmap_optimize.insert(std::pair<FramePtr,int>(kfvec_in_window[i], cnt++));         
-    }
-
-    // Pose map
-    std::map<FramePtr,PoseSE3> Tjw_map;
-    for(auto kf : kfset_all_related)
-        Tjw_map.insert(std::pair<FramePtr,PoseSE3>(kf, kf->getPoseInv()));
-    
-    int n_obs = 0; // the number of total observations (2*n_obs == len_residual)
-    for(auto lm_ba : balmvec_all) 
-        n_obs += lm_ba.kfs_seen.size(); // residual 크기.
-    
-    // Optimization statistics
-    int N     = kfset_all_related.size(); // the number of total keyframes in window
-    int N_opt = kfvec_in_window.size() - NUM_FIX_KEYFRAMES_IN_WINDOW; // the number of optimization frames
-    int M     = balmvec_all.size(); // the number of total landmarks
-
-    int len_residual  = 2*n_obs;
-    int len_parameter = 6*N_opt + 3*M;
-    printf("| Bundle Adjustment Statistics:\n");
-    printf("|  -        # of total images: %d images \n", N);
-    printf("|  -        # of opti. images: %d images \n", N_opt);
-    printf("|  -        # of opti. points: %d landmarks \n", M);
-    printf("|  -        # of observations: %d \n", n_obs);
-    printf("|  -            Jacobian size: %d rows x %d cols\n", len_residual, len_parameter);
-    printf("|  -            Residual size: %d rows\n\n", len_residual);
-
     // BA solver.
     timer::tic();
     sparse_ba_solver_->reset();
     sparse_ba_solver_->setCamera(cam);
-    sparse_ba_solver_->setProblemSize(N, N_opt, M, n_obs);
     sparse_ba_solver_->setBAParameters(ba_params);
-    sparse_ba_solver_->setInitialValues(Tjw_map, balmvec_all, kfmap_optimize);
     sparse_ba_solver_->setHuberThreshold(THRES_HUBER);
-    std::cout << "time to prepare: " << timer::toc(0) << " [ms]\n";
+    std::cout << "LBA time to prepare: " << timer::toc(0) << " [ms]\n";
 
     timer::tic();
     sparse_ba_solver_->solveForFiniteIterations(MAX_ITER);
-    std::cout << "time to solve: " << timer::toc(0) << " [ms]\n";
+    std::cout << "LBA time to solve: " << timer::toc(0) << " [ms]\n";
 
     timer::tic();
     sparse_ba_solver_->reset();
-    std::cout << "time to reset: "<< timer::toc(0) << " [ms]\n";
+    std::cout << "LBA time to reset: "<< timer::toc(0) << " [ms]\n";
 
     return true;
 };

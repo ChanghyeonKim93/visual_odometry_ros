@@ -100,15 +100,15 @@ public:
             throw std::runtime_error("posemap_all_.find(frame) == posemap_all_.end()");
         return posemap_all_[frame];
     };
-    int getOptIndex(const FramePtr& frame){
+    int getOptPoseIndex(const FramePtr& frame){
         if(indexmap_opt_.find(frame) == indexmap_opt_.end())
             throw std::runtime_error("indexmap_opt_.find(frame) == indexmap_opt_.end()");
         return indexmap_opt_[frame];
     };
-    const FramePtr& getOptFramePtr(int j){
-        if( j >= framemap_opt_.size())
-            throw std::runtime_error("j >= framemap_opt_.size()");
-        return framemap_opt_[j];
+    const FramePtr& getOptFramePtr(int j_opt){
+        if( j_opt >= framemap_opt_.size())
+            throw std::runtime_error("j_opt >= framemap_opt_.size()");
+        return framemap_opt_[j_opt];
     };
 
     const LandmarkBA& getLandmarkBA(int i){
@@ -117,7 +117,31 @@ public:
         return lmbavec_all_[i];
     };
 
+// Update and get methods (Pose and Point)
+public:
+    void updateOptPoint(int i, const Point& X_update){
+        if(i >= M_)
+            throw std::runtime_error("i >= M_");
+        lmbavec_all_[i].X = X_update;
+    };
+    void updateOptPose(int j_opt, const PoseSE3& Tjw_update){
+        if(j_opt >= N_opt_) 
+            throw std::runtime_error("j_opt >= N_opt_");
+        const FramePtr& kf_opt = framemap_opt_[j_opt];
+        posemap_all_[kf_opt] = Tjw_update;
+    };  
 
+    const Point& getOptPoint(int i){
+        if(i >= M_)
+            throw std::runtime_error("i >= M_");
+        return lmbavec_all_[i].X;
+    };
+    const PoseSE3& getOptPose(int j_opt){
+        if(j_opt >= N_opt_) 
+            throw std::runtime_error("j_opt >= N_opt_");
+        const FramePtr& kf_opt = framemap_opt_[j_opt];
+        return posemap_all_[kf_opt];
+    };
 
 // Find methods
 public:
@@ -274,10 +298,10 @@ private:
     std::shared_ptr<SparseBAParameters> ba_params_;
 
     // Input variables  
-    std::vector<LandmarkBA>    lms_ba_; // landmarks to be optimized
-    std::map<FramePtr,PoseSE3> Tjw_map_; // map containing poses (for all keyframes including fixed ones)
-    std::map<FramePtr,int>     kfmap_optimize_; // map containing optimizable keyframes and their indexes
-    std::vector<FramePtr>      kfvec_optimize_;
+    // std::vector<LandmarkBA>    lms_ba_; // landmarks to be optimized
+    // std::map<FramePtr,PoseSE3> Tjw_map_; // map containing poses (for all keyframes including fixed ones)
+    // std::map<FramePtr,int>     kfmap_optimize_; // map containing optimizable keyframes and their indexes
+    // std::vector<FramePtr>      kfvec_optimize_;
 
 private:
     // Problem sizes
@@ -299,20 +323,11 @@ public:
     // Set connectivities, variables...
     void setBAParameters(const std::shared_ptr<SparseBAParameters>& ba_params);
 
-    // Set Input Values.
-    void setInitialValues(
-        const std::map<FramePtr,PoseSE3>& Tjw_map,
-        const std::vector<LandmarkBA>&    lms_ba,
-        const std::map<FramePtr,int>&     kfmap_optimize);
-
     // Set Huber threshold
     void setHuberThreshold(float thres_huber);
 
     // Set camera.
     void setCamera(const std::shared_ptr<Camera>& cam);
-
-    // Set problem sizes and resize the storages.
-    void setProblemSize(int N, int N_opt, int M, int n_obs);
 
     // Solve the BA for fixed number of iterations
     void solveForFiniteIterations(int MAX_ITER);
@@ -320,6 +335,10 @@ public:
     // Reset local BA solver.
     void reset();
 
+private:
+    // Set problem sizes and resize the storages.
+    void setProblemSize(int N, int N_opt, int M, int n_obs);
+    
 // Related to parameter vector
 private:
 
