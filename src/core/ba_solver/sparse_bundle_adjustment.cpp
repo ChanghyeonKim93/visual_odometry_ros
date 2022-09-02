@@ -229,7 +229,7 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
 
                     A_[j]    += Qij_t_Qij; // FILL STORAGE (1)
                     B_[j][i]  = Qij_t_Rij; // FILL STORAGE (2)
-                    Bt_[i][j] = Qij_t_Rij.transpose(); // FILL STORAGE (2-1)
+                    Bt_[i][j] = Qij_t_Rij.transpose().eval(); // FILL STORAGE (2-1)
                     a_[j]    -= Qij_t_rij; // FILL STORAGE (4)
                 } 
                 float err_tmp = weight*rij.transpose()*rij;
@@ -269,7 +269,7 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
                     j = ba_params_->getOptPoseIndex(kf);
 
                     BCinv_[j][i]  = B_[j][i]*Cinv_[i];  // FILL STORAGE (6)
-                    CinvBt_[i][j] = BCinv_[j][i].transpose(); // FILL STORAGE (11)
+                    CinvBt_[i][j] = BCinv_[j][i].transpose().eval(); // FILL STORAGE (11)
                     BCinv_b_[j]  += BCinv_[j][i]*b_[i];  // FILL STORAGE (9)
                 }
 
@@ -292,7 +292,7 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
 
         for(int j = 0; j < N_opt_; ++j)
             for(int k = j; k < N_opt_; ++k)
-                BCinvBt_[k][j] = BCinvBt_[j][k].transpose();
+                BCinvBt_[k][j] = BCinvBt_[j][k].transpose().eval();
             
         for(int j = 0; j < N_opt_; ++j){
             for(int k = 0; k < N_opt_; ++k){
@@ -373,6 +373,7 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
             lm->set3DPoint(lmba.X);
             lm->setBundled();
         }
+        1;
     }
     else{
         std::cout << "************************* LOCAL BA FAILED!!!!! ****************************\n";
@@ -479,4 +480,5 @@ void SparseBundleAdjustmentSolver::zeroizeStorageMatrices(){
         Cinv_b_[i].setZero();
         CinvBt_x_[i].setZero();
     }
+    // std::cout << "zeroize done\n";
 };    
