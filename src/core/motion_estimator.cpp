@@ -767,7 +767,7 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
         float delta_err = abs(err_curr-err_prev);
 
         // Solve H^-1*Jtr;
-        for(int i = 0; i < 6; ++i) JtWJ(i,i) += lambda*JtWJ(i,i); // lambda 
+        for(int i = 0; i < 6; ++i) JtWJ(i,i) *= (1.0f+lambda); // lambda 
         PoseSE3Tangent delta_xi = JtWJ.ldlt().solve(mJtWr);
         delta_xi *= step_size; 
         geometry::addFrontse3_f(xi10, delta_xi);
@@ -780,7 +780,7 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
             break;
         }
         if(iter == MAX_ITER-1){
-            std::cout << "poseonly BA stops at full iterations!!" <<", err: " << err_curr <<", derr: " << delta_err << ", # invalid: " << cnt_invalid << "\n";
+            std::cout << "!! WARNING !! poseonly BA stops at full iterations!!" <<", err: " << err_curr <<", derr: " << delta_err << ", # invalid: " << cnt_invalid << "\n";
         }
     }
 
@@ -1495,7 +1495,7 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     
     for(int j = 0; j < NUM_FIX_KEYFRAMES_IN_WINDOW; ++j)
         idx_fix.push_back(j);
-        
+
     for(int j = NUM_FIX_KEYFRAMES_IN_WINDOW; j < frames.size(); ++j)
         idx_opt.push_back(j);
         

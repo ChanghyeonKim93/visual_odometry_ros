@@ -101,7 +101,7 @@ void ScaleEstimator::module_ScaleForwardPropagation(const LandmarkPtrVec& lmvec,
     // Get rotation of this frame w.r.t. world frame
     PoseSE3 Twj = frame_curr->getPose();
     Rot3 Rwj = Twj.block<3,3>(0,0);
-    Rot3 Rjw = Rwj.transpose();
+    Rot3 Rjw = Rwj.transpose().eval();
     
     Rot3 dRj = dT.block<3,3>(0,0);
     Pos3 uj  = dT.block<3,1>(0,3);    
@@ -433,7 +433,7 @@ void ScaleEstimator::solveLeastSquares_SFP(const SpMat& AtA, const SpVec& Atb, u
     SpMat BtAinv(1,sz);
 
     this->calcAinvB_SFP(Ainv_vec, B, M_tmp, AinvB);
-    BtAinv = AinvB.transpose();
+    BtAinv = AinvB.transpose().eval();
     // std::cout << "AinvB size: " << AinvB.innerSize() << " x " << AinvB.outerSize() <<std::endl;
     // std::cout << "BtAinv size: " << BtAinv.innerSize() << " x " << BtAinv.outerSize() <<std::endl;
     // std::cout << "B size: " << B.innerSize() << " x " << B.outerSize() <<std::endl;
