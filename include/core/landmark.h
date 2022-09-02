@@ -110,7 +110,11 @@ struct LandmarkTracking{
     PixelVec pts1;
     LandmarkPtrVec lms;
 
-    LandmarkTracking(){ };
+    LandmarkTracking(){
+        pts0.reserve(1000);
+        pts1.reserve(1000);
+        lms.reserve(1000);
+    };
 };
 
 #endif

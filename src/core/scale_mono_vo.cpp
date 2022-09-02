@@ -340,9 +340,8 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 				lmvec0.push_back(std::make_shared<Landmark>(p, frame_curr));
 			
 			// Related Landmark와 tracked pixels를 업데이트
-			frame_curr->setPtsSeen(pxvec0);
-			frame_curr->setRelatedLandmarks(lmvec0);
-
+			frame_curr->setPtsSeenAndRelatedLandmarks(pxvec0, lmvec0);
+			
 			frame_curr->setPose(PoseSE3::Identity());
 			frame_curr->setPoseDiff10(PoseSE3::Identity());
 			
@@ -549,8 +548,8 @@ statcurr_landmark.n_new = pxvec1_new.size();
 			}
 
 			// lms1와 pts1을 frame_curr에 넣는다.
-			frame_curr->setPtsSeen(pxvec1_final);
-			frame_curr->setRelatedLandmarks(lmvec1_final);
+			frame_curr->setPtsSeenAndRelatedLandmarks(pxvec1_final, lmvec1_final);
+
 #ifdef RECORD_LANDMARK_STAT
 	statcurr_landmark.n_final = pxvec1_final.size();
 #endif

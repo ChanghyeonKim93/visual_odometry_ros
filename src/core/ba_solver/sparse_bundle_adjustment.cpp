@@ -23,8 +23,8 @@ SparseBundleAdjustmentSolver::SparseBundleAdjustmentSolver()
 
     A_.reserve(500); // reserve expected # of optimizable poses (N_opt)
     B_.reserve(500); // 
-    Bt_.reserve(1000000);
-    C_.reserve(1000000); // reserve expected # of optimizable landmarks (M)
+    Bt_.reserve(5000);
+    C_.reserve(5000); // reserve expected # of optimizable landmarks (M)
 };
 
 // Set connectivities, variables...
@@ -109,12 +109,14 @@ void SparseBundleAdjustmentSolver::setProblemSize(int N, int N_opt, int M, int n
 // Solve the BA for fixed number of iterations
 bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
     
-    bool flag_success = true;
+    bool flag_nan_pass   = true;
+    bool flag_error_pass = true;
+    bool flag_success    = true;
 
-    float THRES_SUCCESS_AVG_ERROR = 3.0f;
+    float THRES_SUCCESS_AVG_ERROR = 2.5f;
 
     float MAX_LAMBDA = 20.0f;
-    float MIN_LAMBDA = 1e-5f;
+    float MIN_LAMBDA = 1e-6f;
 
     // Intrinsic of lower camera
     const Mat33& K = cam_->K(); const Mat33& Kinv = cam_->Kinv();
@@ -128,8 +130,7 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
     // Initialize parameters
     std::vector<float> r_prev(n_obs_, 0.0f);
     float err_prev = 1e10f;
-    float lambda = 0.01f;
-    bool flag_nan = false;
+    float lambda = 1e-7;
     for(int iter = 0; iter < MAX_ITER; ++iter){
         // set Poses and Points.
         getPosesPointsFromParameterVector();
@@ -238,10 +239,21 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
             } // END jj
 
             // Damping term
-            for(int j = 0; j < N_opt_; ++j)
+            for(int j = 0; j < N_opt_; ++j){
                 A_[j] += lambda*Mat66::Identity();
-            for(int i = 0; i < M_; ++i)
+                // A_[j](0,0) *= (1.0f+lambda);
+                // A_[j](1,1) *= (1.0f+lambda);
+                // A_[j](2,2) *= (1.0f+lambda);
+                // A_[j](3,3) *= (1.0f+lambda);
+                // A_[j](4,4) *= (1.0f+lambda);
+                // A_[j](5,5) *= (1.0f+lambda);
+            }
+            for(int i = 0; i < M_; ++i){
                 C_[i] += lambda*Mat33::Identity();
+                // C_[i](0,0) *= (1.0f+lambda);
+                // C_[i](1,1) *= (1.0f+lambda);
+                // C_[i](2,2) *= (1.0f+lambda);
+            }
 
             Cinv_[i]   = C_[i].inverse(); // FILL STORAGE (3-1)
             Cinv_b_[i] = Cinv_[i]*b_[i];  // FILL STORAGE (10)
@@ -324,23 +336,31 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
         }
                 
         // Update step
-        for(int j_opt = 0; j_opt < N_opt_; ++j_opt)
-            params_poses_[j_opt] += x_[j_opt];
+        for(int j_opt = 0; j_opt < N_opt_; ++j_opt){
+            PoseSE3 Tjw_update, dT;
+            geometry::se3Exp_f(params_poses_[j_opt],Tjw_update);
+            geometry::se3Exp_f(x_[j_opt],dT);
+            Tjw_update = dT*Tjw_update;
+            geometry::SE3Log_f(Tjw_update,params_poses_[j_opt]);
+
+            // params_poses_[j_opt] += x_[j_opt];
+        }
 
         for(int i = 0; i < M_; ++i)
             params_points_[i] += y_[i];
 
         float average_error = 0.5f*err/(float)n_obs_;
             
-        std::cout << iter << "-th iter, error : " << 0.5f*err/(float)n_obs_ << "\n";
+        std::cout << iter << "-th iter, error : " << average_error << "\n";
 
         // Check extraordinary cases.
-        flag_nan     = std::isnan(err) ? true : false;
-        flag_success = (!flag_nan || average_error <= THRES_SUCCESS_AVG_ERROR) ? true : false;
+        flag_nan_pass   = std::isnan(err) ? false : true;
+        flag_error_pass = (average_error <= THRES_SUCCESS_AVG_ERROR) ? true : false;
+        flag_success    = flag_nan_pass && flag_error_pass;
     } // END iter
 
     // Finally, update parameters
-    if(flag_success && !flag_nan){
+    if(1){
         for(int j_opt = 0; j_opt < N_opt_; ++j_opt){
             const FramePtr& kf = ba_params_->getOptFramePtr(j_opt);
             const PoseSE3& Tjw_update = ba_params_->getPose(kf);
@@ -353,6 +373,11 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
             lm->set3DPoint(lmba.X);
             lm->setBundled();
         }
+    }
+    else{
+        std::cout << "************************* LOCAL BA FAILED!!!!! ****************************\n";
+        std::cout << "************************* LOCAL BA FAILED!!!!! ****************************\n";
+        std::cout << "************************* LOCAL BA FAILED!!!!! ****************************\n";
     }
 
     // Finish
@@ -440,9 +465,9 @@ void SparseBundleAdjustmentSolver::zeroizeStorageMatrices(){
             BCinv_[j][i].setZero();
             CinvBt_[i][j].setZero();
         }
-        for(int i = 0; i < N_opt_;++i){
-            BCinvBt_[j][i].setZero();
-            Am_BCinvBt_[j][i].setZero();
+        for(int k = 0; k < N_opt_; ++k){
+            BCinvBt_[j][k].setZero();
+            Am_BCinvBt_[j][k].setZero();
         }
     }
     for(int i = 0; i < M_; ++i){

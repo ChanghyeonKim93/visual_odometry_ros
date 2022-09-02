@@ -63,8 +63,7 @@ public:
     void outOfKeyframeWindow();
     void makeThisTurningFrame();
     void setImageAndTimestamp(const cv::Mat& img, const double& timestamp); 
-    void setRelatedLandmarks(const LandmarkPtrVec& landmarks);
-    void setPtsSeen(const PixelVec& pts);
+    void setPtsSeenAndRelatedLandmarks(const PixelVec& pts, const LandmarkPtrVec& landmarks);
 
     // Get
     const uint32_t& getID() const;

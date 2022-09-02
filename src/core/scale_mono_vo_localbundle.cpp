@@ -51,8 +51,7 @@ void ScaleMonoVO::trackImageLocalBundle(const cv::Mat& img, const double& timest
 			for(auto p : pts1) lms1.push_back(std::make_shared<Landmark>(p, frame_curr));
 			
 			// Related Landmark와 tracked pixels를 업데이트
-			frame_curr->setPtsSeen(pts1);
-			frame_curr->setRelatedLandmarks(lms1);
+			frame_curr->setPtsSeenAndRelatedLandmarks(pts1,lms1);
 
 			frame_curr->setPose(PoseSE3::Identity());
 			PoseSE3 T_init = PoseSE3::Identity();
@@ -203,8 +202,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			std::cout << " Recon done. : " << cnt_recon << "\n";
 
 			// lms1와 pts1을 frame_curr에 넣는다.
-			frame_curr->setPtsSeen(pts1_final);
-			frame_curr->setRelatedLandmarks(lms1_final);
+			frame_curr->setPtsSeenAndRelatedLandmarks(pts1_final,lms1_final);
 
 			system_flags_.flagVOInit = true;
 		}
@@ -410,8 +408,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			std::cout << " Recon done. : " << cnt_recon << "\n";
 
 			// lms1와 pts1을 frame_curr에 넣는다.
-			frame_curr->setPtsSeen(lmtrack_final.pts1);
-			frame_curr->setRelatedLandmarks(lmtrack_final.lms);
+			frame_curr->setPtsSeenAndRelatedLandmarks(lmtrack_final.pts1, lmtrack_final.lms);
 	}
 
 

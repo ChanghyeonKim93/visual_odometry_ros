@@ -650,7 +650,7 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
     float THRES_HUBER        = 2.0f; // pixels
     float THRES_DELTA_XI     = 1e-7;
     float THRES_DELTA_ERROR  = 1e-5;
-    float THRES_REPROJ_ERROR = 12.0f; // pixels
+    float THRES_REPROJ_ERROR = 5.0f; // pixels
 
     float lambda = 0.001f;
     float step_size = 1.0f;
@@ -806,7 +806,7 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const LandmarkPtrVec& lms, co
     mask_inlier.resize(n_pts, true);
     
     int MAX_ITER = 250;
-    float THRES_HUBER = 1.0f; // pixels
+    float THRES_HUBER = 1.5f; // pixels
     float THRES_DELTA_XI = 1e-7;
 
     float lambda = 0.01f;

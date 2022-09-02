@@ -1,7 +1,8 @@
 #include "core/frame.h"
 std::shared_ptr<Camera> Frame::cam_ = nullptr;
 
-Frame::Frame() : is_keyframe_(false), is_keyframe_in_window_(false), is_turning_frame_(false) {
+Frame::Frame() 
+: is_keyframe_(false), is_keyframe_in_window_(false), is_turning_frame_(false) {
     Twc_ = PoseSE3::Identity();
     Tcw_ = PoseSE3::Identity();
     steering_angle_ = 0.0f;
@@ -41,19 +42,21 @@ void Frame::setImageAndTimestamp(const cv::Mat& img, const double& timestamp) {
     cv::Sobel(image_, image_dv_, CV_32FC1, 0, 1, kerner_size, 1.0, 0.0, cv::BORDER_DEFAULT);
 };
 
-void Frame::setRelatedLandmarks(const LandmarkPtrVec& landmarks){
-    related_landmarks_.resize(0);
-    related_landmarks_.reserve(landmarks.size());
-    for(auto lm : landmarks) related_landmarks_.push_back(lm);
-};
+void Frame::setPtsSeenAndRelatedLandmarks(const PixelVec& pts, const LandmarkPtrVec& landmarks){
+    if(pts.size() != landmarks.size())
+        throw std::runtime_error("pts.size() != landmarks.size()");
 
-void Frame::setPtsSeen(const PixelVec& pts){
+    // pts_seen
     pts_seen_.resize(pts.size());
-    std::copy(pts.begin(),pts.end(), pts_seen_.begin());
+    std::copy(pts.begin(), pts.end(), pts_seen_.begin());
+
+    // related landmarks
+    related_landmarks_.resize(landmarks.size());
+    std::copy(landmarks.begin(), landmarks.end(), related_landmarks_.begin());
 };
 
 void Frame::makeThisKeyframe(){
-    is_keyframe_ = true;
+    is_keyframe_           = true;
     is_keyframe_in_window_ = true;
 };
 

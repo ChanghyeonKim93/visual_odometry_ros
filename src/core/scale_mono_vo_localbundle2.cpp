@@ -11,6 +11,7 @@
  */
 void ScaleMonoVO::trackImageLocalBundle2(const cv::Mat& img, const double& timestamp){
 	float THRES_SAMPSON = 5.0f;
+	float THRES_PARALLAX = 0.5f;
 
 	// Generate statistics
 	AlgorithmStatistics::LandmarkStatistics  statcurr_landmark;
@@ -29,7 +30,7 @@ void ScaleMonoVO::trackImageLocalBundle2(const cv::Mat& img, const double& times
 	}
 	else img.copyTo(img_undist);
 
-	// frame_curr에 img_undist와 시간 부여
+	// frame_curr에 img_undist와 시간 부여 (gradient image도 함께 사용)
 	frame_curr->setImageAndTimestamp(img_undist, timestamp);
 
 	// Get previous and current images
@@ -44,12 +45,14 @@ void ScaleMonoVO::trackImageLocalBundle2(const cv::Mat& img, const double& times
 			extractor_->extractORBwithBinning(I1, lmtrack_curr.pts1);
 
 			// 초기 landmark 생성
-			lmtrack_curr.lms.reserve(lmtrack_curr.pts1.size());
-			for(auto p : lmtrack_curr.pts1) lmtrack_curr.lms.push_back(std::make_shared<Landmark>(p, frame_curr));
+			for(auto pt : lmtrack_curr.pts1){
+				LandmarkPtr lm_new = std::make_shared<Landmark>(pt, frame_curr);
+				lmtrack_curr.lms.push_back(lm_new);
+			}
 			
 			// Related Landmark와 tracked pixels를 업데이트
-			frame_curr->setPtsSeen(lmtrack_curr.pts1);
-			frame_curr->setRelatedLandmarks(lmtrack_curr.lms);
+			frame_curr->setPtsSeenAndRelatedLandmarks(
+				lmtrack_curr.pts1, lmtrack_curr.lms);
 
 			frame_curr->setPose(PoseSE3::Identity());
 			PoseSE3 T_init = PoseSE3::Identity();
@@ -160,7 +163,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			// lms1_final 중, depth가 복원되지 않은 경우 복원해준다.
 			uint32_t cnt_recon = 0 ;
 			for(auto lm : lmtrack_final.lms){
-				if( !lm->isTriangulated() && lm->getMaxParallax() >= 0.2f*D2R){
+				if( !lm->isTriangulated() && lm->getLastParallax() >= THRES_PARALLAX*D2R){
 					if(lm->getObservations().size() != lm->getRelatedFramePtr().size())
 						throw std::runtime_error("lm->getObservations().size() != lm->getRelatedFramePtr().size()\n");
 
@@ -184,8 +187,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			std::cout << " Recon done. : " << cnt_recon << "\n";
 
 			// lms1와 pts1을 frame_curr에 넣는다.
-			frame_curr->setPtsSeen(lmtrack_final.pts1);
-			frame_curr->setRelatedLandmarks(lmtrack_final.lms);
+			frame_curr->setPtsSeenAndRelatedLandmarks(lmtrack_final.pts1, lmtrack_final.lms);
 
 			system_flags_.flagVOInit = true;
 		}
@@ -264,7 +266,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 				for(int i = 0; i < lmtrack_scaleok.pts0.size(); ++i){
 					const LandmarkPtr& lm = lmtrack_scaleok.lms[i];
 					if(lm->isTriangulated() && lm->getAge() > 1 
-					&& lm->getLastParallax() > 0.2*D2R){ 
+					&& lm->getLastParallax() > THRES_PARALLAX*D2R){ 
 						Point Xp = Rcw_prev * lm->get3DPoint() + tcw_prev;
 						if(Xp(2) > 0){
 							pts1_depth_ok.push_back(lmtrack_scaleok.pts1[i]);
@@ -342,8 +344,8 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			std::vector<float> symm_epi_dist;
 			motion_estimator_->calcSampsonDistance(lmtrack_motion.pts0, lmtrack_motion.pts1, cam_, dT10.block<3,3>(0,0), dT10.block<3,1>(0,3), symm_epi_dist);
 			MaskVec mask_sampson(lmtrack_motion.pts0.size(),true);
-			// for(int i = 0; i < mask_sampson.size(); ++i)
-			// 	mask_sampson[i] = symm_epi_dist[i] < THRES_SAMPSON;
+			for(int i = 0; i < mask_sampson.size(); ++i)
+				mask_sampson[i] = symm_epi_dist[i] < THRES_SAMPSON;
 			
 			LandmarkTracking lmtrack_final;
 			std::cout << "# of samps : " << this->pruneInvalidLandmarks(lmtrack_motion, mask_sampson, lmtrack_final) << std::endl;
@@ -391,8 +393,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			}
 
 			// lms1와 pts1을 frame_curr에 넣는다.
-			frame_curr->setPtsSeen(lmtrack_final.pts1);
-			frame_curr->setRelatedLandmarks(lmtrack_final.lms);
+			frame_curr->setPtsSeenAndRelatedLandmarks(lmtrack_final.pts1, lmtrack_final.lms);
 	}
 
 	// Check keyframe update rules.
@@ -405,7 +406,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 		uint32_t cnt_recon = 0;
 		
 		for(auto lm : frame_curr->getRelatedLandmarkPtr()){
-			if(!lm->isTriangulated() && lm->getLastParallax() >= 0.2f*D2R){
+			if(!lm->isTriangulated() && lm->getLastParallax() >= THRES_PARALLAX*D2R){
 				if(lm->getObservationsOnKeyframes().size() > 1){ // 2번 이상 keyframe에서 보였다.
 					const Pixel& pt0 = lm->getObservationsOnKeyframes().front();
 					const Pixel& pt1 = lm->getObservationsOnKeyframes().back();
