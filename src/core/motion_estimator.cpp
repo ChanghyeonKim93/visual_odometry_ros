@@ -652,7 +652,7 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
     float THRES_DELTA_ERROR  = 1e-5;
     float THRES_REPROJ_ERROR = 5.0f; // pixels
 
-    float lambda = 0.001f;
+    float lambda = 0.01f;
     float step_size = 1.0f;
     
     float fx = cam->fx(); float fy = cam->fy();
@@ -770,7 +770,9 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
         for(int i = 0; i < 6; ++i) JtWJ(i,i) += lambda*JtWJ(i,i); // lambda 
         PoseSE3Tangent delta_xi = JtWJ.ldlt().solve(mJtWr);
         delta_xi *= step_size; 
-        xi10 += delta_xi;
+        geometry::addFrontse3_f(xi10, delta_xi);
+        // xi10 += delta_xi;
+        
         err_prev = err_curr;
         // std::cout << "reproj. err. (avg): " << err_curr*inv_npts*0.5f << ", step: " << delta_xi.transpose() << std::endl;
         if(delta_xi.norm() < THRES_DELTA_XI || delta_err < THRES_DELTA_ERROR){
@@ -1451,7 +1453,7 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     float THRES_PARALLAX    = 0.3*D2R; // landmark의 최소 parallax
 
     // Optimization paraameters
-    int   MAX_ITER          = 10;
+    int   MAX_ITER          = 8;
 
     float lam               = 1e-3;  // for Levenberg-Marquardt algorithm
     float MAX_LAM           = 1.0f;  // for Levenberg-Marquardt algorithm

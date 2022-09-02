@@ -113,7 +113,7 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
     bool flag_error_pass = true;
     bool flag_success    = true;
 
-    float THRES_SUCCESS_AVG_ERROR = 2.5f;
+    float THRES_SUCCESS_AVG_ERROR = 1.0f;
 
     float MAX_LAMBDA = 20.0f;
     float MIN_LAMBDA = 1e-6f;
@@ -130,7 +130,7 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
     // Initialize parameters
     std::vector<float> r_prev(n_obs_, 0.0f);
     float err_prev = 1e10f;
-    float lambda = 1e-7;
+    float lambda = 0.00000000001;
     for(int iter = 0; iter < MAX_ITER; ++iter){
         // set Poses and Points.
         getPosesPointsFromParameterVector();
@@ -337,12 +337,12 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
                 
         // Update step
         for(int j_opt = 0; j_opt < N_opt_; ++j_opt){
-            PoseSE3 Tjw_update, dT;
-            geometry::se3Exp_f(params_poses_[j_opt],Tjw_update);
-            geometry::se3Exp_f(x_[j_opt],dT);
-            Tjw_update = dT*Tjw_update;
-            geometry::SE3Log_f(Tjw_update,params_poses_[j_opt]);
-
+            // PoseSE3 Tjw_update, dT;
+            // geometry::se3Exp_f(params_poses_[j_opt],Tjw_update);
+            // geometry::se3Exp_f(x_[j_opt],dT);
+            // Tjw_update = dT*Tjw_update;
+            // geometry::SE3Log_f(Tjw_update,params_poses_[j_opt]);
+            geometry::addFrontse3_f(params_poses_[j_opt], x_[j_opt]);
             // params_poses_[j_opt] += x_[j_opt];
         }
 
@@ -360,7 +360,7 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
     } // END iter
 
     // Finally, update parameters
-    if(1){
+    if(flag_nan_pass && flag_error_pass){
         for(int j_opt = 0; j_opt < N_opt_; ++j_opt){
             const FramePtr& kf = ba_params_->getOptFramePtr(j_opt);
             const PoseSE3& Tjw_update = ba_params_->getPose(kf);

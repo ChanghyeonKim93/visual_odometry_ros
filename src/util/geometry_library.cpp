@@ -379,4 +379,13 @@ namespace geometry {
         // for debug
         // std::cout << xi << std::endl;
     };
+
+    void addFrontse3_f(Eigen::Matrix<float,6,1>& xi, const Eigen::Matrix<float,6,1>& dxi){
+        Eigen::Matrix<float,4,4> Tjw, dT;
+        se3Exp_f(xi,  Tjw);
+        se3Exp_f(dxi, dT);
+        Tjw = dT*Tjw;
+        SE3Log_f(Tjw, xi);
+    };
+
 };

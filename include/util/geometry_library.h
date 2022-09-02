@@ -35,6 +35,8 @@ namespace geometry {
 
     void se3Exp_f(const Eigen::Matrix<float,6,1>& xi, Eigen::Matrix4f& T);
     void SE3Log_f(const Eigen::Matrix<float,4,4>& T, Eigen::Matrix<float,6,1>& xi);
+    
+    void addFrontse3_f(Eigen::Matrix<float,6,1>& xi, const Eigen::Matrix<float,6,1>& dxi);
 };
 
 

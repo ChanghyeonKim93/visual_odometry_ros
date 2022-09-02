@@ -10,8 +10,8 @@
  * @date 10-July-2022
  */
 void ScaleMonoVO::trackImageLocalBundle2(const cv::Mat& img, const double& timestamp){
-	float THRES_SAMPSON = 5.0f;
-	float THRES_PARALLAX = 0.5f;
+	float THRES_SAMPSON = 1.0f;
+	float THRES_PARALLAX = 0.4f;
 
 	// Generate statistics
 	AlgorithmStatistics::LandmarkStatistics  statcurr_landmark;
