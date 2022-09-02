@@ -647,10 +647,10 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
     mask_inlier.resize(n_pts);
     
     int MAX_ITER = 250;
-    float THRES_HUBER        = 1.5f; // pixels
+    float THRES_HUBER        = 1.0f; // pixels
     float THRES_DELTA_XI     = 1e-7;
     float THRES_DELTA_ERROR  = 1e-5;
-    float THRES_REPROJ_ERROR = 4.0f; // pixels
+    float THRES_REPROJ_ERROR = 5.0f; // pixels
 
     float lambda = 0.0001f;
     float step_size = 1.0f;
