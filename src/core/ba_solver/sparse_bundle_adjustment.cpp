@@ -130,7 +130,7 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
     // Initialize parameters
     std::vector<float> r_prev(n_obs_, 0.0f);
     float err_prev = 1e10f;
-    float lambda = 0.00000000001;
+    float lambda = 0.000001;
     for(int iter = 0; iter < MAX_ITER; ++iter){
         // set Poses and Points.
         getPosesPointsFromParameterVector();

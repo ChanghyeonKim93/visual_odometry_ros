@@ -647,12 +647,12 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
     mask_inlier.resize(n_pts);
     
     int MAX_ITER = 250;
-    float THRES_HUBER        = 2.0f; // pixels
+    float THRES_HUBER        = 1.5f; // pixels
     float THRES_DELTA_XI     = 1e-7;
     float THRES_DELTA_ERROR  = 1e-5;
-    float THRES_REPROJ_ERROR = 5.0f; // pixels
+    float THRES_REPROJ_ERROR = 4.0f; // pixels
 
-    float lambda = 0.01f;
+    float lambda = 0.0001f;
     float step_size = 1.0f;
     
     float fx = cam->fx(); float fy = cam->fy();
@@ -730,8 +730,8 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
             if(flag_weight) {
                 float w_rx = weight*rx;
                 float err = w_rx*rx;
-                mJtWr.noalias() -= (w_rx)*Jt;
                 JtWJ.noalias() += weight*(Jt*Jt.transpose());
+                mJtWr.noalias() -= (w_rx)*Jt;
                 err_curr += err;
             }
             else {
@@ -774,7 +774,7 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
         // xi10 += delta_xi;
         
         err_prev = err_curr;
-        // std::cout << "reproj. err. (avg): " << err_curr*inv_npts*0.5f << ", step: " << delta_xi.transpose() << std::endl;
+        // std::cout << "reproj. err. (avg): " << err_curr << ", step: " << delta_xi.transpose() << std::endl;
         if(delta_xi.norm() < THRES_DELTA_XI || delta_err < THRES_DELTA_ERROR){
             std::cout << "poseonly BA stops at: " << iter <<", err: " << err_curr <<", derr: " << delta_err << ", # invalid: " << cnt_invalid << "\n";
             break;
@@ -1453,7 +1453,7 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     float THRES_PARALLAX    = 0.3*D2R; // landmark의 최소 parallax
 
     // Optimization paraameters
-    int   MAX_ITER          = 8;
+    int   MAX_ITER          = 12;
 
     float lam               = 1e-3;  // for Levenberg-Marquardt algorithm
     float MAX_LAM           = 1.0f;  // for Levenberg-Marquardt algorithm
@@ -1475,7 +1475,7 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     float THRES_ERROR       = 1e-7;
 
     int NUM_MINIMUM_REQUIRED_KEYFRAMES = 4; // 최소 keyframe 갯수.
-    int NUM_FIX_KEYFRAMES_IN_WINDOW    = 3; // optimization에서 제외 할 keyframe 갯수. 과거 순.
+    int NUM_FIX_KEYFRAMES_IN_WINDOW    = 2; // optimization에서 제외 할 keyframe 갯수. 과거 순.
 
     // Check whether there are enough keyframes
     if(kfs_window->getCurrentNumOfKeyframes() < NUM_MINIMUM_REQUIRED_KEYFRAMES){
@@ -1495,6 +1495,7 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     
     for(int j = 0; j < NUM_FIX_KEYFRAMES_IN_WINDOW; ++j)
         idx_fix.push_back(j);
+        
     for(int j = NUM_FIX_KEYFRAMES_IN_WINDOW; j < frames.size(); ++j)
         idx_opt.push_back(j);
         
