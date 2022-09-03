@@ -117,6 +117,8 @@ void FeatureTracker::trackBidirectionWithPrior(const cv::Mat& img0, const cv::Ma
     // KLT tracking
     int maxLevel = max_pyr_lvl;
 
+    PixelVec pts_prior = pts_track;
+
     // forward tracking
     std::vector<uchar> status_forward;
     std::vector<float> err_forward;
@@ -134,6 +136,7 @@ void FeatureTracker::trackBidirectionWithPrior(const cv::Mat& img0, const cv::Ma
         status_backward, err_backward, cv::Size(window_size, window_size), maxLevel, {}, cv::OPTFLOW_USE_INITIAL_FLOW, {});
 
     // Check validity.
+    int cnt_prior_ok = 0;
     for(int i = 0; i < n_pts; ++i){
         Pixel dp = pts0_backward[i]-pts0[i];
         float dist2 = dp.x*dp.x + dp.y*dp.y;
@@ -149,7 +152,13 @@ void FeatureTracker::trackBidirectionWithPrior(const cv::Mat& img0, const cv::Ma
             && err_backward[i] <= thres_err
             && dist2 <= thres_bidirection2
         );
+
+        Pixel dp_prior = (pts_prior[i] - pts_track[i]);
+        float dist_prior = std::sqrt(dp_prior.x*dp_prior.x + dp_prior.y*dp_prior.y);
+        if(dist_prior < 10.0) cnt_prior_ok++;
+        
     }
+    std::cout << " cnt prior ok : " << cnt_prior_ok << " / " << pts_track.size() <<std::endl;
     
     // printf(" - FEATURE_TRACKER - 'trackBidirection()'\n");
 };

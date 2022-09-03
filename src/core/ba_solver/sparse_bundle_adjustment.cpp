@@ -335,7 +335,7 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
 
         float average_error = 0.5f*err/(float)n_obs_;
             
-        std::cout << iter << "-th iter, error : " << average_error << "\n";
+        // std::cout << iter << "-th iter, error : " << average_error << "\n";
 
         // Check extraordinary cases.
         flag_nan_pass   = std::isnan(err) ? false : true;
@@ -360,9 +360,9 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
         1;
     }
     else{
+        throw std::runtime_error("Local BA NAN!\n");
+        
         std::cout << "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n";
-        std::cout << "************************* LOCAL BA FAILED!!!!! ****************************\n";
-        std::cout << "************************* LOCAL BA FAILED!!!!! ****************************\n";
         std::cout << "************************* LOCAL BA FAILED!!!!! ****************************\n";
     }
 

@@ -171,7 +171,7 @@ public:
         if( N_ != N_fix_ + N_opt_ ) 
             throw std::runtime_error(" N != N_fix + N_opt ");
         
-        std::cout << "input N: " << N_ <<", N_fix + N_opt: " << N_fix_ << "+" << N_opt_ << std::endl;
+        // std::cout << "input N: " << N_ <<", N_fix + N_opt: " << N_fix_ << "+" << N_opt_ << std::endl;
 
         // 1) get all window keyframes 
         std::set<LandmarkPtr> lmset_window; // 안겹치는 랜드마크들
@@ -220,7 +220,7 @@ public:
         M_ = lmbavec_all_.size();
         N_ = frameset_all_.size(); 
         N_fix_ = N_ - N_opt_;
-        std::cout << "Recomputed N: " << N_ <<", N_fix + N_opt: " << N_fix_ << "+" << N_opt_ << std::endl;
+        // std::cout << "Recomputed N: " << N_ <<", N_fix + N_opt: " << N_fix_ << "+" << N_opt_ << std::endl;
 
         // 4) set poses for all frames
         for(auto kf : frameset_all_)
@@ -244,14 +244,14 @@ public:
         
         int len_residual  = 2*n_obs_;
         int len_parameter = 6*N_opt_ + 3*M_;
-        printf("| Bundle Adjustment Statistics:\n");
-        printf("|  -        # of total images: %d images \n", N_);
-        printf("|  -           -  opt. images: %d images \n", N_opt_);
-        printf("|  -           -  fix  images: %d images \n", N_fix_);
-        printf("|  -        # of opti. points: %d landmarks \n", M_);
-        printf("|  -        # of observations: %d \n", n_obs_);
-        printf("|  -            Jacobian size: %d rows x %d cols\n", len_residual, len_parameter);
-        printf("|  -            Residual size: %d rows\n\n", len_residual);
+        // printf("| Bundle Adjustment Statistics:\n");
+        // printf("|  -        # of total images: %d images \n", N_);
+        // printf("|  -           -  opt. images: %d images \n", N_opt_);
+        // printf("|  -           -  fix  images: %d images \n", N_fix_);
+        // printf("|  -        # of opti. points: %d landmarks \n", M_);
+        // printf("|  -        # of observations: %d \n", n_obs_);
+        // printf("|  -            Jacobian size: %d rows x %d cols\n", len_residual, len_parameter);
+        // printf("|  -            Residual size: %d rows\n\n", len_residual);
     };
 
 private:

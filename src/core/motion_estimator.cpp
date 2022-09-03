@@ -1499,6 +1499,7 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     for(int j = NUM_FIX_KEYFRAMES_IN_WINDOW; j < frames.size(); ++j)
         idx_opt.push_back(j);
         
+    // Make Sparse BA Parameters
     std::shared_ptr<SparseBAParameters> ba_params;
     ba_params = std::make_shared<SparseBAParameters>();
     ba_params->setPosesAndPoints(frames, idx_fix, idx_opt);
