@@ -384,7 +384,7 @@ namespace geometry {
         Eigen::Matrix<float,4,4> Tjw, dT;
         se3Exp_f(xi,  Tjw);
         se3Exp_f(dxi, dT);
-        Tjw = dT*Tjw;
+        Tjw.noalias() = dT*Tjw;
         SE3Log_f(Tjw, xi);
     };
 

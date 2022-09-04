@@ -109,6 +109,18 @@ void SparseBundleAdjustmentSolver::setProblemSize(int N, int N_opt, int M, int n
 // Solve the BA for fixed number of iterations
 bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
     
+    int id_stop = ba_params_->getOptFramePtr(N_opt_-1)->getID();
+    std::cout << id_stop << std::endl;
+
+    std::vector<int> cnt_seen(N_+1,0);
+    for(int i = 0; i < M_; ++i){
+        const LandmarkBA& lmba = ba_params_->getLandmarkBA(i);
+        cnt_seen[lmba.pts_on_kfs.size()]++;
+    }
+
+    for(int i = 0; i< cnt_seen.size(); ++i)
+        std::cout << i << " seen : " << cnt_seen[i] << std::endl;
+
     bool flag_nan_pass   = true;
     bool flag_error_pass = true;
     bool flag_success    = true;
@@ -125,7 +137,7 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
     const float& invfx = cam_->fxinv(); const float& invfy = cam_->fyinv();
 
     // Set the Parameter Vector.
-    setParameterVectorFromPosesPoints();            
+    setParameterVectorFromPosesPoints();
 
     // Initialize parameters
     std::vector<float> r_prev(n_obs_, 0.0f);
@@ -307,9 +319,6 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
         }
         Eigen::MatrixXf x_mat = Am_BCinvBt_mat.ldlt().solve(am_BCinv_b_mat);
         
-        for(int j = 0; j < N_opt_; ++j)
-            x_[j] = x_mat.block<6,1>(6*j,0);
-
         for(int i = 0; i < M_; ++i){
             const LandmarkBA& lmba = ba_params_->getLandmarkBA(i);
             const FramePtrVec& kfs = lmba.kfs_seen;
@@ -323,15 +332,33 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
             }
             y_[i] = Cinv_b_[i] - CinvBt_x_[i];
         }
+
+        // NAN check
+        for(int j = 0; j < N_opt_; ++j){
+            x_[j] = x_mat.block<6,1>(6*j,0);
+            if(std::isnan(x_[j].norm())){
+                std::cout << j << "-th x_ is nan:\n";
+                std::cout << A_[j] << std::endl;
+            }
+        }
+        for(int i = 0; i < M_; ++i){
+            if(std::isnan(y_[i].norm())){
+                std::cout << i << "-th y_ is nan:\n";
+                std::cout << "point: " << ba_params_->getLandmarkBA(i).X.transpose() <<std::endl;
+                std::cout << "C_[i]:\n" << C_[i] << std::endl;
+                std::cout << "determinant: " << C_[i].determinant() <<std::endl;
+                std::cout << "Cinv_[i]:\n" << Cinv_[i] << std::endl;
+            }
+        }
                 
         // Update step
         for(int j_opt = 0; j_opt < N_opt_; ++j_opt){
             // params_poses_[j_opt] += x_[j_opt];
-            geometry::addFrontse3_f(params_poses_[j_opt], x_[j_opt]);
+            geometry::addFrontse3_f(params_poses_[j_opt], 0.1*x_[j_opt]);
         }
 
         for(int i = 0; i < M_; ++i)
-            params_points_[i].noalias() += y_[i];
+            params_points_[i].noalias() += 0.1*y_[i];
 
         float average_error = 0.5f*err/(float)n_obs_;
             
@@ -341,27 +368,66 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
         flag_nan_pass   = std::isnan(err) ? false : true;
         flag_error_pass = (average_error <= THRES_SUCCESS_AVG_ERROR) ? true : false;
         flag_success    = flag_nan_pass && flag_error_pass;
+
+        if(!flag_nan_pass)
+            throw std::runtime_error("nan ......n.n,dgfmksermfoiaejrof");
     } // END iter
 
     // Finally, update parameters
-    if(flag_nan_pass && flag_error_pass){
+    if(flag_nan_pass){
         for(int j_opt = 0; j_opt < N_opt_; ++j_opt){
             const FramePtr& kf = ba_params_->getOptFramePtr(j_opt);
             const PoseSE3& Tjw_update = ba_params_->getPose(kf);
+            std::cout << j_opt << "-th pose changes:\n" << kf->getPoseInv() << "\n-->\n" << Tjw_update << std::endl;
+
             kf->setPose(Tjw_update.inverse());
         }
         for(int i = 0; i < M_; ++i){
             const LandmarkBA& lmba = ba_params_->getLandmarkBA(i);
             const LandmarkPtr& lm = lmba.lm;
 
+            std::cout << i << "-th lm changes: " << lm->get3DPoint().transpose() << " --> " << lmba.X.transpose() << std::endl;
             lm->set3DPoint(lmba.X);
             lm->setBundled();
         }
-        1;
     }
     else{
-        throw std::runtime_error("Local BA NAN!\n");
+        std::vector<int> cnt_seen(N_+1,0);
+        for(int j = 0; j < N_opt_; ++j){
+            std::cout << j << "-th Pose:\n";
+            std::cout << ba_params_->getOptPose(j) << std::endl;
+        }
+        for(int i = 0; i < M_; ++i){
+            const LandmarkBA&  lmba = ba_params_->getLandmarkBA(i);
+            const Point&       Xi   = lmba.X; 
+            const FramePtrVec& kfs  = lmba.kfs_seen;
+            const PixelVec&    pts  = lmba.pts_on_kfs;
+            cnt_seen[kfs.size()]++;
+
+            std::cout << i << "-th lm point: " << Xi.transpose() <<std::endl;
+            for(int j = 0; j < pts.size(); ++j){
+                std::cout << i <<"-th lm, " << j << "-th obs: " << pts[j] <<std::endl;
+            }
+        }
         
+        // for(int j = 0; j < N_opt_; ++j){
+        //     std::cout << j << "-th A:\n";
+        //     std::cout << A_[j] << std::endl;
+        // }
+        // for(int i = 0; i < M_; ++i){
+        //     std::cout << i << "-th Cinv:\n";
+        //     std::cout << Cinv_[i] << std::endl;
+        // }
+        // for(int j = 0; j < N_opt_; ++j){
+        //     std::cout << j << "-th x:\n";
+        //     std::cout << x_[j] << std::endl;
+        // }
+        // for(int i = 0; i < M_; ++i){
+        //     std::cout << i << "-th y:\n";
+        //     std::cout << y_[i] << std::endl;
+        // }
+
+        throw std::runtime_error("Local BA NAN!\n");        
         std::cout << "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n";
         std::cout << "************************* LOCAL BA FAILED!!!!! ****************************\n";
     }

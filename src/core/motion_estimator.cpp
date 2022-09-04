@@ -1446,7 +1446,7 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
 // std::map<FramePtr,int>     kfmap_optimizable
 // std::map<FramePtr,PoseSE3> Tjw_map;
 
-    std::cout << "===============     Local Bundle adjustment (Sparse Solver)     ===============n";
+    std::cout << "===============     Local Bundle adjustment (Sparse Solver)     ===============\n";
 
     int THRES_AGE           = 2; // landmark의 최소 age
     int THRES_MINIMUM_SEEN  = 2; // landmark의 최소 관측 keyframes
