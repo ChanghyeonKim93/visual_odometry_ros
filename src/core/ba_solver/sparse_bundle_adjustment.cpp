@@ -122,7 +122,7 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
 
     // poses
     int cntt = 0;
-    for(auto f : ba_params_->getAllFrameset()){
+    for(const auto& f : ba_params_->getAllFrameset()){
         std::cout << cntt++ << "-th kf, id: " << f->getID() << " pose:\n" << ba_params_->getPose(f) << std::endl;
     }
 

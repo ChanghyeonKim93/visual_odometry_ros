@@ -223,7 +223,7 @@ public:
         const std::vector<int>& idx_optimize)
     {
         // Threshold
-        int THRES_MINIMUM_SEEN = 3;
+        int THRES_MINIMUM_SEEN = 2;
 
         N_     = frames.size();
 
@@ -238,11 +238,11 @@ public:
         std::set<LandmarkPtr> lmset_window; // 안겹치는 랜드마크들
         std::set<FramePtr> frameset_window; // 윈도우 내부 키프레임들
         FramePtrVec kfvec_window; // 윈도우 내부의 키프레임들
-        for(auto kf : frames) { // 모든 keyframe in window 순회 
+        for(const auto& kf : frames) { // 모든 keyframe in window 순회 
             kfvec_window.push_back(kf); // window keyframes 저장.
             frameset_window.insert(kf);
 
-            for(auto lm : kf->getRelatedLandmarkPtr()){ // 현재 keyframe에서 보인 모든 landmark 순회
+            for(const auto& lm : kf->getRelatedLandmarkPtr()){ // 현재 keyframe에서 보인 모든 landmark 순회
                 if( lm->isTriangulated() ) // age > THRES, triangulate() == true 경우 포함.
                     lmset_window.insert(lm);
             }
@@ -257,7 +257,7 @@ public:
         Tjw_ref_ = Twj_ref_.inverse();
 
         // 2) make LandmarkBAVec
-        for(auto lm : lmset_window) { // keyframe window 내에서 보였던 모든 landmark를 순회.
+        for(const auto& lm : lmset_window) { // keyframe window 내에서 보였던 모든 landmark를 순회.
             LandmarkBA lm_ba;
             lm_ba.lm = lm; // landmark pointer
 
@@ -297,7 +297,7 @@ public:
         // std::cout << "Recomputed N: " << N_ <<", N_fix + N_opt: " << N_fix_ << "+" << N_opt_ << std::endl;
 
         // 4) set poses for all frames
-        for(auto kf : frameset_all_){
+        for(const auto& kf : frameset_all_){
             _BA_PoseSE3 Tjw_tmp;
             const PoseSE3& Tjw_float = kf->getPoseInv();
             Tjw_tmp << Tjw_float(0,0), Tjw_float(0,1), Tjw_float(0,2), Tjw_float(0,3),
@@ -321,7 +321,7 @@ public:
 
         // 6) set optimization values 
         n_obs_ = 0; // the number of total observations (2*n_obs == len_residual)
-        for(auto lm_ba : lmbavec_all_) 
+        for(const auto& lm_ba : lmbavec_all_) 
             n_obs_ += lm_ba.kfs_seen.size(); // residual 크기.
 
         
