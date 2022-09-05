@@ -154,6 +154,13 @@ public:
         return lmbavec_all_[i];
     };
 
+    const std::set<FramePtr>& getAllFrameset(){
+        return frameset_all_;
+    };
+    const std::set<LandmarkPtr>& getAllLandmarkset(){
+        return landmarkset_all_;
+    };
+
 // Update and get methods (Pose and Point)
 public:
     void updateOptPoint(int i, const _BA_Point& X_update){
@@ -206,7 +213,9 @@ public:
     : N_(0), N_opt_(0), N_fix_(0), M_(0), n_obs_(0)
     { };
 
-    ~SparseBAParameters(){};
+    ~SparseBAParameters(){
+        std::cout << "Sparse BA Parameters is deleted.\n";
+    };
 
     void setPosesAndPoints(
         const FramePtrVec&      frames, 
@@ -292,9 +301,9 @@ public:
             _BA_PoseSE3 Tjw_tmp;
             const PoseSE3& Tjw_float = kf->getPoseInv();
             Tjw_tmp << Tjw_float(0,0), Tjw_float(0,1), Tjw_float(0,2), Tjw_float(0,3),
-                           Tjw_float(1,0), Tjw_float(1,1), Tjw_float(1,2), Tjw_float(1,3),
-                           Tjw_float(2,0), Tjw_float(2,1), Tjw_float(2,2), Tjw_float(2,3),
-                           Tjw_float(3,0), Tjw_float(3,1), Tjw_float(3,2), Tjw_float(3,3);
+                       Tjw_float(1,0), Tjw_float(1,1), Tjw_float(1,2), Tjw_float(1,3),
+                       Tjw_float(2,0), Tjw_float(2,1), Tjw_float(2,2), Tjw_float(2,3),
+                       Tjw_float(3,0), Tjw_float(3,1), Tjw_float(3,2), Tjw_float(3,3);
             
             Tjw_tmp = this->changeInvPoseWorldToRef(Tjw_tmp);
             posemap_all_.insert({kf, Tjw_tmp});

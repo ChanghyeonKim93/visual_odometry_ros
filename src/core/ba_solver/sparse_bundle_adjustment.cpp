@@ -121,8 +121,9 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
         std::cout << i << " seen : " << cnt_seen[i] << std::endl;
 
     // poses
-    for(int j = 0; j < N_opt_; ++j){
-        std::cout << j << "-th pose:\n" << ba_params_->getOptPose(j) << std::endl;
+    int cntt = 0;
+    for(auto f : ba_params_->getAllFrameset()){
+        std::cout << cntt++ << "-th kf, id: " << f->getID() << " pose:\n" << ba_params_->getPose(f) << std::endl;
     }
 
     bool flag_nan_pass   = true;
@@ -168,8 +169,8 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
 
             for(int jj = 0; jj < kfs.size(); ++jj) {
                 // For j-th keyframe
-                const _BA_Pixel& pij = pts[jj];
-                const FramePtr&   kf = kfs[jj];
+                const _BA_Pixel& pij = pts.at(jj);
+                const FramePtr&   kf = kfs.at(jj);
 
                 // 0) check whether it is optimizable keyframe
                 bool is_optimizable_keyframe = false;
@@ -180,7 +181,7 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
                 }
 
                 // Current poses
-                const _BA_PoseSE3& T_jw = ba_params_->getPose(kf);
+                _BA_PoseSE3 T_jw = ba_params_->getPose(kf);
                 const _BA_Rot3&    R_jw = T_jw.block<3,3>(0,0);
                 const _BA_Pos3&    t_jw = T_jw.block<3,1>(0,3);
                 
@@ -256,7 +257,9 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
                     || std::isnan(Qij_t_rij.norm()) )
                     {
                         std::cerr << i << "-th point, " << j << "-th related frame is nan!\n";
+                        std::cerr << "kf index : " << kf->getID() << std::endl;
                         std::cerr << "Pose:\n" << T_jw <<"\n";
+                        std::cerr << "Point: " << Xi.transpose() << std::endl;
                         std::cerr << "Point: " << Xij.transpose() << std::endl;
                         std::cerr << "Pixel: " << pij << std::endl;
                         throw std::runtime_error("ff");
