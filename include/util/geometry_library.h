@@ -40,6 +40,9 @@ namespace geometry {
     
     void addFrontse3(Eigen::Matrix<double,6,1>& xi, const Eigen::Matrix<double,6,1>& dxi);
     void addFrontse3_f(Eigen::Matrix<float,6,1>& xi, const Eigen::Matrix<float,6,1>& dxi);
+
+    Eigen::Matrix<float,4,4> inverseSE3_f(const Eigen::Matrix<float,4,4>& T);
+    Eigen::Matrix<double,4,4> inverseSE3(const Eigen::Matrix<double,4,4>& T);
 };
 
 

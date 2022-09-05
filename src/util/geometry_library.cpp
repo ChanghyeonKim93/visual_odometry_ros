@@ -493,4 +493,20 @@ namespace geometry {
         SE3Log(Tjw, xi);
     };
 
+    Eigen::Matrix<float,4,4> inverseSE3_f(const Eigen::Matrix<float,4,4>& T){
+        Eigen::Matrix<float,4,4> Tinv;
+        const Eigen::Matrix<float,3,3>& Rt = T.block<3,3>(0,0).transpose();
+        const Eigen::Matrix<float,3,1>& t = T.block<3,1>(0,3);
+        Tinv << Rt, -Rt*t,0,0,0,1;
+        return Tinv;
+    };
+    Eigen::Matrix<double,4,4> inverseSE3(const Eigen::Matrix<double,4,4>& T){
+        Eigen::Matrix<double,4,4> Tinv;
+        const Eigen::Matrix<double,3,3>& Rt = T.block<3,3>(0,0).transpose();
+        const Eigen::Matrix<double,3,1>& t = T.block<3,1>(0,3);
+        Tinv << Rt, -Rt*t,0,0,0,1;
+        return Tinv;
+    };
+
+
 };

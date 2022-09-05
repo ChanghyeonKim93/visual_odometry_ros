@@ -97,9 +97,12 @@ struct LandmarkBA {
 
 class SparseBAParameters {
 
-private: // Reference Pose
+private: // Reference Pose and scaling factor for numerical stability
     _BA_PoseSE3 Twj_ref_;
     _BA_PoseSE3 Tjw_ref_;
+    _BA_numeric pose_scale_;
+    _BA_numeric inv_pose_scale_;
+
 
 private: // all frames and landmarks used for BA.
     std::set<FramePtr>       frameset_all_;
@@ -207,10 +210,31 @@ public:
         return Tjref*Tjw_ref_;
     };
 
+    _BA_Point scalingPoint(const _BA_Point& X){
+        return X*inv_pose_scale_;
+    };
+    _BA_Point recoverOriginalScalePoint(const _BA_Point& X){
+        return X*pose_scale_;  
+    };
+    _BA_PoseSE3 scalingPose(const _BA_PoseSE3& Tjw){
+        _BA_PoseSE3 Tjw_scaled = Tjw;
+        Tjw_scaled(0,3) *= inv_pose_scale_;
+        Tjw_scaled(1,3) *= inv_pose_scale_;
+        Tjw_scaled(2,3) *= inv_pose_scale_;
+        return Tjw_scaled;
+    };
+    _BA_PoseSE3 recoverOriginalScalePose(const _BA_PoseSE3& Tjw_scaled){
+        _BA_PoseSE3 Tjw_org = Tjw_scaled;
+        Tjw_org(0,3) *= pose_scale_;
+        Tjw_org(1,3) *= pose_scale_;
+        Tjw_org(2,3) *= pose_scale_;
+        return Tjw_org;
+    };
+
 // Set methods
 public:
     SparseBAParameters() 
-    : N_(0), N_opt_(0), N_fix_(0), M_(0), n_obs_(0)
+    : N_(0), N_opt_(0), N_fix_(0), M_(0), n_obs_(0), pose_scale_(10.0), inv_pose_scale_(1.0/pose_scale_)
     { };
 
     ~SparseBAParameters(){
@@ -254,7 +278,7 @@ public:
                     Twj_ref_float(2,0),Twj_ref_float(2,1),Twj_ref_float(2,2),Twj_ref_float(2,3),
                     Twj_ref_float(3,0),Twj_ref_float(3,1),Twj_ref_float(3,2),Twj_ref_float(3,3);
         
-        Tjw_ref_ = Twj_ref_.inverse();
+        Tjw_ref_ = geometry::inverseSE3(Twj_ref_);
 
         // 2) make LandmarkBAVec
         for(const auto& lm : lmset_window) { // keyframe window 내에서 보였던 모든 landmark를 순회.
@@ -264,8 +288,10 @@ public:
             // warp to Reference frame.
             const Point& X_float = lm->get3DPoint(); 
             lm_ba.X << X_float(0), X_float(1), X_float(2);  // 3D point represented in the global frame.
+            
             lm_ba.X = this->warpToRef(lm_ba.X);
-
+            lm_ba.X = this->scalingPoint(lm_ba.X);
+            
             lm_ba.kfs_seen.reserve(10);   
             lm_ba.kfs_index.reserve(10); 
             lm_ba.pts_on_kfs.reserve(10);
@@ -306,6 +332,8 @@ public:
                        Tjw_float(3,0), Tjw_float(3,1), Tjw_float(3,2), Tjw_float(3,3);
             
             Tjw_tmp = this->changeInvPoseWorldToRef(Tjw_tmp);
+            Tjw_tmp = this->scalingPose(Tjw_tmp);
+            
             posemap_all_.insert(std::pair<FramePtr,_BA_PoseSE3>(kf, Tjw_tmp));
         }
         

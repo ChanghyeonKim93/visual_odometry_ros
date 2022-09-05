@@ -11,7 +11,7 @@
  */
 void ScaleMonoVO::trackImageLocalBundle2(const cv::Mat& img, const double& timestamp){
 	float THRES_SAMPSON = 5.0f;
-	float THRES_PARALLAX = 0.5f;
+	float THRES_PARALLAX = 0.3f;
 
 	// Generate statistics
 	AlgorithmStatistics::LandmarkStatistics  statcurr_landmark;
@@ -117,14 +117,14 @@ void ScaleMonoVO::trackImageLocalBundle2(const cv::Mat& img, const double& times
 			// Frame_curr의 자세를 넣는다.
 			dt10 = dt10/dt10.norm()*params_.scale_estimator.initial_scale;
 			PoseSE3 dT10; dT10 << dR10, dt10, 0.0f, 0.0f, 0.0f, 1.0f;
-			PoseSE3 dT01 = dT10.inverse();
+			PoseSE3 dT01 = geometry::inverseSE3_f(dT10);
 
 			frame_curr->setPose(Twc_prev*dT01);		
 			frame_curr->setPoseDiff10(dT10);	
 				
 #ifdef RECORD_FRAME_STAT
 statcurr_frame.Twc   = frame_curr->getPose();
-statcurr_frame.Tcw   = frame_curr->getPose().inverse();
+statcurr_frame.Tcw   = frame_curr->getPoseInv();
 statcurr_frame.dT_10 = frame_curr->getPoseDiff10();
 statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 #endif
@@ -200,11 +200,11 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 
 			// 이전 자세의 변화량을 가져온다. 
 			PoseSE3 Twc_prev   = frame_prev_->getPose();
-			PoseSE3 Tcw_prev   = Twc_prev.inverse();
+			PoseSE3 Tcw_prev   = geometry::inverseSE3_f(Twc_prev);
 
 			PoseSE3 dT01_prior = frame_prev_->getPoseDiff01();
 			PoseSE3 Twc_prior  = Twc_prev*dT01_prior;
-			PoseSE3 Tcw_prior  = Twc_prior.inverse();
+			PoseSE3 Tcw_prior  = geometry::inverseSE3_f(Twc_prior);
 
 			// Make tracking prior 
 			lmtrack_prev.pts1.resize(lmtrack_prev.pts0.size());
@@ -295,7 +295,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 				timer::tic();
 				if(motion_estimator_->calcPoseOnlyBundleAdjustment(Xp_depth_ok, pts1_depth_ok, cam_, dR01, dt01, mask_motion)){
 					dT01 << dR01, dt01, 0,0,0,1;
-					dT10 = dT01.inverse();
+					dT10 = geometry::inverseSE3_f(dT01);
 
 					dR10 = dT10.block<3,3>(0,0);
 					dt10 = dT10.block<3,1>(0,3);
@@ -332,7 +332,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 				// Frame_curr의 자세를 넣는다.
 				float scale = frame_prev_->getPoseDiff01().block<3,1>(0,3).norm();
 				dT10 << dR10, (scale/dt10.norm())*dt10, 0.0f, 0.0f, 0.0f, 1.0f;
-				dT01 = dT10.inverse();
+				dT01 = geometry::inverseSE3_f(dT10);
 
 				frame_curr->setPose(Twc_prev*dT01);		
 				frame_curr->setPoseDiff10(dT10);	
@@ -355,7 +355,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 				
 #ifdef RECORD_FRAME_STAT
 statcurr_frame.Twc   = frame_curr->getPose();
-statcurr_frame.Tcw   = frame_curr->getPose().inverse();
+statcurr_frame.Tcw   = frame_curr->getPoseInv();
 statcurr_frame.dT_10 = frame_curr->getPoseDiff10();
 statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 #endif
@@ -413,7 +413,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 
 					const PoseSE3& Tw0 = lm->getRelatedKeyframePtr().front()->getPose();
 					const PoseSE3& Tw1 = lm->getRelatedKeyframePtr().back()->getPose();
-					PoseSE3 T10_tmp =  Tw1.inverse() * Tw0;
+					PoseSE3 T10_tmp =  geometry::inverseSE3_f(Tw1) * Tw0;
 
 					// Reconstruct points
 					Point X0, X1;

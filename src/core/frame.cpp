@@ -13,12 +13,12 @@ Frame::Frame()
 
 void Frame::setPose(const PoseSE3& Twc) { 
     Twc_ = Twc; 
-    Tcw_ = Twc_.inverse();
+    Tcw_ = geometry::inverseSE3_f(Twc_);
 };
 
 void Frame::setPoseDiff10(const Eigen::Matrix4f& dT10){
     dT10_ = dT10;
-    dT01_ = dT10.inverse();
+    dT01_ = geometry::inverseSE3_f(dT10);
 };
 
 void Frame::setSteeringAngle(float st_angle){

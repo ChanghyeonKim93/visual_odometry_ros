@@ -12,6 +12,7 @@
 
 #include "core/landmark.h"
 #include "core/camera.h"
+#include "util/geometry_library.h"
 
 /*
 - Landmark

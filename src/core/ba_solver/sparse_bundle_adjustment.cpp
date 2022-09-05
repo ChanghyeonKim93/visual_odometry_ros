@@ -440,6 +440,10 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
 
     } // END iter
 
+
+
+
+
     // Finally, update parameters
     if(flag_nan_pass){
         bool flag_large_update = false;
@@ -454,6 +458,7 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
                             Twj_original_float(3,0), Twj_original_float(3,1), Twj_original_float(3,2), Twj_original_float(3,3); 
             
             _BA_PoseSE3 Tjw_update = ba_params_->getPose(kf);
+            Tjw_update = ba_params_->recoverOriginalScalePose(Tjw_update);
             Tjw_update = ba_params_->changeInvPoseRefToWorld(Tjw_update);
 
             std::cout << j_opt << "-th pose changes:\n" << kf->getPoseInv() << "\n-->\n" << Tjw_update << std::endl;
@@ -466,12 +471,14 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
                                 Tjw_update(1,0),Tjw_update(1,1),Tjw_update(1,2),Tjw_update(1,3),
                                 Tjw_update(2,0),Tjw_update(2,1),Tjw_update(2,2),Tjw_update(2,3),
                                 Tjw_update(3,0),Tjw_update(3,1),Tjw_update(3,2),Tjw_update(3,3);
-            kf->setPose(Tjw_update_float.inverse());
+            kf->setPose(geometry::inverseSE3_f(Tjw_update_float));
         }
         for(int i = 0; i < M_; ++i){
             const LandmarkBA& lmba = ba_params_->getLandmarkBA(i);
             const LandmarkPtr& lm = lmba.lm;
             _BA_Point X_updated = lmba.X;
+
+            X_updated = ba_params_->recoverOriginalScalePoint(X_updated);
             X_updated = ba_params_->warpToWorld(X_updated);
 
             _BA_Point X_original;
