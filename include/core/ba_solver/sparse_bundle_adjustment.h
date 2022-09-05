@@ -306,7 +306,7 @@ public:
                        Tjw_float(3,0), Tjw_float(3,1), Tjw_float(3,2), Tjw_float(3,3);
             
             Tjw_tmp = this->changeInvPoseWorldToRef(Tjw_tmp);
-            posemap_all_.insert({kf, Tjw_tmp});
+            posemap_all_.insert(std::pair<FramePtr,_BA_PoseSE3>(kf, Tjw_tmp));
         }
         
         // 5) set optimizable keyframes (posemap, indexmap, framemap)
