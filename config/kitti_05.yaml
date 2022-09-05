@@ -28,34 +28,34 @@ Camera.height: 370
 # Parameters of feature tracker
 feature_tracker.thres_error: 50.0      
 feature_tracker.thres_bidirection: 5.0
-feature_tracker.window_size: 21
+feature_tracker.window_size: 13
 feature_tracker.max_level: 5
 
 # Parameters of feature extractor
 feature_extractor.n_features: 100
-feature_extractor.n_bins_u: 20
-feature_extractor.n_bins_v: 12
-feature_extractor.thres_fastscore: 30.0
-feature_extractor.radius: 5.0
+feature_extractor.n_bins_u: 16
+feature_extractor.n_bins_v: 10
+feature_extractor.thres_fastscore: 25.0
+feature_extractor.radius: 10.0
 
 # Parameters of motion estimator
-motion_estimator.thres_1p_error: 60.0 # pixels
-motion_estimator.thres_5p_error: 1.0 # pixels
+motion_estimator.thres_1p_error: 120.0 # pixels
+motion_estimator.thres_5p_error: 1.5 # pixels
 
 # Parameters of scale estimator
-scale_estimator.initial_scale: 0.60 # meters
-scale_estimator.thres_turn_psi: 1.0 # degrees
-scale_estimator.thres_cnt_turns: 8
+scale_estimator.initial_scale: 0.76 # meters
+scale_estimator.thres_turn_psi: 1.2 # degrees
+scale_estimator.thres_cnt_turns: 7
 
 scale_estimator.thres_age_past_horizon: 20
 scale_estimator.thres_age_use: 2
 scale_estimator.thres_age_recon: 2
-scale_estimator.thres_parallax_use: 1.5 # degrees
+scale_estimator.thres_parallax_use: 0.5 # degrees
 scale_estimator.thres_parallax_recon: 20.0 # degrees
 
 # Parameters of keyframe update
-keyframe_update.thres_alive_ratio: 0.7
-keyframe_update.thres_mean_parallax: 3.0
+keyframe_update.thres_alive_ratio: 0.8
+keyframe_update.thres_mean_parallax: 1.0
 
 # Parameters of map update
 map_update.thres_parallax: 1.0

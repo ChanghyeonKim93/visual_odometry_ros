@@ -652,7 +652,7 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
     float THRES_DELTA_ERROR  = 1e-6;
     float THRES_REPROJ_ERROR = 4.0f; // pixels
 
-    float lambda = 0.001f;
+    float lambda = 0.01f;
     float step_size = 1.0f;
     
     float fx = cam->fx(); float fy = cam->fy();
@@ -1029,7 +1029,7 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
 
     int THRES_AGE           = 2; // landmark의 최소 age
     int THRES_MINIMUM_SEEN  = 2; // landmark의 최소 관측 keyframes
-    float THRES_PARALLAX    = 0.5*D2R; // landmark의 최소 parallax
+    float THRES_PARALLAX    = 0.7*D2R; // landmark의 최소 parallax
 
     // Optimization paraameters
     int   MAX_ITER          = 10;
@@ -1038,7 +1038,7 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     float MAX_LAM           = 1.0f;  // for Levenberg-Marquardt algorithm
     float MIN_LAM           = 1e-4f; // for Levenberg-Marquardt algorithm
 
-    float THRES_HUBER       = 1.0f;
+    float THRES_HUBER       = 0.5f;
     float THRES_HUBER_MIN   = 0.3f;
     float THRES_HUBER_MAX   = 20.0f;
 
