@@ -407,7 +407,7 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
 
         _BA_numeric average_error = 0.5*err/(_BA_numeric)n_obs_;
             
-        // std::cout << iter << "-th iter, error : " << average_error << "\n";
+        std::cout << iter << "-th iter, error : " << average_error << "\n";
 
         // Check extraordinary cases.
         flag_nan_pass   = std::isnan(err) ? false : true;
@@ -439,6 +439,7 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
 
     // Finally, update parameters
     if(flag_nan_pass){
+        bool flag_large_update = false;
         for(int j_opt = 0; j_opt < N_opt_; ++j_opt){
             const FramePtr& kf = ba_params_->getOptFramePtr(j_opt);
 
@@ -449,11 +450,13 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
                             Twj_original_float(2,0), Twj_original_float(2,1), Twj_original_float(2,2), Twj_original_float(2,3), 
                             Twj_original_float(3,0), Twj_original_float(3,1), Twj_original_float(3,2), Twj_original_float(3,3); 
             
-            const _BA_PoseSE3& Tjw_update = ba_params_->getPose(kf);
+            _BA_PoseSE3 Tjw_update = ba_params_->getPose(kf);
+            Tjw_update = ba_params_->changeInvPoseRefToWorld(Tjw_update);
+
             std::cout << j_opt << "-th pose changes:\n" << kf->getPoseInv() << "\n-->\n" << Tjw_update << std::endl;
             _BA_PoseSE3 dT = Twj_original*Tjw_update;
             if(dT.block<3,1>(0,3).norm() > 10) 
-                throw std::runtime_error("dT.block<3,1>(0,3).norm() > 10");
+                flag_large_update = true;
 
             PoseSE3 Tjw_update_float;
             Tjw_update_float << Tjw_update(0,0),Tjw_update(0,1),Tjw_update(0,2),Tjw_update(0,3),
@@ -465,15 +468,27 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
         for(int i = 0; i < M_; ++i){
             const LandmarkBA& lmba = ba_params_->getLandmarkBA(i);
             const LandmarkPtr& lm = lmba.lm;
+            _BA_Point X_updated = lmba.X;
+            X_updated = ba_params_->warpToWorld(X_updated);
 
-            std::cout << i << "-th lm changes: " << lm->get3DPoint().transpose() << " --> " << lmba.X.transpose() << std::endl;
+            _BA_Point X_original;
+            X_original << lm->get3DPoint()(0),lm->get3DPoint()(1),lm->get3DPoint()(2);
+            std::cout << i << "-th lm changes: " << X_original.transpose() << " --> " << X_updated.transpose() << std::endl;
+            if((X_original-X_updated).norm() > 2){
+                for(int jj = 0; jj < lmba.pts_on_kfs.size(); ++jj){
+                    std::cout << " " << lmba.pts_on_kfs[jj].transpose();
+                }
+                std::cout <<"\n";
+            }
             
             Point X_update_float;
-            X_update_float << lmba.X(0),lmba.X(1),lmba.X(2);
+            X_update_float << X_updated(0),X_updated(1),X_updated(2);
 
             lm->set3DPoint(X_update_float);
             lm->setBundled();
         }
+
+        if(flag_large_update) throw std::runtime_error("large update!");
     }
     else{
         std::vector<int> cnt_seen(N_+1,0);

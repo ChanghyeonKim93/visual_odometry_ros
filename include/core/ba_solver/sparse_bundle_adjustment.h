@@ -96,6 +96,11 @@ struct LandmarkBA {
 };
 
 class SparseBAParameters {
+
+private: // Reference Pose
+    _BA_PoseSE3 Twj_ref_;
+    _BA_PoseSE3 Tjw_ref_;
+
 private: // all frames and landmarks used for BA.
     std::set<FramePtr>       frameset_all_;
     std::set<LandmarkPtr>    landmarkset_all_;
@@ -180,6 +185,20 @@ public:
     bool isOptFrame(const FramePtr& f) {return (indexmap_opt_.find(f) != indexmap_opt_.end() ); };
     bool isFixFrame(const FramePtr& f) {return (indexmap_opt_.find(f) == indexmap_opt_.end() ); };
 
+public:
+    _BA_Point warpToRef(const _BA_Point& X){
+        return (Tjw_ref_.block<3,3>(0,0)*X + Tjw_ref_.block<3,1>(0,3));
+    };
+    _BA_Point warpToWorld(const _BA_Point& X){
+        return (Twj_ref_.block<3,3>(0,0)*X + Twj_ref_.block<3,1>(0,3));
+    };
+
+    _BA_PoseSE3 changeInvPoseWorldToRef(const _BA_PoseSE3& Tjw){
+        return Tjw*Twj_ref_;
+    };
+    _BA_PoseSE3 changeInvPoseRefToWorld(const _BA_PoseSE3& Tjref){
+        return Tjref*Tjw_ref_;
+    };
 
 // Set methods
 public:
@@ -194,18 +213,17 @@ public:
         const std::vector<int>& idx_fix, 
         const std::vector<int>& idx_optimize)
     {
-        int THRES_MINIMUM_SEEN = 2;
+        // Threshold
+        int THRES_MINIMUM_SEEN = 3;
 
         N_     = frames.size();
 
         N_fix_ = idx_fix.size();
         N_opt_ = idx_optimize.size();
 
-
         if( N_ != N_fix_ + N_opt_ ) 
             throw std::runtime_error(" N != N_fix + N_opt ");
         
-        // std::cout << "input N: " << N_ <<", N_fix + N_opt: " << N_fix_ << "+" << N_opt_ << std::endl;
 
         // 1) get all window keyframes 
         std::set<LandmarkPtr> lmset_window; // 안겹치는 랜드마크들
@@ -220,13 +238,25 @@ public:
                     lmset_window.insert(lm);
             }
         }
+        // 1-1) get reference pose.
+        const PoseSE3& Twj_ref_float = kfvec_window.front()->getPose();
+        Twj_ref_ << Twj_ref_float(0,0),Twj_ref_float(0,1),Twj_ref_float(0,2),Twj_ref_float(0,3),
+                    Twj_ref_float(1,0),Twj_ref_float(1,1),Twj_ref_float(1,2),Twj_ref_float(1,3),
+                    Twj_ref_float(2,0),Twj_ref_float(2,1),Twj_ref_float(2,2),Twj_ref_float(2,3),
+                    Twj_ref_float(3,0),Twj_ref_float(3,1),Twj_ref_float(3,2),Twj_ref_float(3,3);
+        
+        Tjw_ref_ = Twj_ref_.inverse();
 
         // 2) make LandmarkBAVec
         for(auto lm : lmset_window) { // keyframe window 내에서 보였던 모든 landmark를 순회.
             LandmarkBA lm_ba;
             lm_ba.lm = lm; // landmark pointer
-            const Point& X_float = lm->get3DPoint();
-            lm_ba.X  = _BA_Point(X_float(0),X_float(1),X_float(2));  // 3D point represented in the global frame.
+
+            // warp to Reference frame.
+            const Point& X_float = lm->get3DPoint(); 
+            lm_ba.X << X_float(0), X_float(1), X_float(2);  // 3D point represented in the global frame.
+            lm_ba.X = this->warpToRef(lm_ba.X);
+
             lm_ba.kfs_seen.reserve(10);   
             lm_ba.kfs_index.reserve(10); 
             lm_ba.pts_on_kfs.reserve(10);
@@ -259,13 +289,15 @@ public:
 
         // 4) set poses for all frames
         for(auto kf : frameset_all_){
-            _BA_PoseSE3 pose_inv;
-            const PoseSE3& pose_inv_float = kf->getPoseInv();
-            pose_inv << pose_inv_float(0,0), pose_inv_float(0,1), pose_inv_float(0,2), pose_inv_float(0,3),
-                        pose_inv_float(1,0), pose_inv_float(1,1), pose_inv_float(1,2), pose_inv_float(1,3),
-                        pose_inv_float(2,0), pose_inv_float(2,1), pose_inv_float(2,2), pose_inv_float(2,3),
-                        pose_inv_float(3,0), pose_inv_float(3,1), pose_inv_float(3,2), pose_inv_float(3,3);
-            posemap_all_.insert({kf, pose_inv});
+            _BA_PoseSE3 Tjw_tmp;
+            const PoseSE3& Tjw_float = kf->getPoseInv();
+            Tjw_tmp << Tjw_float(0,0), Tjw_float(0,1), Tjw_float(0,2), Tjw_float(0,3),
+                           Tjw_float(1,0), Tjw_float(1,1), Tjw_float(1,2), Tjw_float(1,3),
+                           Tjw_float(2,0), Tjw_float(2,1), Tjw_float(2,2), Tjw_float(2,3),
+                           Tjw_float(3,0), Tjw_float(3,1), Tjw_float(3,2), Tjw_float(3,3);
+            
+            Tjw_tmp = this->changeInvPoseWorldToRef(Tjw_tmp);
+            posemap_all_.insert({kf, Tjw_tmp});
         }
         
         // 5) set optimizable keyframes (posemap, indexmap, framemap)
