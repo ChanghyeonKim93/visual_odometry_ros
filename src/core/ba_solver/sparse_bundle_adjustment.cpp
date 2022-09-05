@@ -461,7 +461,7 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
             Tjw_update = ba_params_->recoverOriginalScalePose(Tjw_update);
             Tjw_update = ba_params_->changeInvPoseRefToWorld(Tjw_update);
 
-            std::cout << j_opt << "-th pose changes:\n" << kf->getPoseInv() << "\n-->\n" << Tjw_update << std::endl;
+            // std::cout << j_opt << "-th pose changes:\n" << kf->getPoseInv() << "\n-->\n" << Tjw_update << std::endl;
             _BA_PoseSE3 dT = Twj_original*Tjw_update;
             if(dT.block<3,1>(0,3).norm() > 10) 
                 flag_large_update = true;
@@ -483,12 +483,12 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
 
             _BA_Point X_original;
             X_original << lm->get3DPoint()(0),lm->get3DPoint()(1),lm->get3DPoint()(2);
-            std::cout << i << "-th lm changes: " << X_original.transpose() << " --> " << X_updated.transpose() << std::endl;
+            // std::cout << i << "-th lm changes: " << X_original.transpose() << " --> " << X_updated.transpose() << std::endl;
             if((X_original-X_updated).norm() > 2){
-                for(int jj = 0; jj < lmba.pts_on_kfs.size(); ++jj){
-                    std::cout << " " << lmba.pts_on_kfs[jj].transpose();
-                }
-                std::cout <<"\n";
+                // for(int jj = 0; jj < lmba.pts_on_kfs.size(); ++jj){
+                    // std::cout << " " << lmba.pts_on_kfs[jj].transpose();
+                // }
+                // std::cout <<"\n";
             }
             
             Point X_update_float;

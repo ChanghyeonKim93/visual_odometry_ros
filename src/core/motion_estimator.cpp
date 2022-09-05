@@ -647,12 +647,12 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
     mask_inlier.resize(n_pts);
     
     int MAX_ITER = 250;
-    float THRES_HUBER        = 1.0f; // pixels
-    float THRES_DELTA_XI     = 1e-7;
-    float THRES_DELTA_ERROR  = 1e-5;
-    float THRES_REPROJ_ERROR = 5.0f; // pixels
+    float THRES_HUBER        = 0.5f; // pixels
+    float THRES_DELTA_XI     = 1e-5;
+    float THRES_DELTA_ERROR  = 1e-6;
+    float THRES_REPROJ_ERROR = 4.0f; // pixels
 
-    float lambda = 0.0001f;
+    float lambda = 0.001f;
     float step_size = 1.0f;
     
     float fx = cam->fx(); float fy = cam->fy();
@@ -672,8 +672,8 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
         PoseSE3 T10;
         geometry::se3Exp_f(xi10,T10);
 
-        Rot3 R10 = T10.block<3,3>(0,0);
-        Pos3 t10 = T10.block<3,1>(0,3);
+        const Rot3& R10 = T10.block<3,3>(0,0);
+        const Pos3& t10 = T10.block<3,1>(0,3);
 
         Eigen::Matrix<float,6,6> JtWJ;
         Eigen::Matrix<float,6,1> mJtWr;
@@ -1029,16 +1029,16 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
 
     int THRES_AGE           = 2; // landmark의 최소 age
     int THRES_MINIMUM_SEEN  = 2; // landmark의 최소 관측 keyframes
-    float THRES_PARALLAX    = 0.3*D2R; // landmark의 최소 parallax
+    float THRES_PARALLAX    = 0.5*D2R; // landmark의 최소 parallax
 
     // Optimization paraameters
-    int   MAX_ITER          = 12;
+    int   MAX_ITER          = 10;
 
     float lam               = 1e-3;  // for Levenberg-Marquardt algorithm
     float MAX_LAM           = 1.0f;  // for Levenberg-Marquardt algorithm
     float MIN_LAM           = 1e-4f; // for Levenberg-Marquardt algorithm
 
-    float THRES_HUBER       = 1.5f;
+    float THRES_HUBER       = 1.0f;
     float THRES_HUBER_MIN   = 0.3f;
     float THRES_HUBER_MAX   = 20.0f;
 
@@ -1053,8 +1053,8 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     float THRES_DELTA_THETA = 1e-7;
     float THRES_ERROR       = 1e-7;
 
-    int NUM_MINIMUM_REQUIRED_KEYFRAMES = 4; // 최소 keyframe 갯수.
-    int NUM_FIX_KEYFRAMES_IN_WINDOW    = 2; // optimization에서 제외 할 keyframe 갯수. 과거 순.
+    int NUM_MINIMUM_REQUIRED_KEYFRAMES = 5; // 최소 keyframe 갯수.
+    int NUM_FIX_KEYFRAMES_IN_WINDOW    = 4; // optimization에서 제외 할 keyframe 갯수. 과거 순.
 
     // Check whether there are enough keyframes
     if(kfs_window->getCurrentNumOfKeyframes() < NUM_MINIMUM_REQUIRED_KEYFRAMES){
