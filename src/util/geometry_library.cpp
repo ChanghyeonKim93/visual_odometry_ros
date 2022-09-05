@@ -284,6 +284,62 @@ namespace geometry {
         return q;
     };
 
+    void se3Exp(const Eigen::Matrix<double,6,1>& xi, Eigen::Matrix<double,4,4>& T){
+        // initialize variables
+        double theta = 0.0;
+        Eigen::Vector3d v, w;
+        Eigen::Matrix3d wx, R, V;
+        Eigen::Vector3d t;
+
+        v(0) = xi(0);
+        v(1) = xi(1);
+        v(2) = xi(2);
+
+        w(0) = xi(3);
+        w(1) = xi(4);
+        w(2) = xi(5);
+
+        theta = std::sqrt(w.transpose() * w);
+        wx << 0, -w(2), w(1),
+            w(2), 0, -w(0),
+            -w(1), w(0), 0;
+
+        if (theta < 1e-7) {
+            R = Eigen::Matrix3d::Identity() + wx + 0.5 * wx * wx;
+            V = Eigen::Matrix3d::Identity() + 0.5 * wx + wx * wx *0.33333333333333333333333333;
+        }
+        else {
+            R = Eigen::Matrix3d::Identity() + (sin(theta) / theta) * wx + ((1 - cos(theta)) / (theta*theta)) * (wx*wx);
+            V = Eigen::Matrix3d::Identity() + ((1 - cos(theta)) / (theta*theta)) * wx + ((theta - sin(theta)) / (theta*theta*theta)) * (wx*wx);
+        }
+        t = V * v;
+
+        // assign rigid body transformation matrix (in SE(3))
+        T = Eigen::Matrix4d::Zero();
+        T(0, 0) = R(0, 0);
+        T(0, 1) = R(0, 1);
+        T(0, 2) = R(0, 2);
+
+        T(1, 0) = R(1, 0);
+        T(1, 1) = R(1, 1);
+        T(1, 2) = R(1, 2);
+
+        T(2, 0) = R(2, 0);
+        T(2, 1) = R(2, 1);
+        T(2, 2) = R(2, 2);
+
+        T(0, 3) = t(0);
+        T(1, 3) = t(1);
+        T(2, 3) = t(2);
+
+        T(3, 3) = 1.0;
+
+        // for debug
+        // std::cout << R << std::endl;
+        // std::cout << t << std::endl;
+        //usleep(10000000);
+    };
+
     void se3Exp_f(const Eigen::Matrix<float,6,1>& xi, Eigen::Matrix4f& T){
         // initialize variables
         float theta = 0.0;
@@ -340,6 +396,46 @@ namespace geometry {
         //usleep(10000000);
     };
 
+    void SE3Log(const Eigen::Matrix<double,4,4>& T, Eigen::Matrix<double,6,1>& xi){
+        double theta = 0.0f;
+        double A, B;
+        Eigen::Matrix3d wx, R;
+        Eigen::MatrixXd lnR, Vin;
+        Eigen::Vector3d t, w, v;
+
+        R = T.block<3, 3>(0, 0);
+        t = T.block<3, 1>(0, 3);
+
+
+        theta = acosf((R.trace() - 1.0)*0.5);
+
+        if (theta < 1e-9) {
+            Vin = Eigen::MatrixXd::Identity(3, 3);
+            w << 0, 0, 0;
+        }
+        else {
+            lnR = (theta / (2 * sin(theta)))*(R - R.transpose());
+            w << -lnR(1, 2), lnR(0, 2), -lnR(0, 1);
+            wx << 0, -w(2), w(1),
+                w(2), 0, -w(0),
+                -w(1), w(0), 0;
+            A = sin(theta) / theta;
+            B = (1.0 - cos(theta)) / (theta*theta);
+            Vin = Eigen::MatrixXd::Identity(3, 3) - 0.5*wx + (1.0 / (theta*theta))*(1.0 - A / (2.0 * B))*(wx*wx);
+        }
+
+        v = Vin*t;
+        xi.setZero();
+        xi(0) = v(0);
+        xi(1) = v(1);
+        xi(2) = v(2);
+        xi(3) = w(0);
+        xi(4) = w(1);
+        xi(5) = w(2);
+        // for debug
+        // std::cout << xi << std::endl;
+    };
+
     void SE3Log_f(const Eigen::Matrix<float,4,4>& T, Eigen::Matrix<float,6,1>& xi){
         float theta = 0.0f;
         float A, B;
@@ -386,6 +482,15 @@ namespace geometry {
         se3Exp_f(dxi, dT);
         Tjw.noalias() = dT*Tjw;
         SE3Log_f(Tjw, xi);
+    };
+
+
+    void addFrontse3(Eigen::Matrix<double,6,1>& xi, const Eigen::Matrix<double,6,1>& dxi){
+        Eigen::Matrix<double,4,4> Tjw, dT;
+        se3Exp(xi,  Tjw);
+        se3Exp(dxi, dT);
+        Tjw.noalias() = dT*Tjw;
+        SE3Log(Tjw, xi);
     };
 
 };

@@ -16,13 +16,47 @@
 #include "util/geometry_library.h"
 #include "util/timer.h"
 
-typedef std::vector<Mat66>              BlockDiagMat66; 
-typedef std::vector<Mat33>              BlockDiagMat33; 
-typedef std::vector<std::vector<Mat63>> BlockFullMat63; 
-typedef std::vector<std::vector<Mat36>> BlockFullMat36;
-typedef std::vector<std::vector<Mat66>> BlockFullMat66;
-typedef std::vector<Vec6>               BlockVec6;
-typedef std::vector<Vec3>               BlockVec3;
+typedef double _BA_numeric; 
+
+typedef Eigen::Matrix<_BA_numeric,-1,-1> _BA_MatX;
+
+typedef Eigen::Matrix<_BA_numeric,2,2> _BA_Mat22;
+
+typedef Eigen::Matrix<_BA_numeric,2,3> _BA_Mat23;
+typedef Eigen::Matrix<_BA_numeric,3,2> _BA_Mat32;
+
+typedef Eigen::Matrix<_BA_numeric,2,6> _BA_Mat26;
+typedef Eigen::Matrix<_BA_numeric,6,2> _BA_Mat62;
+
+typedef Eigen::Matrix<_BA_numeric,3,3> _BA_Mat33;
+
+typedef Eigen::Matrix<_BA_numeric,3,6> _BA_Mat36;
+typedef Eigen::Matrix<_BA_numeric,6,3> _BA_Mat63;
+
+typedef Eigen::Matrix<_BA_numeric,6,6> _BA_Mat66;
+
+typedef Eigen::Matrix<_BA_numeric,2,1> _BA_Vec2;
+typedef Eigen::Matrix<_BA_numeric,3,1> _BA_Vec3;
+typedef Eigen::Matrix<_BA_numeric,6,1> _BA_Vec6;
+
+typedef Eigen::Matrix<_BA_numeric,2,1> _BA_Pixel;
+typedef Eigen::Matrix<_BA_numeric,3,1> _BA_Point;
+typedef Eigen::Matrix<_BA_numeric,3,3> _BA_Rot3;
+typedef Eigen::Matrix<_BA_numeric,3,1> _BA_Pos3;
+typedef Eigen::Matrix<_BA_numeric,4,4> _BA_PoseSE3;
+typedef Eigen::Matrix<_BA_numeric,6,1> _BA_PoseSE3Tangent;
+
+typedef std::vector<_BA_Pixel> _BA_PixelVec;
+typedef std::vector<_BA_Point> _BA_PointVec;
+
+typedef std::vector<_BA_Mat66>              BlockDiagMat66; 
+typedef std::vector<_BA_Mat33>              BlockDiagMat33; 
+typedef std::vector<std::vector<_BA_Mat63>> BlockFullMat63; 
+typedef std::vector<std::vector<_BA_Mat36>> BlockFullMat36;
+typedef std::vector<std::vector<_BA_Mat66>> BlockFullMat66;
+typedef std::vector<_BA_Vec6>               BlockVec6;
+typedef std::vector<_BA_Vec3>               BlockVec3;
+
 
 /*
     <Problem we want to solve>
@@ -41,16 +75,16 @@ typedef std::vector<Vec3>               BlockVec3;
 */
 
 struct LandmarkBA {
-    Point             X;
+    _BA_Point         X;
     FramePtrVec       kfs_seen; // 해당 키프레임에서 어떤 좌표로 보였는지를 알아야 함.
     std::vector<int>  kfs_index; // 해당 키프레임이 window에서 몇번째인가 저장.
-    PixelVec          pts_on_kfs; // 각 키프레임에서 추적된 pixel 좌표.
+    _BA_PixelVec      pts_on_kfs; // 각 키프레임에서 추적된 pixel 좌표.
     
     LandmarkPtr       lm;
 
     LandmarkBA() {
         lm = nullptr;
-        X  = Vec3::Zero();
+        X  = _BA_Vec3::Zero();
     };
     LandmarkBA(const LandmarkBA& lmba) {
         lm              = lmba.lm;
@@ -78,7 +112,7 @@ private:
 private:
     std::vector<LandmarkBA>    lmbavec_all_; // All landmarks to be optimized
 
-    std::map<FramePtr,PoseSE3> posemap_all_; // pose map Tjw
+    std::map<FramePtr,_BA_PoseSE3> posemap_all_; // pose map Tjw
 
     std::map<FramePtr,int>     indexmap_opt_; // optimization pose index map
     std::vector<FramePtr>      framemap_opt_; // j-th optimization frame ptr
@@ -93,7 +127,7 @@ public:
 
 // Get methods (variables)
 public:
-    const PoseSE3& getPose(const FramePtr& frame) {
+    const _BA_PoseSE3& getPose(const FramePtr& frame) {
         if(posemap_all_.find(frame) == posemap_all_.end())
             throw std::runtime_error("posemap_all_.find(frame) == posemap_all_.end()");
         return posemap_all_[frame];
@@ -117,24 +151,24 @@ public:
 
 // Update and get methods (Pose and Point)
 public:
-    void updateOptPoint(int i, const Point& X_update){
+    void updateOptPoint(int i, const _BA_Point& X_update){
         if(i >= M_)
             throw std::runtime_error("i >= M_");
         lmbavec_all_[i].X = X_update;
     };
-    void updateOptPose(int j_opt, const PoseSE3& Tjw_update){
+    void updateOptPose(int j_opt, const _BA_PoseSE3& Tjw_update){
         if(j_opt >= N_opt_) 
             throw std::runtime_error("j_opt >= N_opt_");
         const FramePtr& kf_opt = framemap_opt_[j_opt];
         posemap_all_[kf_opt] = Tjw_update;
     };  
 
-    const Point& getOptPoint(int i){
+    const _BA_Point& getOptPoint(int i){
         if(i >= M_)
             throw std::runtime_error("i >= M_");
         return lmbavec_all_[i].X;
     };
-    const PoseSE3& getOptPose(int j_opt){
+    const _BA_PoseSE3& getOptPose(int j_opt){
         if(j_opt >= N_opt_) 
             throw std::runtime_error("j_opt >= N_opt_");
         const FramePtr& kf_opt = framemap_opt_[j_opt];
@@ -191,7 +225,8 @@ public:
         for(auto lm : lmset_window) { // keyframe window 내에서 보였던 모든 landmark를 순회.
             LandmarkBA lm_ba;
             lm_ba.lm = lm; // landmark pointer
-            lm_ba.X  = lm->get3DPoint();  // 3D point represented in the global frame.
+            const Point& X_float = lm->get3DPoint();
+            lm_ba.X  = _BA_Point(X_float(0),X_float(1),X_float(2));  // 3D point represented in the global frame.
             lm_ba.kfs_seen.reserve(10);   
             lm_ba.kfs_index.reserve(10); 
             lm_ba.pts_on_kfs.reserve(10);
@@ -203,7 +238,7 @@ public:
                 if(frameset_window.find(kf) != frameset_window.end())
                 {   //window keyframe만으로 제한
                     lm_ba.kfs_seen.push_back(kf);
-                    lm_ba.pts_on_kfs.push_back(pt);
+                    lm_ba.pts_on_kfs.emplace_back(pt.x, pt.y);
                 }
             }
 
@@ -223,8 +258,15 @@ public:
         // std::cout << "Recomputed N: " << N_ <<", N_fix + N_opt: " << N_fix_ << "+" << N_opt_ << std::endl;
 
         // 4) set poses for all frames
-        for(auto kf : frameset_all_)
-            posemap_all_.insert({kf, kf->getPoseInv()});
+        for(auto kf : frameset_all_){
+            _BA_PoseSE3 pose_inv;
+            const PoseSE3& pose_inv_float = kf->getPoseInv();
+            pose_inv << pose_inv_float(0,0), pose_inv_float(0,1), pose_inv_float(0,2), pose_inv_float(0,3),
+                        pose_inv_float(1,0), pose_inv_float(1,1), pose_inv_float(1,2), pose_inv_float(1,3),
+                        pose_inv_float(2,0), pose_inv_float(2,1), pose_inv_float(2,2), pose_inv_float(2,3),
+                        pose_inv_float(3,0), pose_inv_float(3,1), pose_inv_float(3,2), pose_inv_float(3,3);
+            posemap_all_.insert({kf, pose_inv});
+        }
         
         // 5) set optimizable keyframes (posemap, indexmap, framemap)
         int cnt_idx = 0;
@@ -310,8 +352,8 @@ private:
 
 private:
     // Optimization parameters
-    float THRES_HUBER_;
-    float THRES_EPS_;
+    _BA_numeric THRES_HUBER_;
+    _BA_numeric THRES_EPS_;
 
 public:
     // Constructor for BundleAdjustmentSolver ( se3 (6-DoF), 3D points (3-DoF) )
@@ -322,7 +364,7 @@ public:
     void setBAParameters(const std::shared_ptr<SparseBAParameters>& ba_params);
 
     // Set Huber threshold
-    void setHuberThreshold(float thres_huber);
+    void setHuberThreshold(_BA_numeric thres_huber);
 
     // Set camera.
     void setCamera(const std::shared_ptr<Camera>& cam);

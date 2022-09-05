@@ -191,3 +191,6 @@ Pixel Camera::projectToPixel(const Point& X){
 	return Pixel(fx_*X(0)*invz+cx_,fy_*X(1)*invz+cy_);
 };
 
+Point Camera::reprojectToNormalizedPoint(const Pixel& pt){
+	return Point(fxinv_*(pt.x-cx_), fyinv_*(pt.y-cy_), 1.0f);
+};

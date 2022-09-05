@@ -41,7 +41,7 @@ void SparseBundleAdjustmentSolver::setBAParameters(const std::shared_ptr<SparseB
 };
 
 // Set Huber threshold
-void SparseBundleAdjustmentSolver::setHuberThreshold(float thres_huber){
+void SparseBundleAdjustmentSolver::setHuberThreshold(_BA_numeric thres_huber){
     THRES_HUBER_ = thres_huber;
 };
 
@@ -63,11 +63,11 @@ void SparseBundleAdjustmentSolver::setProblemSize(int N, int N_opt, int M, int n
     
     B_.resize(N_opt_);
     for(int j = 0; j < N_opt_; ++j) 
-        B_[j].resize(M_, Mat63::Zero());   // 6x3, N_opt X M blocks
+        B_[j].resize(M_, _BA_Mat63::Zero());   // 6x3, N_opt X M blocks
     
     Bt_.resize(M_);    
     for(int i = 0; i < M_; ++i) 
-        Bt_[i].resize(N_opt_, Mat36::Zero());   // 3x6, N_opt X M blocks
+        Bt_[i].resize(N_opt_, _BA_Mat36::Zero());   // 3x6, N_opt X M blocks
     
     C_.resize(M_);
 
@@ -83,22 +83,22 @@ void SparseBundleAdjustmentSolver::setProblemSize(int N, int N_opt, int M, int n
 
     BCinv_.resize(N_opt_); 
     for(int j = 0; j < N_opt_; ++j) 
-        BCinv_[j].resize(M_, Mat63::Zero());   // 6x3, N_opt X M blocks
+        BCinv_[j].resize(M_, _BA_Mat63::Zero());   // 6x3, N_opt X M blocks
     
     CinvBt_.resize(M_); 
     for(int i = 0 ; i < M_; ++i) 
-        CinvBt_[i].resize(N_opt_,Mat36::Zero());
+        CinvBt_[i].resize(N_opt_, _BA_Mat36::Zero());
     
     BCinvBt_.resize(N_opt_); 
     for(int j = 0; j < N_opt_; ++j) 
-        BCinvBt_[j].resize(N_opt_, Mat66::Zero());   // 6x6, N_opt X N_opt blocks
+        BCinvBt_[j].resize(N_opt_, _BA_Mat66::Zero());   // 6x6, N_opt X N_opt blocks
     
     BCinv_b_.resize(N_opt_); // 6x1, N_opt x 1 blocks
     am_BCinv_b_.resize(N_opt_); // 6x1, N_opt x 1 blocks
 
     Am_BCinvBt_.resize(N_opt_); 
     for(int j = 0; j < N_opt_; ++j) 
-        Am_BCinvBt_[j].resize(N_opt_, Mat66::Zero());   // 6x6, N_opt X N_opt blocks
+        Am_BCinvBt_[j].resize(N_opt_, _BA_Mat66::Zero());   // 6x6, N_opt X N_opt blocks
     
     Cinv_b_.resize(M_);
     Bt_x_.resize(M_);        // 3x1, M x 1 blocks
@@ -110,7 +110,6 @@ void SparseBundleAdjustmentSolver::setProblemSize(int N, int N_opt, int M, int n
 bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
     
     int id_stop = ba_params_->getOptFramePtr(N_opt_-1)->getID();
-    std::cout << id_stop << std::endl;
 
     std::vector<int> cnt_seen(N_+1,0);
     for(int i = 0; i < M_; ++i){
@@ -121,29 +120,36 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
     for(int i = 0; i< cnt_seen.size(); ++i)
         std::cout << i << " seen : " << cnt_seen[i] << std::endl;
 
+    // poses
+    for(int j = 0; j < N_opt_; ++j){
+        std::cout << j << "-th pose:\n" << ba_params_->getOptPose(j) << std::endl;
+    }
+
     bool flag_nan_pass   = true;
     bool flag_error_pass = true;
     bool flag_success    = true;
 
-    float THRES_SUCCESS_AVG_ERROR = 1.0f;
+    _BA_numeric THRES_SUCCESS_AVG_ERROR = 1.0;
 
-    float MAX_LAMBDA = 20.0f;
-    float MIN_LAMBDA = 1e-6f;
+    _BA_numeric MAX_LAMBDA = 20.0;
+    _BA_numeric MIN_LAMBDA = 1e-6;
 
     // Intrinsic of lower camera
-    const Mat33& K = cam_->K(); const Mat33& Kinv = cam_->Kinv();
-    const float& fx = cam_->fx(); const float& fy = cam_->fy();
-    const float& cx = cam_->cx(); const float& cy = cam_->cy();
-    const float& invfx = cam_->fxinv(); const float& invfy = cam_->fyinv();
+    // const Mat33& K = cam_->K(); const Mat33& Kinv = cam_->Kinv();
+    _BA_numeric fx = cam_->fx(); _BA_numeric fy = cam_->fy();
+    _BA_numeric cx = cam_->cx(); _BA_numeric cy = cam_->cy();
+    _BA_numeric invfx = cam_->fxinv(); _BA_numeric invfy = cam_->fyinv();
 
     // Set the Parameter Vector.
     setParameterVectorFromPosesPoints();
 
     // Initialize parameters
-    std::vector<float> r_prev(n_obs_, 0.0f);
-    float err_prev = 1e10f;
-    float lambda = 0.000001;
+    std::vector<_BA_numeric> r_prev(n_obs_, 0.0f);
+    _BA_numeric err_prev = 1e10f;
+    _BA_numeric lambda = 0.000001;
     for(int iter = 0; iter < MAX_ITER; ++iter){
+        std::cout << iter <<"-th iteration...\n";
+
         // set Poses and Points.
         getPosesPointsFromParameterVector();
 
@@ -152,18 +158,18 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
 
         // Iteratively solve. (Levenberg-Marquardt algorithm)
         int cnt = 0;
-        float err = 0.0f;
+        _BA_numeric err = 0.0f;
         for(int i = 0; i < M_; ++i){
             // For i-th landmark
-            const LandmarkBA&  lmba = ba_params_->getLandmarkBA(i);
-            const Point&       Xi   = lmba.X; 
-            const FramePtrVec& kfs  = lmba.kfs_seen;
-            const PixelVec&    pts  = lmba.pts_on_kfs;
+            const LandmarkBA&   lmba = ba_params_->getLandmarkBA(i);
+            const _BA_Point&    Xi   = lmba.X; 
+            const FramePtrVec&  kfs  = lmba.kfs_seen;
+            const _BA_PixelVec& pts  = lmba.pts_on_kfs;
 
-            for(int jj = 0; jj < kfs.size(); ++jj){
+            for(int jj = 0; jj < kfs.size(); ++jj) {
                 // For j-th keyframe
-                const Pixel&   pij = pts[jj];
-                const FramePtr& kf = kfs[jj];
+                const _BA_Pixel& pij = pts[jj];
+                const FramePtr&   kf = kfs[jj];
 
                 // 0) check whether it is optimizable keyframe
                 bool is_optimizable_keyframe = false;
@@ -174,40 +180,41 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
                 }
 
                 // Current poses
-                const PoseSE3& T_jw = ba_params_->getPose(kf);
-                const Rot3&    R_jw = T_jw.block<3,3>(0,0);
-                const Pos3&    t_jw = T_jw.block<3,1>(0,3);
+                const _BA_PoseSE3& T_jw = ba_params_->getPose(kf);
+                const _BA_Rot3&    R_jw = T_jw.block<3,3>(0,0);
+                const _BA_Pos3&    t_jw = T_jw.block<3,1>(0,3);
                 
-                Point Xij = R_jw*Xi + t_jw; // transform a 3D point.
+                _BA_Point Xij = R_jw*Xi + t_jw; // transform a 3D point.
             
                 // 1) Qij and Rij calculation.
-                const float& xj = Xij(0), yj = Xij(1), zj = Xij(2);
-                float invz = 1.0f/zj; float invz2 = invz*invz;
+                const _BA_numeric& xj = Xij(0), yj = Xij(1), zj = Xij(2);
+                _BA_numeric invz = 1.0f/zj; _BA_numeric invz2 = invz*invz;
                 
-                float fxinvz      = fx*invz;      float fyinvz      = fy*invz;
-                float xinvz       = xj*invz;      float yinvz       = yj*invz;
-                float fx_xinvz2   = fxinvz*xinvz; float fy_yinvz2   = fyinvz*yinvz;
-                float xinvz_yinvz = xinvz*yinvz;
+                _BA_numeric fxinvz      = fx*invz;      _BA_numeric fyinvz      = fy*invz;
+                _BA_numeric xinvz       = xj*invz;      _BA_numeric yinvz       = yj*invz;
+                _BA_numeric fx_xinvz2   = fxinvz*xinvz; _BA_numeric fy_yinvz2   = fyinvz*yinvz;
+                _BA_numeric xinvz_yinvz = xinvz*yinvz;
 
-                Mat23 Rij;
-                const float& r11 = R_jw(0,0), r12 = R_jw(0,1), r13 = R_jw(0,2);
-                const float& r21 = R_jw(1,0), r22 = R_jw(1,1), r23 = R_jw(1,2);
-                const float& r31 = R_jw(2,0), r32 = R_jw(2,1), r33 = R_jw(2,2);
+                _BA_Mat23 Rij;
+                const _BA_numeric& r11 = R_jw(0,0), r12 = R_jw(0,1), r13 = R_jw(0,2);
+                const _BA_numeric& r21 = R_jw(1,0), r22 = R_jw(1,1), r23 = R_jw(1,2);
+                const _BA_numeric& r31 = R_jw(2,0), r32 = R_jw(2,1), r33 = R_jw(2,2);
                 Rij << fxinvz*r11-fx_xinvz2*r31, fxinvz*r12-fx_xinvz2*r32, fxinvz*r13-fx_xinvz2*r33, 
                        fyinvz*r21-fy_yinvz2*r31, fyinvz*r22-fy_yinvz2*r32, fyinvz*r23-fy_yinvz2*r33;
 
                 // 2) residual calculation
-                Vec2 rij;
-                Pixel ptw;
-                ptw.x = fx*xinvz + cx; ptw.y = fy*yinvz + cy;
-                rij << ptw.x - pij.x, ptw.y - pij.y;
+                _BA_Pixel ptw;
+                ptw << fx*xinvz + cx, fy*yinvz + cy;
+                
+                _BA_Vec2 rij;
+                rij = ptw - pij;
 
                 // 3) HUBER weight calculation (Manhattan distance)
-                float absrxry = abs(rij(0))+abs(rij(1));
+                _BA_numeric absrxry = abs(rij(0))+abs(rij(1));
                 r_prev[cnt] = absrxry;
                 // std::cout << cnt << "-th point: " << absrxry << " [px]\n";
 
-                float weight = 1.0f;
+                _BA_numeric weight = 1.0;
                 bool flag_weight = false;
                 if(absrxry > THRES_HUBER_){
                     weight = (THRES_HUBER_/absrxry);
@@ -215,8 +222,8 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
                 }
 
                 // 4) Add (or fill) data (JtWJ & mJtWr & err).  
-                Mat33 Rij_t_Rij = Rij.transpose()*Rij; // fixed pose
-                Vec3  Rij_t_rij = Rij.transpose()*rij; // fixed pose
+                _BA_Mat33 Rij_t_Rij = Rij.transpose()*Rij; // fixed pose
+                _BA_Vec3  Rij_t_rij = Rij.transpose()*rij; // fixed pose
                 if(flag_weight){
                     Rij_t_Rij *= weight;
                     Rij_t_rij *= weight;
@@ -226,13 +233,13 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
                 b_[i].noalias() -= Rij_t_rij; // FILL STORAGE (5)
 
                 if(is_optimizable_keyframe) { // Optimizable keyframe.
-                    Mat26 Qij;
-                    Qij << fxinvz,0,-fx_xinvz2,-fx*xinvz_yinvz,fx*(1.f+xinvz*xinvz), -fx*yinvz,
-                           0,fyinvz,-fy_yinvz2,-fy*(1.f+yinvz*yinvz),fy*xinvz_yinvz,  fy*xinvz;
+                    _BA_Mat26 Qij;
+                    Qij << fxinvz,0,-fx_xinvz2,-fx*xinvz_yinvz,fx*(1.0+xinvz*xinvz), -fx*yinvz,
+                           0,fyinvz,-fy_yinvz2,-fy*(1.0+yinvz*yinvz),fy*xinvz_yinvz,  fy*xinvz;
                            
-                    Mat66 Qij_t_Qij = Qij.transpose()*Qij; // fixed pose, opt. pose
-                    Mat63 Qij_t_Rij = Qij.transpose()*Rij; // fixed pose, opt. pose
-                    Vec6 Qij_t_rij  = Qij.transpose()*rij; // fixed pose, opt. pose
+                    _BA_Mat66 Qij_t_Qij = Qij.transpose()*Qij; // fixed pose, opt. pose
+                    _BA_Mat63 Qij_t_Rij = Qij.transpose()*Rij; // fixed pose, opt. pose
+                    _BA_Vec6 Qij_t_rij  = Qij.transpose()*rij; // fixed pose, opt. pose
                     if(flag_weight){
                         Qij_t_Qij *= weight;
                         Qij_t_Rij *= weight;
@@ -243,20 +250,43 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
                     B_[j][i]         = Qij_t_Rij; // FILL STORAGE (2)
                     Bt_[i][j]        = Qij_t_Rij.transpose().eval(); // FILL STORAGE (2-1)
                     a_[j].noalias() -= Qij_t_rij; // FILL STORAGE (4)
+
+                    if(std::isnan(Qij_t_Qij.norm()) 
+                    || std::isnan(Qij_t_Rij.norm()) 
+                    || std::isnan(Qij_t_rij.norm()) )
+                    {
+                        std::cerr << i << "-th point, " << j << "-th related frame is nan!\n";
+                        std::cerr << "Pose:\n" << T_jw <<"\n";
+                        std::cerr << "Point: " << Xij.transpose() << std::endl;
+                        std::cerr << "Pixel: " << pij << std::endl;
+                        throw std::runtime_error("ff");
+                    }
                 } 
-                float err_tmp = weight*rij.transpose()*rij;
+                _BA_numeric err_tmp = weight*rij.transpose()*rij;
                 err += err_tmp;
 
                 ++cnt;
-            } // END jj
+            } // END jj of i-th point
+            
+            // Add damping coefficient for i-th point
+            C_[i](0,0) += lambda*C_[i](0,0);
+            C_[i](1,1) += lambda*C_[i](1,1);
+            C_[i](2,2) += lambda*C_[i](2,2);
+            
+            if(C_[i].determinant() == 0 || std::isinf(C_[i].norm())) {
+                const LandmarkBA& lmba = ba_params_->getLandmarkBA(i);
+                std::cout << iter <<"-th iter/ " << i << "-th point: " << lmba.X.transpose()
+                          << ", C_[i] det: " << C_[i].determinant() <<", C_[i]:\n" << C_[i] << std::endl;
+                                
+                for(int jj = 0; jj < lmba.kfs_seen.size(); ++jj)
+                    std::cout << lmba.pts_on_kfs[jj].transpose() <<" ";
+                std::cout << std::endl;
+            }
 
-            // Damping term
-            for(int j = 0; j < N_opt_; ++j)
-                A_[j].noalias() += lambda*Mat66::Identity();
-            for(int i = 0; i < M_; ++i)
-                C_[i].noalias() += lambda*Mat33::Identity();
+            // Cinv_[i]   = C_[i].inverse(); // FILL STORAGE (3-1)
+            Cinv_[i] = C_[i].ldlt().solve(_BA_Mat33::Identity());
 
-            Cinv_[i]   = C_[i].inverse(); // FILL STORAGE (3-1)
+
             Cinv_b_[i] = Cinv_[i]*b_[i];  // FILL STORAGE (10)
             for(int jj = 0; jj < kfs.size(); ++jj) {
                 // For j-th keyframe
@@ -272,24 +302,32 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
                     BCinv_[j][i]  = B_[j][i]*Cinv_[i];  // FILL STORAGE (6)
                     CinvBt_[i][j] = BCinv_[j][i].transpose().eval(); // FILL STORAGE (11)
                     BCinv_b_[j].noalias() += BCinv_[j][i]*b_[i];  // FILL STORAGE (9)
-                }
 
-                for(int kk = jj; kk < kfs.size(); ++kk){
-                    // For k-th keyframe
-                    const FramePtr& kf2 = kfs[kk];
-                    bool is_optimizable_keyframe_k = false;
-                    int k = -1;
-                    if(ba_params_->isOptFrame(kf2)){
-                        is_optimizable_keyframe_k = true;
-                        k = ba_params_->getOptPoseIndex(kf2);
-                    }
+                    for(int kk = jj; kk < kfs.size(); ++kk){
+                        // For k-th keyframe
+                        const FramePtr& kf2 = kfs[kk];
+                        bool is_optimizable_keyframe_k = false;
+                        int k = -1;
+                        if(ba_params_->isOptFrame(kf2)){
+                            is_optimizable_keyframe_k = true;
+                            k = ba_params_->getOptPoseIndex(kf2);
 
-                    if(is_optimizable_keyframe_j && is_optimizable_keyframe_k){
-                        BCinvBt_[j][k].noalias() += BCinv_[j][i]*Bt_[i][k];  // FILL STORAGE (7)
+                            BCinvBt_[j][k].noalias() += BCinv_[j][i]*Bt_[i][k];  // FILL STORAGE (7)
+                        }
                     }
                 }
-            } // END jj
-        } // END i
+            } // END jj of i-th point
+        } // END i-th point
+
+        // Damping term for j-th pose
+        for(int j = 0; j < N_opt_; ++j){
+            A_[j](0,0) += lambda*A_[j](0,0);
+            A_[j](1,1) += lambda*A_[j](1,1);
+            A_[j](2,2) += lambda*A_[j](2,2);
+            A_[j](3,3) += lambda*A_[j](3,3);
+            A_[j](4,4) += lambda*A_[j](4,4);
+            A_[j](5,5) += lambda*A_[j](5,5);
+        }
 
         for(int j = 0; j < N_opt_; ++j)
             for(int k = j; k < N_opt_; ++k)
@@ -301,13 +339,14 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
                 else       Am_BCinvBt_[j][k] =       - BCinvBt_[j][k];
             }
         }
-        for(int j = 0; j < N_opt_; ++j) 
+
+        for(int j = 0; j < N_opt_; ++j)
             am_BCinv_b_[j] = a_[j] - BCinv_b_[j];
         
         // Solve problem.
         // 1) solve x
-        Eigen::MatrixXf Am_BCinvBt_mat(6*N_opt_,6*N_opt_);
-        Eigen::MatrixXf am_BCinv_b_mat(6*N_opt_,1);
+        _BA_MatX Am_BCinvBt_mat(6*N_opt_,6*N_opt_);
+        _BA_MatX am_BCinv_b_mat(6*N_opt_,1);
         
         for(int j = 0; j < N_opt_; ++j){
             int idx0 = 6*j;
@@ -317,7 +356,10 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
             }
             am_BCinv_b_mat.block(idx0,0,6,1) = am_BCinv_b_[j];
         }
-        Eigen::MatrixXf x_mat = Am_BCinvBt_mat.ldlt().solve(am_BCinv_b_mat);
+
+        _BA_MatX x_mat = Am_BCinvBt_mat.ldlt().solve(am_BCinv_b_mat);
+        for(int j = 0; j < N_opt_; ++j)
+            x_[j] = x_mat.block<6,1>(6*j,0);
         
         for(int i = 0; i < M_; ++i){
             const LandmarkBA& lmba = ba_params_->getLandmarkBA(i);
@@ -334,33 +376,36 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
         }
 
         // NAN check
-        for(int j = 0; j < N_opt_; ++j){
-            x_[j] = x_mat.block<6,1>(6*j,0);
-            if(std::isnan(x_[j].norm())){
-                std::cout << j << "-th x_ is nan:\n";
-                std::cout << A_[j] << std::endl;
-            }
-        }
         for(int i = 0; i < M_; ++i){
             if(std::isnan(y_[i].norm())){
                 std::cout << i << "-th y_ is nan:\n";
                 std::cout << "point: " << ba_params_->getLandmarkBA(i).X.transpose() <<std::endl;
+                std::cout << "y_: " << y_[i].transpose() <<std::endl;
                 std::cout << "C_[i]:\n" << C_[i] << std::endl;
                 std::cout << "determinant: " << C_[i].determinant() <<std::endl;
                 std::cout << "Cinv_[i]:\n" << Cinv_[i] << std::endl;
             }
         }
+        for(int j = 0; j < N_opt_; ++j){
+            if(std::isnan(x_[j].norm())){
+                std::cout << j << "-th x_ is nan:\n";
+                std::cout << x_[j].transpose() << std::endl;
+                std::cout << A_[j] << std::endl;
+            }
+        }
                 
         // Update step
         for(int j_opt = 0; j_opt < N_opt_; ++j_opt){
-            // params_poses_[j_opt] += x_[j_opt];
-            geometry::addFrontse3_f(params_poses_[j_opt], 0.1*x_[j_opt]);
+            std::cout << j_opt <<"-th xi update : " 
+            << params_poses_[j_opt].transpose() << " + " << x_[j_opt].transpose() << " --> " ;
+            geometry::addFrontse3(params_poses_[j_opt], x_[j_opt]);
+            std::cout << params_poses_[j_opt].transpose() << std::endl;
+
         }
-
         for(int i = 0; i < M_; ++i)
-            params_points_[i].noalias() += 0.1*y_[i];
+            params_points_[i].noalias() += y_[i];
 
-        float average_error = 0.5f*err/(float)n_obs_;
+        _BA_numeric average_error = 0.5*err/(_BA_numeric)n_obs_;
             
         // std::cout << iter << "-th iter, error : " << average_error << "\n";
 
@@ -369,25 +414,64 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
         flag_error_pass = (average_error <= THRES_SUCCESS_AVG_ERROR) ? true : false;
         flag_success    = flag_nan_pass && flag_error_pass;
 
-        if(!flag_nan_pass)
+        if(!flag_nan_pass){
+            for(int j = 0; j < N_opt_; ++j){
+                std::cout << j << "-th A nan:\n";
+                std::cout << A_[j] << std::endl;
+            }
+            for(int i = 0; i < M_; ++i){
+                std::cout << i << "-th Cinv nan:\n";
+                std::cout << Cinv_[i] << std::endl;
+            }
+            for(int j = 0; j < N_opt_; ++j){
+                std::cout << j << "-th x nan:\n";
+                std::cout << x_[j] << std::endl;
+            }
+            for(int i = 0; i < M_; ++i){
+                std::cout << i << "-th y nan:\n";
+                std::cout << y_[i] << std::endl;
+            }
             throw std::runtime_error("nan ......n.n,dgfmksermfoiaejrof");
+    
+        }
+
     } // END iter
 
     // Finally, update parameters
     if(flag_nan_pass){
         for(int j_opt = 0; j_opt < N_opt_; ++j_opt){
             const FramePtr& kf = ba_params_->getOptFramePtr(j_opt);
-            const PoseSE3& Tjw_update = ba_params_->getPose(kf);
-            std::cout << j_opt << "-th pose changes:\n" << kf->getPoseInv() << "\n-->\n" << Tjw_update << std::endl;
 
-            kf->setPose(Tjw_update.inverse());
+            const PoseSE3& Twj_original_float = kf->getPose();
+            _BA_PoseSE3 Twj_original;
+            Twj_original << Twj_original_float(0,0), Twj_original_float(0,1), Twj_original_float(0,2), Twj_original_float(0,3), 
+                            Twj_original_float(1,0), Twj_original_float(1,1), Twj_original_float(1,2), Twj_original_float(1,3), 
+                            Twj_original_float(2,0), Twj_original_float(2,1), Twj_original_float(2,2), Twj_original_float(2,3), 
+                            Twj_original_float(3,0), Twj_original_float(3,1), Twj_original_float(3,2), Twj_original_float(3,3); 
+            
+            const _BA_PoseSE3& Tjw_update = ba_params_->getPose(kf);
+            std::cout << j_opt << "-th pose changes:\n" << kf->getPoseInv() << "\n-->\n" << Tjw_update << std::endl;
+            _BA_PoseSE3 dT = Twj_original*Tjw_update;
+            if(dT.block<3,1>(0,3).norm() > 10) 
+                throw std::runtime_error("dT.block<3,1>(0,3).norm() > 10");
+
+            PoseSE3 Tjw_update_float;
+            Tjw_update_float << Tjw_update(0,0),Tjw_update(0,1),Tjw_update(0,2),Tjw_update(0,3),
+                                Tjw_update(1,0),Tjw_update(1,1),Tjw_update(1,2),Tjw_update(1,3),
+                                Tjw_update(2,0),Tjw_update(2,1),Tjw_update(2,2),Tjw_update(2,3),
+                                Tjw_update(3,0),Tjw_update(3,1),Tjw_update(3,2),Tjw_update(3,3);
+            kf->setPose(Tjw_update_float.inverse());
         }
         for(int i = 0; i < M_; ++i){
             const LandmarkBA& lmba = ba_params_->getLandmarkBA(i);
             const LandmarkPtr& lm = lmba.lm;
 
             std::cout << i << "-th lm changes: " << lm->get3DPoint().transpose() << " --> " << lmba.X.transpose() << std::endl;
-            lm->set3DPoint(lmba.X);
+            
+            Point X_update_float;
+            X_update_float << lmba.X(0),lmba.X(1),lmba.X(2);
+
+            lm->set3DPoint(X_update_float);
             lm->setBundled();
         }
     }
@@ -398,15 +482,15 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
             std::cout << ba_params_->getOptPose(j) << std::endl;
         }
         for(int i = 0; i < M_; ++i){
-            const LandmarkBA&  lmba = ba_params_->getLandmarkBA(i);
-            const Point&       Xi   = lmba.X; 
-            const FramePtrVec& kfs  = lmba.kfs_seen;
-            const PixelVec&    pts  = lmba.pts_on_kfs;
+            const LandmarkBA&   lmba = ba_params_->getLandmarkBA(i);
+            const _BA_Point&    Xi   = lmba.X; 
+            const FramePtrVec&  kfs  = lmba.kfs_seen;
+            const _BA_PixelVec& pts  = lmba.pts_on_kfs;
             cnt_seen[kfs.size()]++;
 
             std::cout << i << "-th lm point: " << Xi.transpose() <<std::endl;
             for(int j = 0; j < pts.size(); ++j){
-                std::cout << i <<"-th lm, " << j << "-th obs: " << pts[j] <<std::endl;
+                std::cout << i <<"-th lm, " << j << "-th obs: " << pts[j].transpose() <<std::endl;
             }
         }
         
@@ -479,8 +563,8 @@ void SparseBundleAdjustmentSolver::reset(){
 void SparseBundleAdjustmentSolver::setParameterVectorFromPosesPoints(){
     // 1) Pose part
     for(int j_opt = 0; j_opt < N_opt_; ++j_opt){
-        PoseSE3Tangent xi_jw;
-        geometry::SE3Log_f(ba_params_->getOptPose(j_opt),xi_jw);
+        _BA_PoseSE3Tangent xi_jw;
+        geometry::SE3Log(ba_params_->getOptPose(j_opt), xi_jw);
         params_poses_[j_opt] = xi_jw;
     }
 
@@ -493,8 +577,8 @@ void SparseBundleAdjustmentSolver::getPosesPointsFromParameterVector(){
     // Generate parameters
     // xi part 0~5, 6~11, ... 
     for(int j_opt = 0; j_opt < N_opt_; ++j_opt){
-        PoseSE3 Tjw;
-        geometry::se3Exp_f(params_poses_[j_opt], Tjw);
+        _BA_PoseSE3 Tjw;
+        geometry::se3Exp(params_poses_[j_opt], Tjw);
         ba_params_->updateOptPose(j_opt,Tjw);
     }
     // point part

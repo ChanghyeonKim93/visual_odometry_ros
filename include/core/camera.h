@@ -45,6 +45,7 @@ public:
 	void undistortPixels(const PixelVec& pts_raw, PixelVec& pts_undist);
 
 	Pixel projectToPixel(const Point& X);
+	Point reprojectToNormalizedPoint(const Pixel& pt);
 
 	const int cols() const { return n_cols_; };
 	const int rows() const { return n_rows_; };

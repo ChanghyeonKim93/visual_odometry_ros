@@ -33,9 +33,12 @@ namespace geometry {
     Vector4d r2q(const Matrix3d& R);
     Vector4f r2q_f(const Matrix3f& R);
 
+    void se3Exp(const Eigen::Matrix<double,6,1>& xi, Eigen::Matrix<double,4,4>& T);
     void se3Exp_f(const Eigen::Matrix<float,6,1>& xi, Eigen::Matrix4f& T);
+    void SE3Log(const Eigen::Matrix<double,4,4>& T, Eigen::Matrix<double,6,1>& xi);
     void SE3Log_f(const Eigen::Matrix<float,4,4>& T, Eigen::Matrix<float,6,1>& xi);
     
+    void addFrontse3(Eigen::Matrix<double,6,1>& xi, const Eigen::Matrix<double,6,1>& dxi);
     void addFrontse3_f(Eigen::Matrix<float,6,1>& xi, const Eigen::Matrix<float,6,1>& dxi);
 };
 

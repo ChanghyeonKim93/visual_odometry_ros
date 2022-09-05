@@ -59,8 +59,6 @@ public:
 
     float calcSteeringAngleFromRotationMat(const Rot3& R);
 
-    bool localBundleAdjustment(const std::shared_ptr<Keyframes>& kfs, const std::shared_ptr<Camera>& cam);
-
     bool localBundleAdjustmentSparseSolver(const std::shared_ptr<Keyframes>& kfs, const std::shared_ptr<Camera>& cam);
 
 public:
