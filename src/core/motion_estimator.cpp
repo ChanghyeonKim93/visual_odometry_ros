@@ -634,7 +634,7 @@ void MotionEstimator::setThres5p(float thres_5p){
 
 
 
-bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const PixelVec& pts1, const std::shared_ptr<Camera>& cam,
+bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const PixelVec& pts1, const std::shared_ptr<Camera>& cam, const int& thres_reproj_outlier, 
     Rot3& R01_true, Pos3& t01_true, MaskVec& mask_inlier)
 {
     // X is represented in the world frame.
@@ -650,7 +650,7 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
     float THRES_HUBER        = 0.5f; // pixels
     float THRES_DELTA_XI     = 1e-5;
     float THRES_DELTA_ERROR  = 1e-6;
-    float THRES_REPROJ_ERROR = 4.0f; // pixels
+    float THRES_REPROJ_ERROR = thres_reproj_outlier; // pixels
 
     float lambda = 0.01f;
     float step_size = 1.0f;

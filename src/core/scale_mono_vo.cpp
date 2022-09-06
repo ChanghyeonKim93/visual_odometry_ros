@@ -225,6 +225,7 @@ void ScaleMonoVO::loadCameraIntrinsicAndUserParameters(const std::string& dir) {
 	// Feature tracker
 	params_.feature_tracker.thres_error = fs["feature_tracker.thres_error"];
 	params_.feature_tracker.thres_bidirection = fs["feature_tracker.thres_bidirection"];
+	params_.feature_tracker.thres_sampson = fs["feature_tracker.thres_sampson"];
 	params_.feature_tracker.window_size = (int)fs["feature_tracker.window_size"];
 	params_.feature_tracker.max_level = (int)fs["feature_tracker.max_level"];
 
@@ -238,6 +239,7 @@ void ScaleMonoVO::loadCameraIntrinsicAndUserParameters(const std::string& dir) {
 	// Motion estimator
 	params_.motion_estimator.thres_1p_error = fs["motion_estimator.thres_1p_error"];
 	params_.motion_estimator.thres_5p_error = fs["motion_estimator.thres_5p_error"];
+	params_.motion_estimator.thres_poseba_error = fs["motion_estimator.thres_poseba_error"];
 
 	// Scale estimator
 	params_.scale_estimator.initial_scale          = fs["scale_estimator.initial_scale"];

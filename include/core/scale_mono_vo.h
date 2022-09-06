@@ -84,6 +84,7 @@ private:
 		struct FeatureTrackerParameters{
 			float thres_error       = 125.0; // KLT error threshold
 			float thres_bidirection = 1.0; // bidirection pixel error threshold
+			float thres_sampson     = 10.0;
 			uint32_t window_size    = 15;  // KLT window size 
 			uint32_t max_level      = 6;   // KLT maximum pyramid level
 		};
@@ -95,8 +96,9 @@ private:
 			float radius            = 15.0; // NONMAX pixel threshold
 		};
 		struct MotionEstimatorParameters{
-			float thres_1p_error    = 10.0; // sampson error threshold			
-			float thres_5p_error    = 2.0; // sampson error threshold			
+			float thres_1p_error     = 10.0; // sampson error threshold			
+			float thres_5p_error     = 2.0; // sampson error threshold	
+			float thres_poseba_error = 5.0; // reprojection error.		
 		};
 		struct ScaleEstimatorParameters{
 			float initial_scale        = 1.0; // Initial velocity.

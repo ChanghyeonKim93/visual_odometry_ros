@@ -306,7 +306,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 				std::cout <<"======== prior dt01: " << dt01.transpose() <<std::endl;
 
 				timer::tic();
-				if(motion_estimator_->calcPoseOnlyBundleAdjustment(Xp_depth_ok, pts1_depth_ok, cam_, dR01, dt01, mask_motion)){
+				if(motion_estimator_->calcPoseOnlyBundleAdjustment(Xp_depth_ok, pts1_depth_ok, cam_, 5.0, dR01, dt01, mask_motion)){
 					dT01 << dR01, dt01, 0,0,0,1;
 					dT10 = dT01.inverse();
 					dR10 = dT10.block<3,3>(0,0);

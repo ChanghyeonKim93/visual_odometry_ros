@@ -292,10 +292,10 @@ public:
             lm_ba.X = this->warpToRef(lm_ba.X);
             lm_ba.X = this->scalingPoint(lm_ba.X);
             
-            lm_ba.kfs_seen.reserve(10);   
-            lm_ba.kfs_index.reserve(10); 
+            lm_ba.kfs_seen.reserve(10);
+            lm_ba.kfs_index.reserve(10);
             lm_ba.pts_on_kfs.reserve(10);
-
+            
             // 현재 landmark가 보였던 keyframes을 저장한다.
             for(int j = 0; j < lm->getRelatedKeyframePtr().size(); ++j) {
                 const FramePtr& kf = lm->getRelatedKeyframePtr()[j];

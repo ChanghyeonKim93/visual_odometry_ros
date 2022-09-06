@@ -10,7 +10,7 @@
  * @date 10-July-2022
  */
 void ScaleMonoVO::trackImageLocalBundle2(const cv::Mat& img, const double& timestamp){
-	float THRES_SAMPSON = 1.0f;
+	float THRES_SAMPSON = 111.0f;
 	float THRES_PARALLAX = 0.7f;
 
 	// Generate statistics
@@ -105,7 +105,7 @@ void ScaleMonoVO::trackImageLocalBundle2(const cv::Mat& img, const double& times
 			motion_estimator_->calcSampsonDistance(lmtrack_scaleok.pts0, lmtrack_scaleok.pts1, cam_, dR10, dt10, symm_epi_dist);
 			MaskVec mask_sampson(lmtrack_scaleok.pts0.size());
 			for(int i = 0; i < mask_sampson.size(); ++i)
-				mask_sampson[i] = mask_5p[i] && (symm_epi_dist[i] < THRES_SAMPSON);
+				mask_sampson[i] = mask_5p[i] && (symm_epi_dist[i] < params_.feature_tracker.thres_sampson);
 			
 			LandmarkTracking lmtrack_final;
 			this->pruneInvalidLandmarks(lmtrack_scaleok, mask_sampson, lmtrack_final);
@@ -221,10 +221,10 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 
 			// frame_prev_ 의 lms 를 현재 이미지로 track. 5ms
 			MaskVec  mask_track;
-			// tracker_->trackWithPrior(I0, I1, lmtrack_prev.pts0, params_.feature_tracker.window_size, params_.feature_tracker.max_level, params_.feature_tracker.thres_error,
-				// lmtrack_prev.pts1, mask_track);
-			tracker_->trackBidirectionWithPrior(I0, I1, lmtrack_prev.pts0, params_.feature_tracker.window_size, params_.feature_tracker.max_level, params_.feature_tracker.thres_error, params_.feature_tracker.thres_bidirection,
+			tracker_->trackWithPrior(I0, I1, lmtrack_prev.pts0, params_.feature_tracker.window_size, params_.feature_tracker.max_level, params_.feature_tracker.thres_error,
 				lmtrack_prev.pts1, mask_track);
+			// tracker_->trackBidirectionWithPrior(I0, I1, lmtrack_prev.pts0, params_.feature_tracker.window_size, params_.feature_tracker.max_level, params_.feature_tracker.thres_error, params_.feature_tracker.thres_bidirection,
+				// lmtrack_prev.pts1, mask_track);
 
 			LandmarkTracking lmtrack_kltok;
 			std::cout << "# of PREV  : " << lmtrack_prev.pts0.size() << std::endl;
@@ -293,7 +293,9 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 				std::cout <<"======== prior dt01: " << dt01.transpose() <<std::endl;
 
 				timer::tic();
-				if(motion_estimator_->calcPoseOnlyBundleAdjustment(Xp_depth_ok, pts1_depth_ok, cam_, dR01, dt01, mask_motion)){
+				if(motion_estimator_->calcPoseOnlyBundleAdjustment(Xp_depth_ok, pts1_depth_ok, cam_, params_.motion_estimator.thres_poseba_error,
+					 dR01, dt01, mask_motion))
+				{
 					dT01 << dR01, dt01, 0,0,0,1;
 					dT10 = geometry::inverseSE3_f(dT01);
 
@@ -345,7 +347,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			motion_estimator_->calcSampsonDistance(lmtrack_motion.pts0, lmtrack_motion.pts1, cam_, dT10.block<3,3>(0,0), dT10.block<3,1>(0,3), symm_epi_dist);
 			MaskVec mask_sampson(lmtrack_motion.pts0.size(),true);
 			for(int i = 0; i < mask_sampson.size(); ++i)
-				mask_sampson[i] = symm_epi_dist[i] < THRES_SAMPSON;
+				mask_sampson[i] = symm_epi_dist[i] < params_.feature_tracker.thres_sampson;
 			
 			LandmarkTracking lmtrack_final;
 			std::cout << "# of samps : " << this->pruneInvalidLandmarks(lmtrack_motion, mask_sampson, lmtrack_final) << std::endl;
