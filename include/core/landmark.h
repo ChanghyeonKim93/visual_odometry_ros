@@ -28,6 +28,7 @@ private:
     float cov_invd_; // covariance of the inverse depth 
 
     PixelVec observations_; // 2D pixel observation history of this landmark
+    std::vector<float> view_sizes_; // (approx.) 2D patch size compared to the firstly observed image. (s1 = s2*d1/d2)
     FramePtrVec related_frames_; // frame history where this landmark was seen
 
 // keyframes
@@ -64,10 +65,13 @@ public:
     Landmark(const Pixel& p, const FramePtr& frame); // constructor with observation.
     ~Landmark();// destructor
 
+// Set methods
+public:
     void addObservationAndRelatedFrame(const Pixel& p, const FramePtr& frame);
     void addObservationAndRelatedKeyframe(const Pixel& p, const FramePtr& frame);
     
     void set3DPoint(const Point& Xw);
+
     void setBundled();
     void setInverseDepth(float invd_curr);
     void setDead();
@@ -79,7 +83,9 @@ public:
     // void setTrackProjUV(float u, float v);
     // void setTrackScaleLevel(uint32_t lvl);
     // void setTrackViewCos(float vcos);
-    
+
+// Get methods
+public:
     uint32_t           getID() const;
     uint32_t           getAge() const;
     float              getInverseDepth() const;
