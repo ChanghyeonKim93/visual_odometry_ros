@@ -138,7 +138,6 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
     _BA_numeric MIN_LAMBDA = 1e-6;
 
     // Intrinsic of lower camera
-    // const Mat33& K = cam_->K(); const Mat33& Kinv = cam_->Kinv();
     const _BA_numeric& fx = cam_->fx(); const _BA_numeric& fy = cam_->fy();
     const _BA_numeric& cx = cam_->cx(); const _BA_numeric& cy = cam_->cy();
     const _BA_numeric& invfx = cam_->fxinv(); const _BA_numeric& invfy = cam_->fyinv();
@@ -207,7 +206,8 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
 
                 // 2) residual calculation
                 _BA_Pixel ptw;
-                ptw << fx*xinvz + cx, fy*yinvz + cy;
+                ptw(0) = fx*xinvz + cx;
+                ptw(1) = fy*yinvz + cy;
                 
                 _BA_Vec2 rij;
                 rij = ptw - pij;

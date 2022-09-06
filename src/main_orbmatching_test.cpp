@@ -45,30 +45,92 @@ int main(int argc, char **argv) {
         ext_->initParams(n_cols, n_rows, n_bins_u, n_bins_v, THRES_FAST, radius);
 
         // Load images
-        std::vector<cv::Mat> imgs(5);
-        imgs.at(0) = cv::imread("/home/larrkchlinux/Documents/kitti/test_orbmatching/0.png", cv::IMREAD_GRAYSCALE);
-        imgs.at(1) = cv::imread("/home/larrkchlinux/Documents/kitti/test_orbmatching/1.png", cv::IMREAD_GRAYSCALE);
-        imgs.at(2) = cv::imread("/home/larrkchlinux/Documents/kitti/test_orbmatching/2.png", cv::IMREAD_GRAYSCALE);
-        imgs.at(3) = cv::imread("/home/larrkchlinux/Documents/kitti/test_orbmatching/3.png", cv::IMREAD_GRAYSCALE);
-        imgs.at(4) = cv::imread("/home/larrkchlinux/Documents/kitti/test_orbmatching/4.png", cv::IMREAD_GRAYSCALE);
+        std::vector<cv::Mat> imgs(6);
+        imgs.at(0) = cv::imread("/home/kch/Documents/kitti/test_orbmatching/0.png", cv::IMREAD_GRAYSCALE);
+        imgs.at(1) = cv::imread("/home/kch/Documents/kitti/test_orbmatching/1.png", cv::IMREAD_GRAYSCALE);
+        imgs.at(2) = cv::imread("/home/kch/Documents/kitti/test_orbmatching/2.png", cv::IMREAD_GRAYSCALE);
+        imgs.at(3) = cv::imread("/home/kch/Documents/kitti/test_orbmatching/3.png", cv::IMREAD_GRAYSCALE);
+        imgs.at(4) = cv::imread("/home/kch/Documents/kitti/test_orbmatching/4.png", cv::IMREAD_GRAYSCALE);
+        imgs.at(5) = cv::imread("/home/kch/Documents/kitti/test_orbmatching/5.png", cv::IMREAD_GRAYSCALE);
 
         // Extract feature and draw images
-        for(int i = 0; i < 5; ++i){
+        ext_->resetWeightBin();
+        std::vector<cv::KeyPoint> kpts0;
+        cv::Mat desc0;
+        ext_->extractAndComputeORB(imgs.at(0), kpts0, desc0);
+
+        for(int i = 1; i < 6; ++i) {
             ext_->resetWeightBin();
-            std::vector<cv::Point2f> pts;
-            ext_->extractORBwithBinning(imgs.at(i), pts);
+            std::vector<cv::KeyPoint> kpts;
+            cv::Mat desc;
+            ext_->extractAndComputeORB(imgs.at(i), kpts, desc);
+            cv::Mat desc_tmp = desc.row(0);
+            std::cout << desc_tmp << std::endl;
+
+            std::cout << "n_pts : " << kpts.size() <<", desc size (r,c): " << desc.rows <<"," << desc.cols << std::endl;
 
             cv::Mat img_draw;	
             imgs.at(i).copyTo(img_draw);
             cv::cvtColor(img_draw, img_draw, CV_GRAY2RGB);
 
-            std::cout << "# of pixels : " << pts.size() << std::endl;
-            for(int j = 0; j < pts.size(); ++j)
-                cv::circle(img_draw, pts.at(j), 1.0, cv::Scalar(0,0,255),1); // alived magenta
+            for(int j = 0; j < kpts.size(); ++j)
+                cv::circle(img_draw, kpts.at(j).pt, 1.0, cv::Scalar(0,0,255),1); // alived magenta
             std::string window_name = "img" + i;
             cv::namedWindow(window_name);
             cv::imshow(window_name,img_draw);
             cv::waitKey(0);
+
+            // 매칭...
+            int TH_HIGH = 100;
+            int TH_LOW  = 50;
+
+            int nmatches=0;
+            float mfNNratio = 0.6;
+
+            for(int j = 0; j < kpts0.size(); ++j){
+                cv::Mat desc_now; // j-th keypoint의 descriptor. 1 행 32열 (32 열 * 1바이트 * 8비트 = 256비트)
+
+                int bestDist=256;
+                int bestLevel= -1;
+                int bestDist2=256;
+                int bestLevel2 = -1;
+                int bestIdx =-1 ;
+                // 1) 근처의 keypoints의 INDEX를 찾는다.
+                // --> vIndices (vector<int>)
+
+                std::vector<int> vIndices;
+                for(int k = 0; k < vIndices.size(); ++k){
+                    // 2) 해당 index의 descriptor를 가져온다.
+                    const size_t idx = vIndices.at(k);
+                    const cv::Mat& d = desc.row(idx);
+
+                    const int dist = ext_->descriptorDistance(desc_now, d);
+
+                    if(dist<bestDist)
+                    {
+                        bestDist2=bestDist;
+                        bestDist=dist;
+                        bestLevel2 = bestLevel;
+                        // bestLevel = F.mvKeysUn[idx].octave;
+                        bestIdx=idx;
+                    }
+                    else if(dist<bestDist2)
+                    {
+                        // bestLevel2 = F.mvKeysUn[idx].octave;
+                        bestDist2=dist;
+                    }
+                }
+
+                // Apply ratio to second match (only if best and second are in the same scale level)
+                if(bestDist<=TH_HIGH)
+                {
+                    if(bestLevel==bestLevel2 && bestDist>mfNNratio*bestDist2)
+                        continue;
+
+                    // F.mvpMapPoints[bestIdx]=pMP;
+                    nmatches++;
+                }
+            }
         }
     }
     catch (std::exception& e) {

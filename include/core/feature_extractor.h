@@ -146,6 +146,16 @@ public:
 	void suppressCenterBins();
 	void extractORBwithBinning(const cv::Mat& img, PixelVec& pts_extracted);
 	void extractHarriswithBinning(const cv::Mat& img, PixelVec& pts_extracted);
+	
+	void extractAndComputeORB(const cv::Mat& img, std::vector<cv::KeyPoint>& kpts_extracted, cv::Mat& desc_extracted);
+	void extractAndComputORBwithBinning(const cv::Mat& img, std::vector<cv::KeyPoint>& kpts_extracted, cv::Mat& desc_extracted);
+
+public:
+	void setNonmaxSuppression(bool flag_on);
+
+// descriptor related
+public:
+	int descriptorDistance(const cv::Mat& a, const cv::Mat& b);
 };
 
 #endif
