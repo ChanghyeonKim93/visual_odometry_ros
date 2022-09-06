@@ -85,3 +85,7 @@ target_link_libraries (vo_node ${catkin_LIBRARIES} ${Eigen_LIBRARIES})
 # executables
 add_executable(backend_node src/main_backend_only.cpp src/backend_node.cpp ${SRC})
 target_link_libraries (backend_node ${catkin_LIBRARIES} ${Eigen_LIBRARIES})
+
+# executabls
+add_executable(test_orb_matching_node src/main_orbmatching_test.cpp ${SRC})
+target_link_libraries (test_orb_matching_node ${catkin_LIBRARIES} ${Eigen_LIBRARIES})

@@ -39,6 +39,7 @@ typedef Eigen::Matrix<_BA_numeric,2,1> _BA_Vec2;
 typedef Eigen::Matrix<_BA_numeric,3,1> _BA_Vec3;
 typedef Eigen::Matrix<_BA_numeric,6,1> _BA_Vec6;
 
+typedef int                            _BA_Index;
 typedef Eigen::Matrix<_BA_numeric,2,1> _BA_Pixel;
 typedef Eigen::Matrix<_BA_numeric,3,1> _BA_Point;
 typedef Eigen::Matrix<_BA_numeric,3,3> _BA_Rot3;
@@ -46,6 +47,7 @@ typedef Eigen::Matrix<_BA_numeric,3,1> _BA_Pos3;
 typedef Eigen::Matrix<_BA_numeric,4,4> _BA_PoseSE3;
 typedef Eigen::Matrix<_BA_numeric,6,1> _BA_PoseSE3Tangent;
 
+typedef std::vector<_BA_Index> _BA_IndexVec;
 typedef std::vector<_BA_Pixel> _BA_PixelVec;
 typedef std::vector<_BA_Point> _BA_PointVec;
 
@@ -77,7 +79,7 @@ typedef std::vector<_BA_Vec3>               BlockVec3;
 struct LandmarkBA {
     _BA_Point         X;
     FramePtrVec       kfs_seen; // 해당 키프레임에서 어떤 좌표로 보였는지를 알아야 함.
-    std::vector<int>  kfs_index; // 해당 키프레임이 window에서 몇번째인가 저장.
+    _BA_IndexVec      kfs_index; // 해당 키프레임이 window에서 몇번째인가 저장.
     _BA_PixelVec      pts_on_kfs; // 각 키프레임에서 추적된 pixel 좌표.
     
     LandmarkPtr       lm;
@@ -118,12 +120,12 @@ private:
     int n_obs_; // the number of observations
 
 private:
-    std::vector<LandmarkBA>    lmbavec_all_; // All landmarks to be optimized
+    std::vector<LandmarkBA> lmbavec_all_; // All landmarks to be optimized
 
     std::map<FramePtr,_BA_PoseSE3> posemap_all_; // pose map Tjw
 
-    std::map<FramePtr,int>     indexmap_opt_; // optimization pose index map
-    std::vector<FramePtr>      framemap_opt_; // j-th optimization frame ptr
+    std::map<FramePtr,_BA_Index> indexmap_opt_; // optimization pose index map
+    FramePtrVec  framemap_opt_; // j-th optimization frame ptr
 
 // Get methods (numbers)
 public:
@@ -138,23 +140,23 @@ public:
     const _BA_PoseSE3& getPose(const FramePtr& frame) {
         if(posemap_all_.find(frame) == posemap_all_.end())
             throw std::runtime_error("posemap_all_.find(frame) == posemap_all_.end()");
-        return posemap_all_[frame];
+        return posemap_all_.at(frame);
     };
-    int getOptPoseIndex(const FramePtr& frame){
+    _BA_Index getOptPoseIndex(const FramePtr& frame){
         if(indexmap_opt_.find(frame) == indexmap_opt_.end())
             throw std::runtime_error("indexmap_opt_.find(frame) == indexmap_opt_.end()");
-        return indexmap_opt_[frame];
+        return indexmap_opt_.at(frame);
     };
-    const FramePtr& getOptFramePtr(int j_opt){
+    const FramePtr& getOptFramePtr(_BA_Index j_opt){
         if( j_opt >= framemap_opt_.size())
             throw std::runtime_error("j_opt >= framemap_opt_.size()");
-        return framemap_opt_[j_opt];
+        return framemap_opt_.at(j_opt);
     };
 
-    const LandmarkBA& getLandmarkBA(int i){
+    const LandmarkBA& getLandmarkBA(_BA_Index i){
         if( i >= lmbavec_all_.size())
             throw std::runtime_error("i >= lmbavec_all_.size()");
-        return lmbavec_all_[i];
+        return lmbavec_all_.at(i);
     };
 
     const std::set<FramePtr>& getAllFrameset(){
@@ -166,28 +168,28 @@ public:
 
 // Update and get methods (Pose and Point)
 public:
-    void updateOptPoint(int i, const _BA_Point& X_update){
-        if(i >= M_)
-            throw std::runtime_error("i >= M_");
-        lmbavec_all_[i].X = X_update;
+    void updateOptPoint(_BA_Index i, const _BA_Point& X_update){
+        if(i >= M_ || i < 0)
+            throw std::runtime_error("i >= M_ || i < 0");
+        lmbavec_all_.at(i).X = X_update;
     };
-    void updateOptPose(int j_opt, const _BA_PoseSE3& Tjw_update){
-        if(j_opt >= N_opt_) 
-            throw std::runtime_error("j_opt >= N_opt_");
-        const FramePtr& kf_opt = framemap_opt_[j_opt];
-        posemap_all_[kf_opt] = Tjw_update;
+    void updateOptPose(_BA_Index j_opt, const _BA_PoseSE3& Tjw_update){
+        if(j_opt >= N_opt_ || j_opt < 0) 
+            throw std::runtime_error("j_opt >= N_opt_  || j_opt < 0");
+        const FramePtr& kf_opt = framemap_opt_.at(j_opt);
+        posemap_all_.at(kf_opt) = Tjw_update;
     };  
 
-    const _BA_Point& getOptPoint(int i){
-        if(i >= M_)
-            throw std::runtime_error("i >= M_");
-        return lmbavec_all_[i].X;
+    const _BA_Point& getOptPoint(_BA_Index i){
+        if(i >= M_ || i < 0)
+            throw std::runtime_error("i >= M_ || i < 0");
+        return lmbavec_all_.at(i).X;
     };
-    const _BA_PoseSE3& getOptPose(int j_opt){
-        if(j_opt >= N_opt_) 
-            throw std::runtime_error("j_opt >= N_opt_");
-        const FramePtr& kf_opt = framemap_opt_[j_opt];
-        return posemap_all_[kf_opt];
+    const _BA_PoseSE3& getOptPose(_BA_Index j_opt){
+        if(j_opt >= N_opt_ || j_opt < 0) 
+            throw std::runtime_error("j_opt >= N_opt_ || j_opt < 0");
+        const FramePtr& kf_opt = framemap_opt_.at(j_opt);
+        return posemap_all_.at(kf_opt);
     };
 
 // Find methods
@@ -197,24 +199,30 @@ public:
 
 public:
     _BA_Point warpToRef(const _BA_Point& X){
-        return (Tjw_ref_.block<3,3>(0,0)*X + Tjw_ref_.block<3,1>(0,3));
+        _BA_Point Xw = Tjw_ref_.block<3,3>(0,0)*X + Tjw_ref_.block<3,1>(0,3);
+        return Xw;
     };
     _BA_Point warpToWorld(const _BA_Point& X){
-        return (Twj_ref_.block<3,3>(0,0)*X + Twj_ref_.block<3,1>(0,3));
+        _BA_Point Xw = Twj_ref_.block<3,3>(0,0)*X + Twj_ref_.block<3,1>(0,3);
+        return Xw;
     };
 
     _BA_PoseSE3 changeInvPoseWorldToRef(const _BA_PoseSE3& Tjw){
-        return Tjw*Twj_ref_;
+        _BA_PoseSE3 Tjref = Tjw*Twj_ref_;
+        return Tjref;
     };
     _BA_PoseSE3 changeInvPoseRefToWorld(const _BA_PoseSE3& Tjref){
-        return Tjref*Tjw_ref_;
+        _BA_PoseSE3 Tjw = Tjref*Tjw_ref_;
+        return Tjw;
     };
 
     _BA_Point scalingPoint(const _BA_Point& X){
-        return X*inv_pose_scale_;
+        _BA_Point X_scaled = X*inv_pose_scale_;
+        return X_scaled;
     };
     _BA_Point recoverOriginalScalePoint(const _BA_Point& X){
-        return X*pose_scale_;  
+        _BA_Point X_recovered = X*pose_scale_;
+        return X_recovered;  
     };
     _BA_PoseSE3 scalingPose(const _BA_PoseSE3& Tjw){
         _BA_PoseSE3 Tjw_scaled = Tjw;
@@ -234,7 +242,8 @@ public:
 // Set methods
 public:
     SparseBAParameters() 
-    : N_(0), N_opt_(0), N_fix_(0), M_(0), n_obs_(0), pose_scale_(10.0), inv_pose_scale_(1.0/pose_scale_)
+    : N_(0), N_opt_(0), N_fix_(0), M_(0), n_obs_(0),
+    pose_scale_(10.0), inv_pose_scale_(1.0/pose_scale_)
     { };
 
     ~SparseBAParameters(){
@@ -243,8 +252,8 @@ public:
 
     void setPosesAndPoints(
         const FramePtrVec&      frames, 
-        const std::vector<int>& idx_fix, 
-        const std::vector<int>& idx_optimize)
+        const _BA_IndexVec& idx_fix, 
+        const _BA_IndexVec& idx_optimize)
     {
         // Threshold
         int THRES_MINIMUM_SEEN = 2;
@@ -295,7 +304,7 @@ public:
             lm_ba.kfs_seen.reserve(10);
             lm_ba.kfs_index.reserve(10);
             lm_ba.pts_on_kfs.reserve(10);
-            
+
             // 현재 landmark가 보였던 keyframes을 저장한다.
             for(int j = 0; j < lm->getRelatedKeyframePtr().size(); ++j) {
                 const FramePtr& kf = lm->getRelatedKeyframePtr()[j];
@@ -338,7 +347,7 @@ public:
         }
         
         // 5) set optimizable keyframes (posemap, indexmap, framemap)
-        int cnt_idx = 0;
+        _BA_Index cnt_idx = 0;
         idx_optimize;
         for(int jj = 0; jj < idx_optimize.size(); ++jj){
             int j = idx_optimize.at(jj);
@@ -364,10 +373,6 @@ public:
         // printf("|  -            Jacobian size: %d rows x %d cols\n", len_residual, len_parameter);
         // printf("|  -            Residual size: %d rows\n\n", len_residual);
     };
-
-private:
-
-
 };
 
 // A sparse solver for a feature-based Bundle adjustment problem.

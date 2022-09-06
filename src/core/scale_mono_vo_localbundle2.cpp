@@ -10,8 +10,8 @@
  * @date 10-July-2022
  */
 void ScaleMonoVO::trackImageLocalBundle2(const cv::Mat& img, const double& timestamp){
-	float THRES_SAMPSON = 111.0f;
-	float THRES_PARALLAX = 0.7f;
+	float THRES_SAMPSON  = params_.feature_tracker.thres_sampson;
+	float THRES_PARALLAX = params_.map_update.thres_parallax;
 
 	// Generate statistics
 	AlgorithmStatistics::LandmarkStatistics  statcurr_landmark;
@@ -105,7 +105,7 @@ void ScaleMonoVO::trackImageLocalBundle2(const cv::Mat& img, const double& times
 			motion_estimator_->calcSampsonDistance(lmtrack_scaleok.pts0, lmtrack_scaleok.pts1, cam_, dR10, dt10, symm_epi_dist);
 			MaskVec mask_sampson(lmtrack_scaleok.pts0.size());
 			for(int i = 0; i < mask_sampson.size(); ++i)
-				mask_sampson[i] = mask_5p[i] && (symm_epi_dist[i] < params_.feature_tracker.thres_sampson);
+				mask_sampson[i] = mask_5p[i] && (symm_epi_dist[i] < THRES_SAMPSON);
 			
 			LandmarkTracking lmtrack_final;
 			this->pruneInvalidLandmarks(lmtrack_scaleok, mask_sampson, lmtrack_final);
@@ -163,7 +163,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			// lms1_final 중, depth가 복원되지 않은 경우 복원해준다.
 			uint32_t cnt_recon = 0 ;
 			for(auto lm : lmtrack_final.lms){
-				if( !lm->isTriangulated() && lm->getLastParallax() >= THRES_PARALLAX*D2R){
+				if( !lm->isTriangulated() && lm->getLastParallax() >= THRES_PARALLAX){
 					if(lm->getObservations().size() != lm->getRelatedFramePtr().size())
 						throw std::runtime_error("lm->getObservations().size() != lm->getRelatedFramePtr().size()\n");
 
@@ -221,10 +221,10 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 
 			// frame_prev_ 의 lms 를 현재 이미지로 track. 5ms
 			MaskVec  mask_track;
-			tracker_->trackWithPrior(I0, I1, lmtrack_prev.pts0, params_.feature_tracker.window_size, params_.feature_tracker.max_level, params_.feature_tracker.thres_error,
-				lmtrack_prev.pts1, mask_track);
-			// tracker_->trackBidirectionWithPrior(I0, I1, lmtrack_prev.pts0, params_.feature_tracker.window_size, params_.feature_tracker.max_level, params_.feature_tracker.thres_error, params_.feature_tracker.thres_bidirection,
+			// tracker_->trackWithPrior(I0, I1, lmtrack_prev.pts0, params_.feature_tracker.window_size, params_.feature_tracker.max_level, params_.feature_tracker.thres_error,
 				// lmtrack_prev.pts1, mask_track);
+			tracker_->trackBidirectionWithPrior(I0, I1, lmtrack_prev.pts0, params_.feature_tracker.window_size, params_.feature_tracker.max_level, params_.feature_tracker.thres_error, params_.feature_tracker.thres_bidirection,
+				lmtrack_prev.pts1, mask_track);
 
 			LandmarkTracking lmtrack_kltok;
 			std::cout << "# of PREV  : " << lmtrack_prev.pts0.size() << std::endl;
@@ -266,7 +266,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 				for(int i = 0; i < lmtrack_scaleok.pts0.size(); ++i){
 					const LandmarkPtr& lm = lmtrack_scaleok.lms[i];
 					if(lm->isTriangulated() && lm->getAge() > 1 
-					&& lm->getLastParallax() > THRES_PARALLAX*D2R){ 
+					&& lm->getLastParallax() > THRES_PARALLAX){ 
 						Point Xp = Rcw_prev * lm->get3DPoint() + tcw_prev;
 						if(Xp(2) > 0){
 							pts1_depth_ok.push_back(lmtrack_scaleok.pts1[i]);
@@ -408,7 +408,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 		uint32_t cnt_recon = 0;
 		
 		for(auto lm : frame_curr->getRelatedLandmarkPtr()){
-			if(!lm->isTriangulated() && lm->getLastParallax() >= THRES_PARALLAX*D2R){
+			if(!lm->isTriangulated() && lm->getLastParallax() >= THRES_PARALLAX){
 				if(lm->getObservationsOnKeyframes().size() > 1){ // 2번 이상 keyframe에서 보였다.
 					const Pixel& pt0 = lm->getObservationsOnKeyframes().front();
 					const Pixel& pt1 = lm->getObservationsOnKeyframes().back();

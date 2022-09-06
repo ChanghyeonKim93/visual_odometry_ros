@@ -1,10 +1,12 @@
 #include "core/feature_tracker.h"
 
-FeatureTracker::FeatureTracker(){
+FeatureTracker::FeatureTracker()
+{
     printf(" - FEATURE_TRACKER is constructed.\n");
 };
 
-FeatureTracker::~FeatureTracker(){
+FeatureTracker::~FeatureTracker()
+{
     printf(" - FEATURE_TRACKER is deleted.\n");
 };
 
@@ -28,9 +30,8 @@ void FeatureTracker::track(const cv::Mat& img0, const cv::Mat& img1, const Pixel
         pts0, pts_track, 
         status, err, cv::Size(window_size,window_size), maxLevel);
     
-    for(int i = 0; i < n_pts; ++i){
+    for(int i = 0; i < n_pts; ++i)
         mask_valid[i] = (mask_valid[i] && status[i] > 0 && err[i] <= thres_err);
-    }
     
     // printf(" - FEATURE_TRACKER - 'track()'\n");
 };
@@ -81,7 +82,8 @@ void FeatureTracker::trackBidirection(const cv::Mat& img0, const cv::Mat& img1, 
         status_backward, err_backward, cv::Size(window_size,window_size), maxLevel-1, {}, cv::OPTFLOW_USE_INITIAL_FLOW, {});
 
     // Check validity.
-    for(int i = 0; i < n_pts; ++i){
+    for(int i = 0; i < n_pts; ++i)
+    {
         Pixel dp = pts0_backward[i]-pts0[i];
         float dist2 = dp.x*dp.x + dp.y*dp.y;
 
@@ -137,7 +139,8 @@ void FeatureTracker::trackBidirectionWithPrior(const cv::Mat& img0, const cv::Ma
 
     // Check validity.
     int cnt_prior_ok = 0;
-    for(int i = 0; i < n_pts; ++i){
+    for(int i = 0; i < n_pts; ++i)
+    {
         Pixel dp = pts0_backward[i]-pts0[i];
         float dist2 = dp.x*dp.x + dp.y*dp.y;
 
@@ -183,7 +186,8 @@ void FeatureTracker::trackWithPrior(const cv::Mat& img0, const cv::Mat& img1, co
         status, err, cv::Size(window_size, window_size), maxLevel, {}, cv::OPTFLOW_USE_INITIAL_FLOW, {});
     
     // Check validity.
-    for(int i = 0; i < n_pts; ++i) {
+    for(int i = 0; i < n_pts; ++i) 
+    {
         // Border check
         mask_valid[i] = (mask_valid[i] 
                         && status[i] > 0 
@@ -284,8 +288,10 @@ void FeatureTracker::refineScale(const cv::Mat& img0, const cv::Mat& img1, const
     MaskVec  mask_warp_I1(win_len_sq);
     
     // Iteratively update for each point.
-    for(int i = 0; i < n_pts; ++i) { 
-        if(!mask_valid[i]) continue;
+    for(int i = 0; i < n_pts; ++i) 
+    { 
+        if(!mask_valid[i]) 
+            continue;
 
         // calculate prior values.
         Eigen::MatrixXf theta(3,1);
@@ -293,9 +299,8 @@ void FeatureTracker::refineScale(const cv::Mat& img0, const cv::Mat& img1, const
         theta(1,0) = 0.0;
         theta(2,0) = 1.15f; // initial scale. We assume increasing scale.
 
-        for(int j = 0; j < win_len_sq; ++j) {
+        for(int j = 0; j < win_len_sq; ++j)
             pts_warp[j] = patt[j] + pts0[i];
-        }
 
         // interpolate data
         image_processing::interpImage(I0, pts_warp, I0_patt, mask_warp_I0);
@@ -304,16 +309,16 @@ void FeatureTracker::refineScale(const cv::Mat& img0, const cv::Mat& img1, const
         float err_prev = 1e22;
 
         // Iterations.
-        for(int iter = 0; iter < MAX_ITER; ++iter) {
+        for(int iter = 0; iter < MAX_ITER; ++iter) 
+        {
             Pixel pt_track_tmp;
             pt_track_tmp.x = theta(0,0) + pts_track[i].x;
             pt_track_tmp.y = theta(1,0) + pts_track[i].y;
 
             // warp patch points
-            for(int j = 0; j < win_len_sq; j++) {
+            for(int j = 0; j < win_len_sq; j++)
                 pts_warp[j] = patt[j]*theta(2,0) + pt_track_tmp;
-            }
-
+            
             // Generate patches.
             // image_processing::interpImage(I1,   pts_warp,   I1_patt, mask_warp);
             // image_processing::interpImage(dI1u, pts_warp, dI1u_patt, mask_warp);
@@ -325,8 +330,10 @@ void FeatureTracker::refineScale(const cv::Mat& img0, const cv::Mat& img1, const
             Eigen::MatrixXf J(win_len_sq, 3); // R^{N x 3}
             Eigen::MatrixXf r(win_len_sq, 1); // R^{N x 1}
             int idx_tmp = 0;
-            for(int j = 0; j < win_len_sq; ++j) {
-                if(mask_warp_I0[j] && mask_warp_I1[j]) {
+            for(int j = 0; j < win_len_sq; ++j) 
+            {
+                if(mask_warp_I0[j] && mask_warp_I1[j]) 
+                {
                     J(idx_tmp,0) = dI1u_patt[j];
                     J(idx_tmp,1) = dI1v_patt[j];
                     J(idx_tmp,2) = dI1u_patt[j]*patt[j].x + dI1u_patt[j]*patt[j].y;
@@ -353,7 +360,8 @@ void FeatureTracker::refineScale(const cv::Mat& img0, const cv::Mat& img1, const
             err_curr = r.norm()/r.size();
 
             // breaking point.
-            if( abs(err_prev-err_curr) <= EPS_TOTAL || sqrt(delta_theta(0,0)*delta_theta(0,0)+delta_theta(1,0)*delta_theta(1,0)) < EPS_PIXEL){
+            if( abs(err_prev-err_curr) <= EPS_TOTAL || sqrt(delta_theta(0,0)*delta_theta(0,0)+delta_theta(1,0)*delta_theta(1,0)) < EPS_PIXEL)
+            {
                 // std::cout << " e:" << err_curr <<", itr:" << iter << "\n";
                 // std::cout <<"update  px: " << theta(0,0)<< ", " << theta(1,0) << ", sc:" << theta(2,0) << std::endl;
                 break;
@@ -362,12 +370,14 @@ void FeatureTracker::refineScale(const cv::Mat& img0, const cv::Mat& img1, const
         }
 
         // push results
-        if(err_curr < 20 && theta(2,0) > 0.8 && theta(2,0) < 1.3) {
+        if(err_curr < 20 && theta(2,0) > 0.8 && theta(2,0) < 1.3) 
+        {
             pts_track[i].x += theta(0,0);
             pts_track[i].y += theta(1,0);
             mask_valid[i] = true;
         }
-        else mask_valid[i] = false; // not update
+        else 
+            mask_valid[i] = false; // not update
     }
 
 };
