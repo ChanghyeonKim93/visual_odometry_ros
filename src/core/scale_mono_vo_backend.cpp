@@ -51,7 +51,7 @@ void ScaleMonoVO::trackImageBackend(const cv::Mat& img, const double& timestamp,
 			PixelVec       pts1;
 			LandmarkPtrVec lms1;
 			extractor_->resetWeightBin();
-			extractor_->extractORBwithBinning(I1, pts1);
+			extractor_->extractORBwithBinning(I1, pts1, true);
 
 #ifdef RECORD_EXECUTION_STAT
 	statcurr_execution.time_new = 0;
@@ -237,7 +237,7 @@ timer::tic();
 			// 빈 곳에 특징점 pts1_new 를 추출한다. 2 ms
 			PixelVec pts1_new;
 			extractor_->updateWeightBin(lmtrack_final.pts1); // 이미 pts1가 있는 곳은 제외.
-			extractor_->extractORBwithBinning(I1, pts1_new);
+			extractor_->extractORBwithBinning(I1, pts1_new, true);
 
 			if( pts1_new.size() > 0 ){
 				// 새로운 특징점을 back-track.

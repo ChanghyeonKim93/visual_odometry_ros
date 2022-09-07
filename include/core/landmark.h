@@ -115,11 +115,13 @@ struct LandmarkTracking{
     PixelVec pts0;
     PixelVec pts1;
     LandmarkPtrVec lms;
+    std::vector<float> scale_change;
 
     LandmarkTracking(){
         pts0.reserve(1000);
         pts1.reserve(1000);
         lms.reserve(1000);
+        scale_change.reserve(1000);
     };
 };
 

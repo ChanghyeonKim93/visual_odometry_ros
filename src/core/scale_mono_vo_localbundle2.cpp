@@ -42,7 +42,8 @@ void ScaleMonoVO::trackImageLocalBundle2(const cv::Mat& img, const double& times
 			// Extract pixels
 			LandmarkTracking lmtrack_curr;
 			extractor_->resetWeightBin();
-			extractor_->extractORBwithBinning(I1, lmtrack_curr.pts1);
+			extractor_->extractORBwithBinning(I1, lmtrack_curr.pts1, true);
+			std::cout << "# features : " << lmtrack_curr.pts1.size()  << std::endl;
 
 			// 초기 landmark 생성
 			for(auto pt : lmtrack_curr.pts1){
@@ -132,7 +133,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			// 빈 곳에 특징점 pts1_new 를 추출한다. 2 ms
 			PixelVec pts1_new;
 			extractor_->updateWeightBin(lmtrack_final.pts1); // 이미 pts1가 있는 곳은 제외.
-			extractor_->extractORBwithBinning(I1, pts1_new);
+			extractor_->extractORBwithBinning(I1, pts1_new, true);
 
 			if( true )
 				this->showTracking("img_features", I1, lmtrack_final.pts0, lmtrack_final.pts1, pts1_new);
@@ -206,17 +207,26 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			PoseSE3 Twc_prior  = Twc_prev*dT01_prior;
 			PoseSE3 Tcw_prior  = geometry::inverseSE3_f(Twc_prior);
 
-			// Make tracking prior 
+			// Make tracking prior & estimated scale
 			lmtrack_prev.pts1.resize(lmtrack_prev.pts0.size());
 			for(int i = 0; i < lmtrack_prev.pts0.size(); ++i){
 				const LandmarkPtr& lm = lmtrack_prev.lms[i];
+				float patch_scale = 1.0f;
 				if( lm->isBundled() ){
 					const Point& Xw = lm->get3DPoint();
+					Point Xp = Tcw_prev.block<3,3>(0,0)*Xw + Tcw_prev.block<3,1>(0,3);
 					Point Xc = Tcw_prior.block<3,3>(0,0)*Xw + Tcw_prior.block<3,1>(0,3);
+					float dp = Xp(2); float dc = Xc(2);
+
+					patch_scale = dp/dc;
+					// std::cout << "scale : " << patch_scale << std::endl;
+					
 					if(Xc(2) > 0) lmtrack_prev.pts1[i] = cam_->projectToPixel(Xc);
 					else lmtrack_prev.pts1[i] = lmtrack_prev.pts0[i];
 				}
 				else lmtrack_prev.pts1[i] = lmtrack_prev.pts0[i];
+
+				lmtrack_prev.scale_change.push_back(patch_scale);
 			}
 
 			// frame_prev_ 의 lms 를 현재 이미지로 track. 5ms
@@ -231,10 +241,17 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			std::cout << "# of kltok : " << this->pruneInvalidLandmarks(lmtrack_prev, mask_track, lmtrack_kltok) << std::endl;
 
 			// Scale refinement 50ms
+			timer::tic();
 			MaskVec mask_refine(lmtrack_kltok.pts0.size(), true);
+			const cv::Mat& du0 = frame_prev_->getImageDu();
+			const cv::Mat& dv0 = frame_prev_->getImageDv();
+			// tracker_->trackWithScale(I0, I1, du0, dv0, lmtrack_kltok.pts0, lmtrack_kltok.scale_change, lmtrack_kltok.pts1,
+			// 	mask_refine);
 			// tracker_->refineScale(I0, I1, frame_curr->getImageDu(), frame_curr->getImageDv(), pts0_trackok, 1.25f, 
 			// 	pts1_trackok, mask_refine);
 			
+			std::cout << "trackWithScale time : " << timer::toc(0) << " [ms]\n";
+
 			LandmarkTracking lmtrack_scaleok;
 			std::cout << "# of scaleok : " << this->pruneInvalidLandmarks(lmtrack_kltok, mask_refine, lmtrack_scaleok) << std::endl;
 			
@@ -365,10 +382,11 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			// 빈 곳에 특징점 pts1_new 를 추출한다. 2 ms
 			PixelVec pts1_new;
 			extractor_->updateWeightBin(lmtrack_final.pts1); // 이미 pts1가 있는 곳은 제외.
-			extractor_->extractORBwithBinning(I1, pts1_new);
+			extractor_->extractORBwithBinning(I1, pts1_new, true);
+			std::cout << "# features : " << pts1_new.size()  << std::endl;
 
 			if( true )
-			this->showTrackingBA("img_feautues", I1, pts1_depth_ok, pts1_project, mask_sampson);
+				this->showTrackingBA("img_feautues", I1, pts1_depth_ok, pts1_project, mask_sampson);
 				// this->showTracking("img_features", I1, lmtrack_final.pts0, lmtrack_final.pts1, pts1_new);
 			
 			if( pts1_new.size() > 0 ){

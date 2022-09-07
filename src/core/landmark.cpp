@@ -13,6 +13,7 @@ is_alive_(true), is_triangulated_(false), is_bundled_(false)
     related_frames_.reserve(200);
 
     observations_on_keyframes_.reserve(50);
+    view_sizes_.reserve(50);
     related_keyframes_.reserve(50);
 
     // Initialize parallax and opt flow.
@@ -38,6 +39,7 @@ is_alive_(true), is_triangulated_(false), is_bundled_(false)
     related_frames_.reserve(200);
 
     observations_on_keyframes_.reserve(50);
+    view_sizes_.reserve(50);
     related_keyframes_.reserve(50);
     
     // normalized coordinate
@@ -93,13 +95,18 @@ void Landmark::updateInverseDepth(float invd_curr, float cov_invd_curr)
     Xw_ = Twf.block<3,3>(0,0)*Xf + Twf.block<3,1>(0,3);
 };
 
-void Landmark::addObservationAndRelatedFrame(const Pixel& p, const FramePtr& frame) {
+void Landmark::addObservationAndRelatedFrame(const Pixel& p, const FramePtr& frame) 
+{
     // push observation.
     ++age_;
     observations_.push_back(p);
     related_frames_.push_back(frame);
     
-    if(observations_.size() == 1) return;
+    if(observations_.size() == 1)
+    {
+
+        return;
+    } 
     
     // Calculate parallax w.r.t. the oldest pixel
     // const Pixel& p0 = observations_[observations_.size()-2];
@@ -141,7 +148,8 @@ void Landmark::addObservationAndRelatedFrame(const Pixel& p, const FramePtr& fra
 
 };    
 
-void Landmark::addObservationAndRelatedKeyframe(const Pixel& p, const FramePtr& kf){
+void Landmark::addObservationAndRelatedKeyframe(const Pixel& p, const FramePtr& kf)
+{
     observations_on_keyframes_.push_back(p);
     related_keyframes_.push_back(kf);
 };

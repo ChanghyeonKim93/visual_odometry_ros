@@ -44,7 +44,7 @@ void ScaleMonoVO::trackImageNaiveThreeviews(const cv::Mat& img, const double& ti
 
 			extractor_->resetWeightBin();
 			extractor_->suppressCenterBins();
-			extractor_->extractORBwithBinning(I0, pts0);
+			extractor_->extractORBwithBinning(I0, pts0, true);
 #ifdef RECORD_EXECUTION_STAT
 	statcurr_execution.time_new = 0;
 #endif
@@ -328,7 +328,7 @@ timer::tic();
 			PixelVec pts1_new;
 			extractor_->updateWeightBin(pts1_final); // 이미 pts1가 있는 곳은 제외.
 			// extractor_->suppressCenterBins();
-			extractor_->extractORBwithBinning(frame_curr->getImage(), pts1_new);
+			extractor_->extractORBwithBinning(frame_curr->getImage(), pts1_new, true);
 #ifdef RECORD_EXECUTION_STAT
 statcurr_execution.time_new = timer::toc(false);
 statcurr_execution.time_total = statcurr_execution.time_new + statcurr_execution.time_track + statcurr_execution.time_1p + statcurr_execution.time_5p;

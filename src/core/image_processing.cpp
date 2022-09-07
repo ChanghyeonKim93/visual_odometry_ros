@@ -33,12 +33,12 @@ namespace image_processing {
 		interp_values.resize(n_pts);
 		mask_valid.resize(n_pts);
 
-		uint32_t n_cols = img.cols;
-		uint32_t n_rows = img.rows;
+		int n_cols = img.cols;
+		int n_rows = img.rows;
 
 		float uc, vc; // float-precision coordinates
-		uint32_t u0, v0; // truncated coordinates
-		uint32_t idx_I1, idx_I2, idx_I3, idx_I4;
+		int u0, v0; // truncated coordinates
+		int idx_I1, idx_I2, idx_I3, idx_I4;
 
 		float I1, I2, I3, I4;
 		float ax, ay, axay;
@@ -55,8 +55,8 @@ namespace image_processing {
 			uc = pts[i].x;
 			vc = pts[i].y;
 			
-			u0 = (uint32_t)floor(uc);
-			v0 = (uint32_t)floor(vc);
+			u0 = floor(uc);
+			v0 = floor(vc);
 
 			if (u0 >= 0 && u0 < n_cols-1) // inside the image
 				ax = uc - (float)u0; // should be 0 <= ax <= 1
@@ -89,6 +89,63 @@ namespace image_processing {
 		}	
 	};
 
+	void interpImageSameRatio(const cv::Mat& img, const PixelVec& pts,
+		const float ax, const float ay, const float axay,
+		std::vector<float>& interp_values, MaskVec& mask_valid)
+	{
+		const float* img_ptr = img.ptr<float>(0);
+		int n_pts = pts.size();
+		interp_values.resize(n_pts);
+		mask_valid.resize(n_pts);
+
+		int n_cols = img.cols;
+		int n_rows = img.rows;
+
+		int idx_I1, idx_I2, idx_I3, idx_I4;
+
+		float I1, I2, I3, I4;
+		// I1 ax / 1-ax I2 
+		// ay   (v,u)
+		//  
+		// 1-ay
+		// I3           I4
+
+		for (uint32_t i = 0; i < n_pts; ++i) {
+			bool is_valid = true;
+
+			const float& uc = pts[i].x;
+			const float& vc = pts[i].y;
+			
+			int u0 = (int)floor(uc);
+			int v0 = (int)floor(vc);
+
+			if (u0 < 1 && u0 >= n_cols-2) // inside the image
+			{
+				interp_values[i] = -2.0f;
+				mask_valid[i]    = false;
+				continue;
+			}
+
+			if (v0 < 1 && v0 >= n_rows-2)
+			{
+				interp_values[i] = -2.0f;
+				mask_valid[i]    = false;
+				continue;
+			}
+
+			idx_I1 = v0*n_cols + u0;
+
+			const float* p = img_ptr + idx_I1;
+			I1 = *p;             // v_0n_colsu_0
+			I2 = *(++p);         // v_0n_colsu_0 + 1
+			I4 = *(p += n_cols); // v_0n_colsu_0 + 1 + n_cols
+			I3 = *(--p);      // v_0n_colsu_0 + n_cols
+
+			interp_values[i] = axay*(I1 - I2 - I3 + I4) + ax*(-I1 + I2) + ay*(-I1 + I3) + I1;
+			mask_valid[i]    = true;
+		}	
+	};
+
 	void interpImage3(const cv::Mat& img, const cv::Mat& du, const cv::Mat& dv, const PixelVec& pts,
 		std::vector<float>& interp_img, std::vector<float>& interp_du, std::vector<float>& interp_dv, MaskVec& mask_valid)
 	{
@@ -101,12 +158,12 @@ namespace image_processing {
 		interp_dv.resize(n_pts);
 		mask_valid.resize(n_pts);
 
-		uint32_t n_cols = img.cols;
-		uint32_t n_rows = img.rows;
+		int n_cols = img.cols;
+		int n_rows = img.rows;
 
 		float uc, vc; // float-precision coordinates
-		uint32_t u0, v0; // truncated coordinates
-		uint32_t idx_I1, idx_I2, idx_I3, idx_I4;
+		int u0, v0; // truncated coordinates
+		int idx_I1, idx_I2, idx_I3, idx_I4;
 
 		float I1, I2, I3, I4;
 		float ax, ay, axay;
@@ -123,8 +180,8 @@ namespace image_processing {
 			uc = pts[i].x;
 			vc = pts[i].y;
 			
-			u0 = (uint32_t)floor(uc);
-			v0 = (uint32_t)floor(vc);
+			u0 = floor(uc);
+			v0 = floor(vc);
 
 			if (u0 >= 0 && u0 < n_cols-1) // inside the image
 				ax = uc - (float)u0; // should be 0 <= ax <= 1
@@ -249,4 +306,84 @@ namespace image_processing {
 
 		return cost_temp;
 	};
+
+	void interpImage3SameRatio(const cv::Mat& img, const cv::Mat& du, const cv::Mat& dv, const PixelVec& pts,
+		const float ax, const float ay, const float axay,
+		std::vector<float>& interp_img, std::vector<float>& interp_du, std::vector<float>& interp_dv, MaskVec& mask_valid)
+	{
+		const float* img_ptr = img.ptr<float>(0);
+		const float* du_ptr = du.ptr<float>(0);
+		const float* dv_ptr = dv.ptr<float>(0);
+		uint32_t n_pts = pts.size();
+		interp_img.resize(n_pts);
+		interp_du.resize(n_pts);
+		interp_dv.resize(n_pts);
+		mask_valid.resize(n_pts);
+
+		int n_cols = img.cols;
+		int n_rows = img.rows;
+
+		int idx_I1, idx_I2, idx_I3, idx_I4;
+
+		float I1, I2, I3, I4;
+		// I1 ax / 1-ax I2 
+		// ay   (v,u)
+		//  
+		// 1-ay
+		// I3           I4
+
+		for (uint32_t i = 0; i < n_pts; ++i) {
+			bool is_valid = true;
+
+			const float& uc = pts[i].x;
+			const float& vc = pts[i].y;
+			
+			int u0 = (int)floor(uc);
+			int v0 = (int)floor(vc);
+
+			if (u0 < 1 && u0 >= n_cols-2) // inside the image
+			{
+				interp_img[i] = -2.0f;
+				interp_dv[i] = -2.0f;
+				interp_dv[i] = -2.0f;
+				mask_valid[i]    = false;
+				continue;
+			}
+
+			if (v0 < 1 && v0 >= n_rows-2)
+			{
+				interp_img[i] = -2.0f;
+				interp_dv[i] = -2.0f;
+				interp_dv[i] = -2.0f;
+				mask_valid[i]    = false;
+				continue;
+			}
+
+			idx_I1 = v0*n_cols + u0;
+
+			const float* p = img_ptr + idx_I1;
+			I1 = *p;             // v_0n_colsu_0
+			I2 = *(++p);         // v_0n_colsu_0 + 1
+			I4 = *(p += n_cols); // v_0n_colsu_0 + 1 + n_cols
+			I3 = *(--p);      // v_0n_colsu_0 + n_cols
+			interp_img[i] = axay*(I1 - I2 - I3 + I4) + ax*(-I1 + I2) + ay*(-I1 + I3) + I1;
+
+			p = du_ptr + idx_I1;
+			I1 = *p;             // v_0n_colsu_0
+			I2 = *(++p);         // v_0n_colsu_0 + 1
+			I4 = *(p += n_cols); // v_0n_colsu_0 + 1 + n_cols
+			I3 = *(--p);      // v_0n_colsu_0 + n_cols
+			interp_du[i] = axay*(I1 - I2 - I3 + I4) + ax*(-I1 + I2) + ay*(-I1 + I3) + I1;
+
+			p = dv_ptr + idx_I1;
+			I1 = *p;             // v_0n_colsu_0
+			I2 = *(++p);         // v_0n_colsu_0 + 1
+			I4 = *(p += n_cols); // v_0n_colsu_0 + 1 + n_cols
+			I3 = *(--p);      // v_0n_colsu_0 + n_cols
+			interp_dv[i] = axay*(I1 - I2 - I3 + I4) + ax*(-I1 + I2) + ay*(-I1 + I3) + I1;
+			
+			mask_valid[i]    = true;
+		}	
+	};
+
 };

@@ -38,7 +38,7 @@ struct ParamsORB {
 		MaxFeatures     = 100;    // % MaxFeatures (300) % The maximum number of features to retain.
 		ScaleFactor     = 1.05;   // % ScaleFactor (1.2) % Pyramid decimation ratio.
 		NLevels         = 1;      // % NLevels (8)% The number of pyramid levels.
-		EdgeThreshold   = 6;      // % EdgeThreshold (31)% This is size of the border where the features are not detected.
+		EdgeThreshold   = 31;     // % EdgeThreshold (31)% This is size of the border where the features are not detected.
 		FirstLevel      = 0;      // % FirstLevel (0)% The level of pyramid to put source image to.
 		WTA_K           = 2;      // % WTA_K (2)% The number of points that produce each element of the oriented BRIEF descriptor. (2, 3, 4)
 	    ScoreType       = "FAST"; // % ScoreType (Harris) % Algorithm used to rank features. (Harris, FAST)
@@ -144,7 +144,7 @@ public:
 	void updateWeightBin(const PixelVec& pts);
 	void resetWeightBin();
 	void suppressCenterBins();
-	void extractORBwithBinning(const cv::Mat& img, PixelVec& pts_extracted);
+	void extractORBwithBinning(const cv::Mat& img, PixelVec& pts_extracted, bool flag_nonmax);
 	void extractHarriswithBinning(const cv::Mat& img, PixelVec& pts_extracted);
 	
 	void extractAndComputeORB(const cv::Mat& img, std::vector<cv::KeyPoint>& kpts_extracted, cv::Mat& desc_extracted);

@@ -44,7 +44,7 @@ void ScaleMonoVO::trackImageLocalBundle3(const cv::Mat& img, const double& times
 			PixelVec       pts1;
 			LandmarkPtrVec lms1;
 			extractor_->resetWeightBin();
-			extractor_->extractORBwithBinning(I1, pts1);
+			extractor_->extractORBwithBinning(I1, pts1, true);
 
 			// 초기 landmark 생성
 			lms1.reserve(pts1.size());
@@ -145,7 +145,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			// 빈 곳에 특징점 pts1_new 를 추출한다. 2 ms
 			PixelVec pts1_new;
 			extractor_->updateWeightBin(pts1_final); // 이미 pts1가 있는 곳은 제외.
-			extractor_->extractORBwithBinning(I1, pts1_new);
+			extractor_->extractORBwithBinning(I1, pts1_new, true);
 
 			if( true )
 				this->showTracking("img_features", I1, pts0_final, pts1_final, pts1_new);
@@ -371,7 +371,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			// 빈 곳에 특징점 pts1_new 를 추출한다. 2 ms
 			PixelVec pts1_new;
 			extractor_->updateWeightBin(lmtrack_final.pts1); // 이미 pts1가 있는 곳은 제외.
-			extractor_->extractORBwithBinning(I1, pts1_new);
+			extractor_->extractORBwithBinning(I1, pts1_new, true);
 
 			if( true )
 			this->showTrackingBA("img_feautues", I1, pts1_depth_ok, pts1_project, mask_sampson);

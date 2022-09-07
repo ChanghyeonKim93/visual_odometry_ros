@@ -37,7 +37,7 @@ int main(int argc, char **argv) {
         int n_rows = 376;
         int n_bins_u = 40;
         int n_bins_v = 24;
-        int THRES_FAST = 40.0;
+        int THRES_FAST =20.0;
         int radius = 0;
 
         std::shared_ptr<FeatureExtractor> ext_;
@@ -46,12 +46,12 @@ int main(int argc, char **argv) {
 
         // Load images
         std::vector<cv::Mat> imgs(6);
-        imgs.at(0) = cv::imread("/home/kch/Documents/kitti/test_orbmatching/0.png", cv::IMREAD_GRAYSCALE);
-        imgs.at(1) = cv::imread("/home/kch/Documents/kitti/test_orbmatching/1.png", cv::IMREAD_GRAYSCALE);
-        imgs.at(2) = cv::imread("/home/kch/Documents/kitti/test_orbmatching/2.png", cv::IMREAD_GRAYSCALE);
-        imgs.at(3) = cv::imread("/home/kch/Documents/kitti/test_orbmatching/3.png", cv::IMREAD_GRAYSCALE);
-        imgs.at(4) = cv::imread("/home/kch/Documents/kitti/test_orbmatching/4.png", cv::IMREAD_GRAYSCALE);
-        imgs.at(5) = cv::imread("/home/kch/Documents/kitti/test_orbmatching/5.png", cv::IMREAD_GRAYSCALE);
+        imgs.at(0) = cv::imread("/home/larrkchlinux/Documents/kitti/test_orbmatching/0.png", cv::IMREAD_GRAYSCALE);
+        imgs.at(1) = cv::imread("/home/larrkchlinux/Documents/kitti/test_orbmatching/1.png", cv::IMREAD_GRAYSCALE);
+        imgs.at(2) = cv::imread("/home/larrkchlinux/Documents/kitti/test_orbmatching/2.png", cv::IMREAD_GRAYSCALE);
+        imgs.at(3) = cv::imread("/home/larrkchlinux/Documents/kitti/test_orbmatching/3.png", cv::IMREAD_GRAYSCALE);
+        imgs.at(4) = cv::imread("/home/larrkchlinux/Documents/kitti/test_orbmatching/4.png", cv::IMREAD_GRAYSCALE);
+        imgs.at(5) = cv::imread("/home/larrkchlinux/Documents/kitti/test_orbmatching/5.png", cv::IMREAD_GRAYSCALE);
 
         // Extract feature and draw images
         ext_->resetWeightBin();

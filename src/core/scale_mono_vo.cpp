@@ -306,7 +306,7 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp){
 			LandmarkPtrVec lmvec0;
 
 			extractor_->resetWeightBin();
-			extractor_->extractORBwithBinning(I0, pxvec0);
+			extractor_->extractORBwithBinning(I0, pxvec0, true);
 #ifdef RECORD_EXECUTION_STAT
 	statcurr_execution.time_new = 0;
 #endif
@@ -525,7 +525,7 @@ timer::tic();
 			// 빈 곳에 특징점 pts1_new 를 추출한다.
 			PixelVec pxvec1_new;
 			extractor_->updateWeightBin(pxvec1_final); // 이미 pts1가 있는 곳은 제외.
-			extractor_->extractORBwithBinning(frame_curr->getImage(), pxvec1_new);
+			extractor_->extractORBwithBinning(frame_curr->getImage(), pxvec1_new, true);
 #ifdef RECORD_EXECUTION_STAT
 statcurr_execution.time_new = timer::toc(false);
 statcurr_execution.time_total = statcurr_execution.time_new + statcurr_execution.time_track + statcurr_execution.time_1p + statcurr_execution.time_5p;
@@ -670,9 +670,11 @@ int ScaleMonoVO::pruneInvalidLandmarks(const LandmarkTracking& lmtrack, const Ma
 
 	// Tracking 결과를 반영하여 pts1_alive, lms1_alive를 정리한다.
 	lmtrack_alive.pts0.resize(0);
+	lmtrack_alive.scale_change.resize(0);
 	lmtrack_alive.pts1.resize(0);
 	lmtrack_alive.lms.resize(0);
 	lmtrack_alive.pts0.reserve(n_pts);
+	lmtrack_alive.scale_change.reserve(n_pts);
 	lmtrack_alive.pts1.reserve(n_pts);
 	lmtrack_alive.lms.reserve(n_pts);
 	int cnt_alive = 0;
@@ -680,6 +682,7 @@ int ScaleMonoVO::pruneInvalidLandmarks(const LandmarkTracking& lmtrack, const Ma
 		if( mask[i]) {
 			lmtrack_alive.pts0.push_back(lmtrack.pts0[i]);
 			lmtrack_alive.pts1.push_back(lmtrack.pts1[i]);
+			lmtrack_alive.scale_change.push_back(lmtrack.scale_change[i]);
 			lmtrack_alive.lms.push_back(lmtrack.lms[i]);
 			++cnt_alive;
 		}

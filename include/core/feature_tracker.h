@@ -43,6 +43,8 @@ public:
 
     void refineScale(const cv::Mat& img0, const cv::Mat& img1, const cv::Mat& dimg1_u, const cv::Mat& dimg1_v, const PixelVec& pts0, const float& scale_init,
                 PixelVec& pts_track, MaskVec& mask_valid);
+    void trackWithScale(const cv::Mat& img0, const cv::Mat& img1, const cv::Mat& dimg0_u, const cv::Mat& dimg0_v, const PixelVec& pts0, const std::vector<float>& scale_est,
+                PixelVec& pts_track, MaskVec& mask_valid);
 };
 
 

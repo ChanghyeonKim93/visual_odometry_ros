@@ -30,7 +30,7 @@ void FeatureExtractor::initParams(int n_cols, int n_rows, int n_bins_u, int n_bi
 	std::cout << " ORB is created.\n";
 
 	this->flag_debug_ = false;
-	this->flag_nonmax_ = false;
+	this->flag_nonmax_ = true;
 
 	this->NUM_NONMAX_ = 5;
 
@@ -89,7 +89,7 @@ void FeatureExtractor::updateWeightBin(const PixelVec& fts) {
 	weight_bin_->update(fts);
 };
 
-void FeatureExtractor::extractORBwithBinning(const cv::Mat& img, PixelVec& pts_extracted) {
+void FeatureExtractor::extractORBwithBinning(const cv::Mat& img, PixelVec& pts_extracted, bool flag_nonmax) {
 	// INPUT IMAGE MUST BE CV_8UC1 image.
 
 	cv::Mat img_in;
@@ -98,7 +98,6 @@ void FeatureExtractor::extractORBwithBinning(const cv::Mat& img, PixelVec& pts_e
 		std::cout << "in extractor, image is converted to the CV_8UC1.\n";
 	}
 	else img_in = img;
-
 
 	int overlap = floor(1 * params_orb_.EdgeThreshold);
 
@@ -158,7 +157,8 @@ void FeatureExtractor::extractORBwithBinning(const cv::Mat& img, PixelVec& pts_e
 
 				int n_pts_tmp = fts_tmp.size();
 				if (n_pts_tmp > 0) { //feature can be extracted from this bin.
-					int u_offset = 0; int v_offset = 0;
+					int u_offset = 0;
+					int v_offset = 0;
 					if (v == 0) v_offset = 0;
 					else if (v == n_bins_v_ - 1) v_offset = v_idx[v] - overlap - 1;
 					else v_offset = v_idx[v] - overlap - 1;
@@ -167,11 +167,9 @@ void FeatureExtractor::extractORBwithBinning(const cv::Mat& img, PixelVec& pts_e
 					else u_offset = u_idx[u] - overlap - 1;
 
 					std::sort(fts_tmp.begin(), fts_tmp.end(), [](const cv::KeyPoint &a, const cv::KeyPoint &b) { return a.response > b.response; });
-					if (flag_nonmax_ == true && fts_tmp.size() > NUM_NONMAX_) // select most responsive point in a bin
+					if (flag_nonmax == true && fts_tmp.size() > NUM_NONMAX_) // select most responsive point in a bin
 						fts_tmp.resize(NUM_NONMAX_); // maximum two points.
-					// else 
-					// 	fts_tmp.resize(1);
-
+				
 					cv::Point2f pt_offset(u_offset, v_offset);
 					for (auto it : fts_tmp) {
 						it.pt += pt_offset;
