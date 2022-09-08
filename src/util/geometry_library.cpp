@@ -406,7 +406,7 @@ namespace geometry {
         R = T.block<3, 3>(0, 0);
         t = T.block<3, 1>(0, 3);
 
-        theta = acosf((R.trace() - 1.0)*0.5);
+        theta = acos((R.trace() - 1.0)*0.5);
 
         if (theta < 1e-9) {
             Vin = Eigen::MatrixXd::Identity(3, 3);
