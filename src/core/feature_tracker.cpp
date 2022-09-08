@@ -259,154 +259,6 @@ void FeatureTracker::calcPrior(const PixelVec& pts0, const PointVec& Xw, const P
 };
 
 
-void FeatureTracker::refineScale(const cv::Mat& img0, const cv::Mat& img1, const cv::Mat& dimg1_u, const cv::Mat& dimg1_v, const PixelVec& pts0, const float& scale_init,
-        PixelVec& pts_track, MaskVec& mask_valid)
-{
-    std::cout << "refine do\n";
-    if(pts_track.size() != pts0.size() ) throw std::runtime_error("pts_track.size() != pts0.size()");
-    
-
-    cv::Mat I0, I1;
-    img0.convertTo(I0, CV_32FC1);
-    img1.convertTo(I1, CV_32FC1);
-
-    cv::Mat dI1u, dI1v;
-    dI1u = dimg1_u;
-    dI1v = dimg1_v;
-    // std::cout << image_processing::type2str(dI1u) << std::endl;
-
-    int n_cols = I0.size().width;
-    int n_rows = I0.size().height;
-
-    int n_pts = pts0.size();
-    mask_valid.resize(n_pts, true);
-
-    int win_sz     = 10;
-    int win_len    = 2*win_sz+1;
-    int win_len_sq = win_len*win_len;
-
-    int   MAX_ITER  = 150;
-    float EPS_SCALE = 1e-4;
-    float EPS_PIXEL = 1e-3;
-    float EPS_TOTAL = 1e-5;
-
-    // Generate patch
-    PixelVec patt(win_len_sq);
-    int ind = 0;
-    for(int j = 0; j < win_len; ++j) {
-        for(int i = !(j & 0x01); i < win_len; i += 2) {
-            patt[ind].x = (float)(i-win_sz);
-            patt[ind].y = (float)(j-win_sz);
-            ++ind;
-        }
-    }
-    win_len_sq = ind;
-
-    // containers
-    std::vector<float> I0_patt(win_len_sq);
-    std::vector<float> I1_patt(win_len_sq);
-    std::vector<float> dI1u_patt(win_len_sq);
-    std::vector<float> dI1v_patt(win_len_sq);
-
-    // temporal container
-    PixelVec pts_warp(win_len_sq);
-    MaskVec  mask_warp_I0(win_len_sq);
-    MaskVec  mask_warp_I1(win_len_sq);
-    
-    // Iteratively update for each point.
-    for(int i = 0; i < n_pts; ++i) 
-    { 
-        if(!mask_valid[i]) 
-            continue;
-
-        // calculate prior values.
-        Eigen::MatrixXf theta(3,1);
-        theta(0,0) = 0.0;
-        theta(1,0) = 0.0;
-        theta(2,0) = 1.15f; // initial scale. We assume increasing scale.
-
-        for(int j = 0; j < win_len_sq; ++j)
-            pts_warp[j] = patt[j] + pts0[i];
-
-        // interpolate data
-        image_processing::interpImage(I0, pts_warp, I0_patt, mask_warp_I0);
-        
-        float err_curr = 0;
-        float err_prev = 1e22;
-
-        // Iterations.
-        for(int iter = 0; iter < MAX_ITER; ++iter) 
-        {
-            Pixel pt_track_tmp;
-            pt_track_tmp.x = theta(0,0) + pts_track[i].x;
-            pt_track_tmp.y = theta(1,0) + pts_track[i].y;
-
-            // warp patch points
-            for(int j = 0; j < win_len_sq; j++)
-                pts_warp[j] = patt[j]*theta(2,0) + pt_track_tmp;
-            
-            // Generate patches.
-            // image_processing::interpImage(I1,   pts_warp,   I1_patt, mask_warp);
-            // image_processing::interpImage(dI1u, pts_warp, dI1u_patt, mask_warp);
-            // image_processing::interpImage(dI1v, pts_warp, dI1v_patt, mask_warp);
-            image_processing::interpImage3(I1, dI1u, dI1v, pts_warp,
-                I1_patt, dI1u_patt, dI1v_patt, mask_warp_I1);
-
-            // calculate jacobian & residual
-            Eigen::MatrixXf J(win_len_sq, 3); // R^{N x 3}
-            Eigen::MatrixXf r(win_len_sq, 1); // R^{N x 1}
-            int idx_tmp = 0;
-            for(int j = 0; j < win_len_sq; ++j) 
-            {
-                if(mask_warp_I0[j] && mask_warp_I1[j]) 
-                {
-                    J(idx_tmp,0) = dI1u_patt[j];
-                    J(idx_tmp,1) = dI1v_patt[j];
-                    J(idx_tmp,2) = dI1u_patt[j]*patt[j].x + dI1u_patt[j]*patt[j].y;
-                    
-                    r(idx_tmp,0) = I1_patt[j] - I0_patt[j];
-                    ++idx_tmp;
-                }
-            }
-            
-            // calculate Hessian and HinvJt
-            Eigen::MatrixXf H(3,3);                // equal to J^t*J, R^{3 x 3}
-            Eigen::MatrixXf HinvJt(3,win_len_sq); // R^{3 x N}
-
-            J      = J.block(0,0,idx_tmp,3);
-            r      = r.block(0,0,idx_tmp,1);
-            H      = J.transpose()*J;
-            HinvJt = H.inverse()*J.transpose();
-            HinvJt = HinvJt;
-
-            Eigen::MatrixXf delta_theta(3,1);
-            delta_theta = -HinvJt*r;
-            theta = theta + delta_theta;
-
-            err_curr = r.norm()/r.size();
-
-            // breaking point.
-            if( abs(err_prev-err_curr) <= EPS_TOTAL || sqrt(delta_theta(0,0)*delta_theta(0,0)+delta_theta(1,0)*delta_theta(1,0)) < EPS_PIXEL)
-            {
-                // std::cout << " e:" << err_curr <<", itr:" << iter << "\n";
-                // std::cout <<"update  px: " << theta(0,0)<< ", " << theta(1,0) << ", sc:" << theta(2,0) << std::endl;
-                break;
-            }
-            err_prev = err_curr;
-        }
-
-        // push results
-        if(err_curr < 20 && theta(2,0) > 0.8 && theta(2,0) < 1.3) 
-        {
-            pts_track[i].x += theta(0,0);
-            pts_track[i].y += theta(1,0);
-            mask_valid[i] = true;
-        }
-        else 
-            mask_valid[i] = false; // not update
-    }
-
-};
 
 void FeatureTracker::trackWithScale(const cv::Mat& img0, const cv::Mat& img1, const cv::Mat& dI0u, const cv::Mat& dI0v, const PixelVec& pts0, const std::vector<float>& scale_est,
             PixelVec& pts_track, MaskVec& mask_valid)
@@ -453,28 +305,28 @@ void FeatureTracker::trackWithScale(const cv::Mat& img0, const cv::Mat& img1, co
         Jt*r = [J1*r; J2*r]; 
 
     */
-    std::cout << "TrackWithScale do\n";
     if(pts_track.size() != pts0.size() ) throw std::runtime_error("pts_track.size() != pts0.size()");
     
-    int half_win_sz = 10;
+    int half_win_sz = 7;
     int win_len     = 2*half_win_sz+1;
     int n_elem      = win_len*win_len;
 
-    int   MAX_ITER  = 150;
-    float EPS_PIXEL = 1e-3;
-    float EPS_TOTAL = 1e-5;
+    int   MAX_ITER     = 50;
+    float EPS_ERR_RATE = 1e-3;
+    float EPS_UPDATE   = 1e-4;
 
+    float minEigThreshold = 1e-4;
 
+    // Get images
     cv::Mat I0, I1;
     img0.convertTo(I0, CV_32FC1);
     img1.convertTo(I1, CV_32FC1);
 
-    int n_cols = I0.size().width;
-    int n_rows = I0.size().height;
+    int n_cols = I0.cols;
+    int n_rows = I0.rows;
 
     int n_pts = pts0.size();
     mask_valid.resize(n_pts, true);
-
 
     // Generate patch
     PixelVec patt(n_elem);
@@ -492,8 +344,8 @@ void FeatureTracker::trackWithScale(const cv::Mat& img0, const cv::Mat& img1, co
 
     // containers
     std::vector<float> I0_patt(n_elem);
-    std::vector<float> dI0u_patt(n_elem);
-    std::vector<float> dI0v_patt(n_elem);
+    std::vector<float> du0_patt(n_elem);
+    std::vector<float> dv0_patt(n_elem);
     std::vector<float> I1_patt(n_elem);
 
     // temporal container
@@ -512,31 +364,35 @@ void FeatureTracker::trackWithScale(const cv::Mat& img0, const cv::Mat& img1, co
         const Pixel& pt0   = pts0.at(i);
         const Pixel& pt1   = pts_track.at(i);
         const float& scale = scale_est.at(i);
-        // std::cout << "scale: " << scale << std::endl;
 
         // Make scaled patch , Calculate patch points
         for(int j = 0; j < n_elem; ++j)
         {
-            patt_s[j]   = patt[j]*scale;
             pts_warp[j] = pt0 + patt[j];
-            // std::cout << j << "-th patt: " << pts_warp[j] << std::endl;
+            patt_s[j]   = patt[j]*scale;
         }
 
         // interpolate data
         float ax   = pt0.x - floor(pt0.x);
         float ay   = pt0.y - floor(pt0.y);
         float axay = ax*ay;
+
+        if(ax < 0 || ax > 1 || ay < 0 || ay > 1){
+            mask_valid[i] = false;
+            continue;
+        }
+
         image_processing::interpImage3SameRatio(I0, dI0u, dI0v, pts_warp, 
-            ax,ay,axay,
-            I0_patt, dI0u_patt, dI0v_patt, mask_I0);
+            ax, ay, axay,
+            I0_patt, du0_patt, dv0_patt, mask_I0);
 
         float A11 = 0, A12 = 0, A22 = 0;
         for(int j = 0; j < n_elem; ++j)
         {   
             if(mask_I0[j])
             {   
-                const float& du0 = dI0u_patt[j];
-                const float& dv0 = dI0v_patt[j];
+                const float& du0 = du0_patt[j];
+                const float& dv0 = dv0_patt[j];
 
                 A11 += du0*du0;
                 A12 += du0*dv0;
@@ -544,7 +400,14 @@ void FeatureTracker::trackWithScale(const cv::Mat& img0, const cv::Mat& img1, co
             }
         }            
         float D = A11*A22 - A12*A12;
+
+        if(D < minEigThreshold){
+            mask_valid[i] = false; // not update.
+            continue;
+        }
+
         float invD = 1.0/D;  
+        float iD_A11 = A11*invD, iD_A12 = A12*invD, iD_A22 = A22*invD;
 
         // Iterations.
         float err_curr = 0;
@@ -560,6 +423,10 @@ void FeatureTracker::trackWithScale(const cv::Mat& img0, const cv::Mat& img1, co
             ax   = pt_update.x - floor(pt_update.x);
             ay   = pt_update.y - floor(pt_update.y);
             axay = ax*ay;
+            if(ax < 0 || ax > 1 || ay < 0 || ay > 1){
+                mask_valid[i] = false;
+                continue;
+            }
 
             // warp patch points
             for(int j = 0; j < n_elem; ++j)
@@ -578,12 +445,12 @@ void FeatureTracker::trackWithScale(const cv::Mat& img0, const cv::Mat& img1, co
             {   
                 if(mask_I0[j] && mask_I1[j])
                 {   
-                    const float& du0 = dI0u_patt[j];
-                    const float& dv0 = dI0v_patt[j];
+                    const float& du0 = du0_patt[j];
+                    const float& dv0 = dv0_patt[j];
                     float r = I1_patt[j] - I0_patt[j];
 
-                    b1 += du0*r;
-                    b2 += dv0*r;
+                    b1       += du0*r;
+                    b2       += dv0*r;
                     err_curr += r*r;
 
                     ++cnt_valid;
@@ -591,37 +458,233 @@ void FeatureTracker::trackWithScale(const cv::Mat& img0, const cv::Mat& img1, co
             }
 
             // Solve update step
-            float dtu = (-A22*b1 + A12*b2 ) * invD;
-            float dtv = ( A12*b1 - A11*b2 ) * invD;
-
-            // std::cout << dtu <<"," << dtv << std::endl;
-
+            float dtu = (-iD_A22*b1 + iD_A12*b2);
+            float dtv = ( iD_A12*b1 - iD_A11*b2);
+            
             t.x += dtu;
             t.y += dtv;
 
-
             // Evaluate current update. (breaking point)
             err_curr /= (float)cnt_valid;
-            err_curr = sqrt(err_curr);
-            float stepsize = (dtu*dtu + dtv*dtv);
-            std::cout << iter << "-th iter: " << t << "/ err: " << err_curr << ", stepsize: "<< stepsize << std::endl;
-            if( (iter > 1 && abs(err_prev - err_curr) / err_prev <= 1e-5)
-            || (dtu*dtu + dtv*dtv) < EPS_PIXEL)
-            {
-                break;
+            err_curr = std::sqrt(err_curr);
+            float err_rate = abs(err_prev - err_curr) / err_prev;
+
+            float dt_norm = dtu*dtu + dtv*dtv;
+            // std::cout << iter << "-itr: " << t << ", e: " << err_curr 
+            //           << ", dtnorm: "<< dt_norm << std::endl;
+            
+            if(iter > 1) {
+                if( err_rate <= EPS_ERR_RATE 
+                 || dt_norm  <= EPS_UPDATE ) 
+                    break;
             }
 
             err_prev = err_curr;
         } // END iter
 
         // push results
-        if(err_curr <= 30) 
+        if(std::isnan(err_curr))
         {
-            pts_track[i]  = pt0 + t;
-            mask_valid[i] = true;
+            mask_valid[i] = false;
         }
         else
-            mask_valid[i] = false; // not update.
+        {
+            if(err_curr <= 30) 
+            {
+                pts_track[i]  = pt0 + t;
+                mask_valid[i] = true;
+            }
+            else
+                mask_valid[i] = false; // not update.
+        }
+        
         
     } // END i-th pts
+};
+
+
+
+void FeatureTracker::refineTrackWithScale(const cv::Mat& img1, const LandmarkPtrVec& lms, const std::vector<float>& scale_est,
+        PixelVec& pts_track, MaskVec& mask_valid)
+{
+    if(pts_track.size() != lms.size() ) throw std::runtime_error("pts_track.size() != lms.size()");
+    
+    int n_pts = lms.size(); 
+
+    int half_win_sz = 7;
+    int win_len     = 2*half_win_sz+1;
+    int n_elem      = win_len*win_len;
+
+    int   MAX_ITER     = 50;
+    float EPS_ERR_RATE = 1e-3;
+    float EPS_UPDATE   = 1e-4;
+
+    float minEigThreshold = 1e-4;
+
+    // Get images
+    cv::Mat I1;
+    img1.convertTo(I1, CV_32FC1);
+
+    int n_cols = I1.cols;
+    int n_rows = I1.rows;
+
+    mask_valid.resize(n_pts, true);
+
+    // Generate patch
+    PixelVec patt(n_elem);
+    PixelVec patt_s(n_elem);
+    int ind = 0;
+    for(int v = 0; v < win_len; ++v) {
+        for(int u = !(v & 0x01); u < win_len; u += 2) {
+            patt[ind].x = (float)(u - half_win_sz);
+            patt[ind].y = (float)(v - half_win_sz);
+            ++ind;
+        }
+    }
+    n_elem = ind;
+
+    // containers
+    std::vector<float> I1_patt(n_elem);
+
+    // temporal container
+    PixelVec pts_warp(n_elem);
+    MaskVec  mask_I1(n_elem);
+    
+    for(int i = 0; i < n_pts; ++i)
+    {
+        // If invalid point, skip.
+        if(!mask_valid.at(i)) 
+            continue;
+
+        const LandmarkPtr& lm = lms[i];
+        const Pixel& pt1   = pts_track.at(i);
+        const float& scale = scale_est.at(i);
+        
+        const FloatVec& I0_patt  = lm->getImagePatchVec();
+        const FloatVec& du0_patt = lm->getDuPatchVec();
+        const FloatVec& dv0_patt = lm->getDvPatchVec();
+        const MaskVec& mask_I0   = lm->getMaskPatchVec();
+        
+        // Invalid when scale is too much changed.
+        if(scale >= 2.2)
+        {
+            mask_valid.at(i) = false;
+            continue;
+        }
+
+        // Make scaled patch , Calculate patch points
+        for(int j = 0; j < n_elem; ++j)
+            patt_s[j] = patt[j]*scale;
+
+        // interpolate data
+        float A11 = 0, A12 = 0, A22 = 0;
+        for(int j = 0; j < n_elem; ++j)
+        {   
+            if(mask_I0[j])
+            {   
+                const float& du0 = du0_patt[j];
+                const float& dv0 = dv0_patt[j];
+
+                A11 += du0*du0;
+                A12 += du0*dv0;
+                A22 += dv0*dv0;
+            }
+        }            
+        float D = A11*A22 - A12*A12;
+
+        if(D < minEigThreshold){
+            mask_valid[i] = false; // not update.
+            continue;
+        }
+
+        float invD = 1.0/D;  
+        float iD_A11 = A11*invD, iD_A12 = A12*invD, iD_A22 = A22*invD;
+
+        // Iterations.
+        float err_curr = 0;
+        float err_prev = 1e12;
+        Pixel t(0.0, 0.0); // initialize dp
+        Pixel pt_update;
+        for(int iter = 0; iter < MAX_ITER; ++iter) 
+        {
+            // updated point
+            pt_update = pt1 + t;
+
+            // calculate ratios
+            float ax   = pt_update.x - floor(pt_update.x);
+            float ay   = pt_update.y - floor(pt_update.y);
+            float axay = ax*ay;
+            if(ax < 0 || ax > 1 || ay < 0 || ay > 1){
+                mask_valid[i] = false;
+                continue;
+            }
+
+            // warp patch points
+            for(int j = 0; j < n_elem; ++j)
+                pts_warp[j] = pt_update + patt_s[j];
+
+            // interpolate data
+            image_processing::interpImageSameRatio(I1, pts_warp, 
+                ax, ay, axay, 
+                I1_patt, mask_I1);
+
+            // Calculate Hessian, Jacobian and residual .
+            float b1 = 0, b2 = 0;
+            int cnt_valid = 0;       
+            err_curr = 0;
+            for(int j = 0; j < n_elem; ++j)
+            {   
+                if(mask_I0[j] && mask_I1[j])
+                {   
+                    const float& du0 = du0_patt[j];
+                    const float& dv0 = dv0_patt[j];
+                    float r = I1_patt[j] - I0_patt[j];
+
+                    b1       += du0*r;
+                    b2       += dv0*r;
+                    err_curr += r*r;
+
+                    ++cnt_valid;
+                }
+            }
+
+            // Solve update step
+            float dtu = (-iD_A22*b1 + iD_A12*b2);
+            float dtv = ( iD_A12*b1 - iD_A11*b2);
+            
+            t.x += dtu;
+            t.y += dtv;
+
+            // Evaluate current update. (breaking point)
+            err_curr /= (float)cnt_valid;
+            err_curr = std::sqrt(err_curr);
+            float err_rate = abs(err_prev - err_curr) / err_prev;
+
+            float dt_norm = dtu*dtu + dtv*dtv;
+            
+            if(iter > 1) {
+                if( err_rate <= EPS_ERR_RATE 
+                 || dt_norm  <= EPS_UPDATE ) 
+                    break;
+            }
+
+            err_prev = err_curr;
+        } // END iter
+
+        // push results
+        if(std::isnan(err_curr))
+        {
+            mask_valid[i] = false;
+        }
+        else
+        {
+            if(err_curr <= 30) 
+            {
+                pts_track[i]  = pt1 + t;
+                mask_valid[i] = true;
+            }
+            else
+                mask_valid[i] = false; // not update.
+        }
+    } // END i-th pixel
 };

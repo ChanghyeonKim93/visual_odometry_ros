@@ -28,6 +28,11 @@ typedef bool                      Mask;
 typedef std::shared_ptr<Frame>    FramePtr;
 typedef std::shared_ptr<Landmark> LandmarkPtr;
 
+typedef std::vector<bool>         BoolVec;
+typedef std::vector<int>          IntVec;
+typedef std::vector<float>        FloatVec;
+typedef std::vector<double>       DoubleVec;
+
 typedef std::vector<Pixel>        PixelVec;
 typedef std::vector<Point>        PointVec;
 typedef std::vector<Mask>         MaskVec;

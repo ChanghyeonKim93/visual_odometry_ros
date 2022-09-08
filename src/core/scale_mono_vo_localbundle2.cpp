@@ -243,8 +243,8 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			// Scale refinement 50ms
 			timer::tic();
 			MaskVec mask_refine(lmtrack_kltok.pts0.size(), true);
-			const cv::Mat& du0 = frame_prev_->getImageDu();
-			const cv::Mat& dv0 = frame_prev_->getImageDv();
+			// const cv::Mat& du0 = frame_prev_->getImageDu();
+			// const cv::Mat& dv0 = frame_prev_->getImageDv();
 			// tracker_->trackWithScale(I0, I1, du0, dv0, lmtrack_kltok.pts0, lmtrack_kltok.scale_change, lmtrack_kltok.pts1,
 			// 	mask_refine);
 			// tracker_->refineScale(I0, I1, frame_curr->getImageDu(), frame_curr->getImageDv(), pts0_trackok, 1.25f, 
@@ -420,6 +420,27 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 	if(keyframes_->checkUpdateRule(frame_curr)){
 		// Add new keyframe
 		keyframes_->addNewKeyframe(frame_curr);
+
+		// Refine the tracking results
+		const LandmarkPtrVec& lms_final = frame_curr->getRelatedLandmarkPtr();
+		FloatVec scale_estimated(lms_final.size(), 1.0f);
+		for(int i = 0; i < lms_final.size(); ++i){
+			// estimate current scale...
+			const Point& Xw = lms_final[i]->get3DPoint();
+
+			const PoseSE3& T0w = lms_final[i]->getRelatedFramePtr().front()->getPoseInv();
+			const PoseSE3& T1w = lms_final[i]->getRelatedFramePtr().back()->getPoseInv();
+
+			Point X0  = T0w.block<3,3>(0,0)*Xw + T0w.block<3,1>(0,3);
+			Point X1  = T1w.block<3,3>(0,0)*Xw + T1w.block<3,1>(0,3);
+
+			float d0 = X0(2);
+			float d1 = X1(2);
+
+			float scale = d0/d1;
+			std::cout << i << "-th point scale: " << scale << std::endl;
+		}
+		// tracker_->refineTrackWithScale(I1, lms_final, )
 
 		// Reconstruct map points
 		// lms1_final 중, depth가 복원되지 않은 경우 복원해준다.

@@ -43,6 +43,10 @@ MonoNode::MonoNode(ros::NodeHandle& nh) : nh_(nh)
         
     ROS_INFO_STREAM("MonoNode - generate Scale Mono VO object. Starts.");
 
+    // Set static
+    int half_win_sz = 7;
+    Landmark::setPatch(half_win_sz);
+
     // spin .
     this->run();
 };

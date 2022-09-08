@@ -1,6 +1,7 @@
 #include "core/landmark.h"
 
 std::shared_ptr<Camera> Landmark::cam_ = nullptr;
+PixelVec Landmark::patt_ = PixelVec();
 
 Landmark::Landmark()
 : id_(landmark_counter_++), age_(0), 
@@ -104,9 +105,30 @@ void Landmark::addObservationAndRelatedFrame(const Pixel& p, const FramePtr& fra
     
     if(observations_.size() == 1)
     {
+        // Set patch
+        float ax   = p.x - floor(p.x);
+        float ay   = p.y - floor(p.y);
+        float axay = ax*ay;
+
+        PixelVec pts_patt(patt_.size());
+        for(int i = 0; i < patt_.size(); ++i){
+            pts_patt[i] = p + patt_[i];
+        }
+
+        if(ax < 0 || ax > 1 || ay < 0 || ay > 1) 
+            throw std::runtime_error("ax ay invalid!");
+
+        const cv::Mat& I0  = frame->getImage();
+        const cv::Mat& du0 = frame->getImageDu();
+        const cv::Mat& dv0 = frame->getImageDv();
+
+        image_processing::interpImage3SameRatio(I0, du0, dv0, pts_patt, 
+            ax, ay, axay,
+            I0_patt_, du0_patt_, dv0_patt_, mask_patt_);
+
 
         return;
-    } 
+    }
     
     // Calculate parallax w.r.t. the oldest pixel
     // const Pixel& p0 = observations_[observations_.size()-2];
@@ -165,6 +187,11 @@ const PixelVec&    Landmark::getObservations() const    { return observations_; 
 const FramePtrVec& Landmark::getRelatedFramePtr() const { return related_frames_; };
 const PixelVec&    Landmark::getObservationsOnKeyframes() const { return observations_on_keyframes_; };
 const FramePtrVec& Landmark::getRelatedKeyframePtr() const      { return related_keyframes_; };
+
+const std::vector<float>& Landmark::getImagePatchVec() const { return this->I0_patt_;};
+const std::vector<float>& Landmark::getDuPatchVec()    const { return this->du0_patt_;};
+const std::vector<float>& Landmark::getDvPatchVec()    const { return this->dv0_patt_;};
+const MaskVec&            Landmark::getMaskPatchVec()  const { return this->mask_patt_;};
 
 const bool&        Landmark::isAlive() const           { return is_alive_; };
 const bool&        Landmark::isTriangulated() const    { return is_triangulated_; };

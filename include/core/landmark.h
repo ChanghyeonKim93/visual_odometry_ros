@@ -24,6 +24,12 @@ private:
     Point    Xw_; // 3D point represented in the global frame.
     Point    x_front_; // normalized 3D point represented in the first seen image.
 
+    // scale refinement는 keyframe에서만 할까?
+    std::vector<float> I0_patt_; // 최초로 관측 된 위치에서의 patch (image patch)
+    std::vector<float> du0_patt_;// 최초로 관측 된 위치에서의 patch (derivative along u)
+    std::vector<float> dv0_patt_;// 최초로 관측 된 위치에서의 patch (derivative along v)
+    MaskVec mask_patt_; // valid mask
+    
     float invd_; // inverse depth of the 3D point represented in the first seen image.
     float cov_invd_; // covariance of the inverse depth 
 
@@ -59,6 +65,26 @@ private:
 public: // static counter
     inline static uint32_t landmark_counter_ = 0; // unique id counter.
     static std::shared_ptr<Camera> cam_; // camera object.
+    static PixelVec patt_;
+
+    static void setPatch(int half_win_sz) {
+        int win_sz = 2*half_win_sz + 1;
+        int n_elem = win_sz*win_sz;
+
+        patt_.resize(n_elem);
+        int ind = 0;
+        for(int v = 0; v < win_sz; ++v) {
+            for(int u = !(v & 0x01); u < win_sz; u += 2) {
+                patt_[ind].x = (float)(u - half_win_sz);
+                patt_[ind].y = (float)(v - half_win_sz);
+                ++ind;
+            }
+        }
+        n_elem = ind;
+        patt_.resize(n_elem);
+        std::cout << "in setPatch, n_elem: " << n_elem << std::endl; 
+    };
+
 
 public:
     Landmark(); // cosntructor
@@ -95,7 +121,12 @@ public:
     const PixelVec&    getObservationsOnKeyframes() const;
     const FramePtrVec& getRelatedFramePtr() const;
     const FramePtrVec& getRelatedKeyframePtr() const;
-    
+
+    const std::vector<float>& getImagePatchVec() const;
+    const std::vector<float>& getDuPatchVec() const;
+    const std::vector<float>& getDvPatchVec() const;
+    const MaskVec&            getMaskPatchVec() const;
+
     const bool&        isAlive() const;
     const bool&        isTriangulated() const;
     const bool&        isBundled() const;
