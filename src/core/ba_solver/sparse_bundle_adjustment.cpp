@@ -14,7 +14,7 @@
     - Update parameters
             delta_theta = [x;y];
 */
-// A sparse solver for a feature-based Bundle adjustment problem.
+
 SparseBundleAdjustmentSolver::SparseBundleAdjustmentSolver() 
 : N_(0), N_opt_(0), M_(0), n_obs_(0), THRES_EPS_(0), THRES_HUBER_(0)
 {
@@ -27,7 +27,6 @@ SparseBundleAdjustmentSolver::SparseBundleAdjustmentSolver()
     C_.reserve(5000); // reserve expected # of optimizable landmarks (M)
 };
 
-// Set connectivities, variables...
 void SparseBundleAdjustmentSolver::setBAParameters(const std::shared_ptr<SparseBAParameters>& ba_params)
 {
     ba_params_ = ba_params;
@@ -40,17 +39,14 @@ void SparseBundleAdjustmentSolver::setBAParameters(const std::shared_ptr<SparseB
     this->setProblemSize(N_, N_opt_, M_, n_obs_);
 };
 
-// Set Huber threshold
 void SparseBundleAdjustmentSolver::setHuberThreshold(_BA_numeric thres_huber){
     THRES_HUBER_ = thres_huber;
 };
 
-// Set camera.
 void SparseBundleAdjustmentSolver::setCamera(const std::shared_ptr<Camera>& cam){
     cam_ = cam;
 };
 
-// Set problem sizes and resize the storages.
 void SparseBundleAdjustmentSolver::setProblemSize(int N, int N_opt, int M, int n_obs){ 
     // Set sizes
     N_     = N; // # of total keyframes (including fixed frames)
@@ -106,19 +102,18 @@ void SparseBundleAdjustmentSolver::setProblemSize(int N, int N_opt, int M, int n
 
 };
 
-// Solve the BA for fixed number of iterations
 bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
     
     int id_stop = ba_params_->getOptFramePtr(N_opt_-1)->getID();
 
-    std::vector<int> cnt_seen(N_+1,0);
+    std::vector<int> cnt_seen(N_+1, 0);
     for(int i = 0; i < M_; ++i){
         const LandmarkBA& lmba = ba_params_->getLandmarkBA(i);
-        cnt_seen[lmba.pts_on_kfs.size()]++;
+        ++cnt_seen[lmba.pts_on_kfs.size()];
     }
 
-    for(int i = 0; i< cnt_seen.size(); ++i)
-        std::cout << i << " seen : " << cnt_seen[i] << std::endl;
+    for(int i = 0; i < cnt_seen.size(); ++i)
+        std::cout << i << " seen: " << cnt_seen[i] << std::endl;
 
     // poses
     int cntt = 0;
@@ -266,7 +261,7 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
                         std::cerr << "Point: " << Xi.transpose()  << std::endl;
                         std::cerr << "Point: " << Xij.transpose() << std::endl;
                         std::cerr << "Pixel: " << pij << std::endl;
-                        throw std::runtime_error("ff");
+                        throw std::runtime_error("In LBA, pose becomes nan!");
                     }
                 } 
                 _BA_numeric err_tmp = weight*rij.transpose()*rij;
@@ -368,7 +363,7 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
         for(_BA_Index j = 0; j < N_opt_; ++j)
             x_[j] = x_mat.block<6,1>(6*j,0);
         
-        for(_BA_Index i = 0; i < M_; ++i){
+        for(_BA_Index i = 0; i < M_; ++i) {
             const LandmarkBA& lmba = ba_params_->getLandmarkBA(i);
             const FramePtrVec& kfs = lmba.kfs_seen;
             for(int jj = 0; jj < kfs.size(); ++jj){
@@ -551,7 +546,6 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
     return flag_success;
 };
 
-// Reset local BA solver.
 void SparseBundleAdjustmentSolver::reset(){
     ba_params_ = nullptr;
     cam_       = nullptr;
@@ -589,12 +583,15 @@ void SparseBundleAdjustmentSolver::reset(){
 
     std::cout << "Reset bundle adjustment solver.\n";
 };
+
 void SparseBundleAdjustmentSolver::setParameterVectorFromPosesPoints(){
     // 1) Pose part
     for(_BA_Index j_opt = 0; j_opt < N_opt_; ++j_opt){
         _BA_PoseSE3Tangent xi_jw;
         geometry::SE3Log(ba_params_->getOptPose(j_opt), xi_jw);
         params_poses_[j_opt] = xi_jw;
+
+        std::cout << "xi_jw: " << xi_jw.transpose() << std::endl;
     }
 
     // 2) Point part
@@ -607,6 +604,14 @@ void SparseBundleAdjustmentSolver::getPosesPointsFromParameterVector(){
     // xi part 0~5, 6~11, ... 
     for(_BA_Index j_opt = 0; j_opt < N_opt_; ++j_opt){
         _BA_PoseSE3 Tjw;
+        if(std::isnan(params_poses_[j_opt].norm()))
+        {
+            std::cerr << "std::isnan params_poses !\n";
+            std::cout << params_poses_[j_opt] << std::endl;
+            std::cout << Tjw << std::endl;
+            
+        }
+            
         geometry::se3Exp(params_poses_[j_opt], Tjw);
         ba_params_->updateOptPose(j_opt,Tjw);
     }

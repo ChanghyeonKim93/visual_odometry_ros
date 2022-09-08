@@ -406,7 +406,6 @@ namespace geometry {
         R = T.block<3, 3>(0, 0);
         t = T.block<3, 1>(0, 3);
 
-
         theta = acosf((R.trace() - 1.0)*0.5);
 
         if (theta < 1e-9) {
@@ -414,11 +413,11 @@ namespace geometry {
             w << 0, 0, 0;
         }
         else {
-            lnR = (theta / (2 * sin(theta)))*(R - R.transpose());
+            lnR = (theta / (2.0 * sin(theta)))*(R - R.transpose());
             w << -lnR(1, 2), lnR(0, 2), -lnR(0, 1);
             wx << 0, -w(2), w(1),
-                w(2), 0, -w(0),
-                -w(1), w(0), 0;
+                  w(2), 0, -w(0),
+                 -w(1), w(0), 0;
             A = sin(theta) / theta;
             B = (1.0 - cos(theta)) / (theta*theta);
             Vin = Eigen::MatrixXd::Identity(3, 3) - 0.5*wx + (1.0 / (theta*theta))*(1.0 - A / (2.0 * B))*(wx*wx);

@@ -166,25 +166,37 @@ public:
         return landmarkset_all_;
     };
 
+    const std::map<FramePtr,_BA_PoseSE3>& getPosemap(){
+        return posemap_all_;
+    };
+
 // Update and get methods (Pose and Point)
 public:
     void updateOptPoint(_BA_Index i, const _BA_Point& X_update){
         if(i >= M_ || i < 0)
             throw std::runtime_error("i >= M_ || i < 0");
-        lmbavec_all_.at(i).X = X_update;
+        lmbavec_all_.at(i).X(0) = X_update(0);
+        lmbavec_all_.at(i).X(1) = X_update(1);
+        lmbavec_all_.at(i).X(2) = X_update(2);
     };
+    
     void updateOptPose(_BA_Index j_opt, const _BA_PoseSE3& Tjw_update){
         if(j_opt >= N_opt_ || j_opt < 0) 
             throw std::runtime_error("j_opt >= N_opt_  || j_opt < 0");
+
         const FramePtr& kf_opt = framemap_opt_.at(j_opt);
         posemap_all_.at(kf_opt) = Tjw_update;
-    };  
+        
+        if(std::isnan(Tjw_update.norm()))
+            throw std::runtime_error("Tjw update nan!");
+    };
 
     const _BA_Point& getOptPoint(_BA_Index i){
         if(i >= M_ || i < 0)
             throw std::runtime_error("i >= M_ || i < 0");
         return lmbavec_all_.at(i).X;
     };
+
     const _BA_PoseSE3& getOptPose(_BA_Index j_opt){
         if(j_opt >= N_opt_ || j_opt < 0) 
             throw std::runtime_error("j_opt >= N_opt_ || j_opt < 0");

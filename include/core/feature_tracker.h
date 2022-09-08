@@ -19,7 +19,6 @@
 #include "core/type_defines.h"
 #include "core/image_processing.h"
 
-using namespace std;
 class FeatureTracker;
 
 class FeatureTracker{
@@ -93,14 +92,14 @@ public:
 
     /// @brief Re-track the pixel with scale compensation (scale is given and fixed.)
     /// @param img0 img0 (CV_32FC1, automatically converted)
+    /// @param du0 u-derivative image of img0 (CV_32FC1)
+    /// @param dv0 v-derivative image of img0 (CV_32FC1)
     /// @param img1 img1 (CV_32FC1, automatically converted)
-    /// @param dI0u u-derivative image of img0 (CV_32FC1)
-    /// @param dI0v v-derivative image of img0 (CV_32FC1)
     /// @param pts0 pixels on img0
     /// @param scale_est scale from img0 to img1
     /// @param pts_track initial tracked pixels of pts0 on img1
     /// @param mask_valid mask for pts_track
-    void trackWithScale(const cv::Mat& img0, const cv::Mat& img1, const cv::Mat& dimg0_u, const cv::Mat& dimg0_v, const PixelVec& pts0, const std::vector<float>& scale_est,
+    void trackWithScale(const cv::Mat& img0, const cv::Mat& du0, const cv::Mat& dv0, const cv::Mat& img1, const PixelVec& pts0, const std::vector<float>& scale_est,
                 PixelVec& pts_track, MaskVec& mask_valid);
 
     /// @brief refine a current pixel tracking w.r.t. the very first observation of each landmark.

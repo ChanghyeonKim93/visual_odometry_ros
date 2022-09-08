@@ -246,8 +246,9 @@ void FeatureTracker::calcPrior(const PixelVec& pts0, const PointVec& Xw, const P
     }
 };
 
-void FeatureTracker::trackWithScale(const cv::Mat& img0, const cv::Mat& img1, const cv::Mat& dI0u, const cv::Mat& dI0v, const PixelVec& pts0, const std::vector<float>& scale_est,
-            PixelVec& pts_track, MaskVec& mask_valid)
+void FeatureTracker::trackWithScale(
+    const cv::Mat& img0, const cv::Mat& dI0u, const cv::Mat& dI0v, const cv::Mat& img1, const PixelVec& pts0, const std::vector<float>& scale_est,
+    PixelVec& pts_track, MaskVec& mask_valid)
 {
     /* 
         <Cost function>
@@ -291,13 +292,15 @@ void FeatureTracker::trackWithScale(const cv::Mat& img0, const cv::Mat& img1, co
         Jt*r = [J1*r; J2*r]; 
 
     */
-    if(pts_track.size() != pts0.size() ) throw std::runtime_error("pts_track.size() != pts0.size()");
+    if(pts_track.size() != pts0.size() ) 
+        throw std::runtime_error("pts_track.size() != pts0.size()");
     
+    // Set parameters
     int half_win_sz = 7;
-    int win_len     = 2*half_win_sz+1;
+    int win_len     = 2*half_win_sz+1; // win_sz : 15
     int n_elem      = win_len*win_len;
 
-    int   MAX_ITER     = 20;
+    int   MAX_ITER     = 30;
     float EPS_ERR_RATE = 1e-3;
     float EPS_UPDATE   = 1e-4;
 
@@ -363,7 +366,8 @@ void FeatureTracker::trackWithScale(const cv::Mat& img0, const cv::Mat& img1, co
         float ay   = pt0.y - floor(pt0.y);
         float axay = ax*ay;
 
-        if(ax < 0 || ax > 1 || ay < 0 || ay > 1){
+        if(ax < 0 || ax > 1 || ay < 0 || ay > 1)
+        {
             mask_valid[i] = false;
             continue;
         }
@@ -371,6 +375,7 @@ void FeatureTracker::trackWithScale(const cv::Mat& img0, const cv::Mat& img1, co
         image_processing::interpImage3SameRatio(I0, dI0u, dI0v, pts_warp, 
             ax, ay, axay,
             I0_patt, du0_patt, dv0_patt, mask_I0);
+        
 
         float A11 = 0, A12 = 0, A22 = 0;
         for(int j = 0; j < n_elem; ++j)
@@ -387,7 +392,8 @@ void FeatureTracker::trackWithScale(const cv::Mat& img0, const cv::Mat& img1, co
         }            
         float D = A11*A22 - A12*A12;
 
-        if(D < minEigThreshold){
+        if(D < minEigThreshold)
+        {
             mask_valid[i] = false; // not update.
             continue;
         }
@@ -399,20 +405,24 @@ void FeatureTracker::trackWithScale(const cv::Mat& img0, const cv::Mat& img1, co
         float err_curr = 0;
         float err_prev = 1e12;
         Pixel t = pt1 - pt0; // initialize dp
-        Pixel pt_update;
+
         for(int iter = 0; iter < MAX_ITER; ++iter) 
         {
             // updated point
-            pt_update = pt0 + t;
+            Pixel pt_update = pt0 + t;
 
             // calculate ratios
             ax   = pt_update.x - floor(pt_update.x);
             ay   = pt_update.y - floor(pt_update.y);
             axay = ax*ay;
-            if(ax < 0 || ax > 1 || ay < 0 || ay > 1){
+            if(ax < 0 || ax > 1 || ay < 0 || ay > 1)
+            {
                 mask_valid[i] = false;
-                continue;
+                break;
             }
+
+            if(std::isnan(ax+ay))
+                throw std::runtime_error("ax ay nan");
 
             // warp patch points
             for(int j = 0; j < n_elem; ++j)
@@ -429,14 +439,31 @@ void FeatureTracker::trackWithScale(const cv::Mat& img0, const cv::Mat& img1, co
             err_curr = 0;
             for(int j = 0; j < n_elem; ++j)
             {   
-                if(mask_I0[j] && mask_I1[j])
+                if(mask_I0.at(j) && mask_I1.at(j))
                 {   
-                    const float& du0 = du0_patt[j];
-                    const float& dv0 = dv0_patt[j];
-                    float r = I1_patt[j] - I0_patt[j];
+                    const float& I0_tmp = I0_patt.at(j);
+                    const float& I1_tmp = I1_patt.at(j);
+                    const float& du0_tmp = du0_patt.at(j);
+                    const float& dv0_tmp = dv0_patt.at(j);
+                    
+                    if(std::isnan(I0_tmp)
+                    || std::isnan(I1_tmp))
+                    {
+                        std::cout << "pixel: " << pts_warp[j] << std::endl;
+                        std::cout << "ax ay: " << ax << ", " << ay << std::endl;
+                        std::cerr << I0_tmp << ", " << I1_tmp << std::endl;
+                        throw std::runtime_error("I0 I1 nan");
+                    }
+                    if(std::isnan(du0_tmp)
+                    || std::isnan(dv0_tmp))
+                    {
+                        throw std::runtime_error("du0 dv0 nan");
+                    }
 
-                    b1       += du0*r;
-                    b2       += dv0*r;
+                    float r = I1_tmp - I0_tmp;
+
+                    b1       += du0_tmp*r;
+                    b2       += dv0_tmp*r;
                     err_curr += r*r;
 
                     ++cnt_valid;
@@ -446,6 +473,9 @@ void FeatureTracker::trackWithScale(const cv::Mat& img0, const cv::Mat& img1, co
             // Solve update step
             float dtu = (-iD_A22*b1 + iD_A12*b2);
             float dtv = ( iD_A12*b1 - iD_A11*b2);
+
+            if(std::isnan(dtu+dtv))
+                throw std::runtime_error("dtu dtv nan");
             
             t.x += dtu;
             t.y += dtv;
@@ -459,7 +489,8 @@ void FeatureTracker::trackWithScale(const cv::Mat& img0, const cv::Mat& img1, co
             // std::cout << iter << "-itr: " << t << ", e: " << err_curr 
             //           << ", dtnorm: "<< dt_norm << std::endl;
             
-            if(iter > 1) {
+            if(iter > 1) 
+            {
                 if( err_rate <= EPS_ERR_RATE 
                  || dt_norm  <= EPS_UPDATE ) 
                     break;
@@ -482,9 +513,7 @@ void FeatureTracker::trackWithScale(const cv::Mat& img0, const cv::Mat& img1, co
             }
             else
                 mask_valid[i] = false; // not update.
-        }
-        
-        
+        }       
     } // END i-th pts
 };
 

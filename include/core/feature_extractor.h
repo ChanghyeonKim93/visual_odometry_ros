@@ -119,7 +119,7 @@ struct WeightBin {
 	};
 };
 
-class FeatureEx tractor {
+class FeatureExtractor {
 private:
 	WeightBin* weight_bin_;
 
