@@ -30,7 +30,8 @@ void Frame::setScale(float scale){
 };
 
 void Frame::setImageAndTimestamp(const cv::Mat& img, const double& timestamp) { 
-    img.copyTo(image_); 
+    img.copyTo(image_); // CV_8UC1
+    img.convertTo(image_float_,CV_32FC1);// CV_32FC1
     timestamp_ = timestamp;
 
     // image_du_ = cv::Mat::zeros(image_.size(), CV_32FC1);
@@ -94,6 +95,10 @@ const float& Frame::getScale() const {
 
 const cv::Mat& Frame::getImage() const {
     return image_; 
+}; 
+
+const cv::Mat& Frame::getImageFloat() const {
+    return image_float_; 
 }; 
 
 const cv::Mat& Frame::getImageDu() const {

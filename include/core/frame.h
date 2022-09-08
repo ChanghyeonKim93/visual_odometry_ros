@@ -35,6 +35,7 @@ private:
     float scale_;
 
     cv::Mat image_;
+    cv::Mat image_float_;
     cv::Mat image_du_;
     cv::Mat image_dv_;
 
@@ -75,6 +76,7 @@ public:
     const float& getSteeringAngle() const;
     const float& getScale() const;
     const cv::Mat& getImage() const ; 
+    const cv::Mat& getImageFloat() const ; 
     const cv::Mat& getImageDu() const ; 
     const cv::Mat& getImageDv() const ; 
     const LandmarkPtrVec& getRelatedLandmarkPtr() const;

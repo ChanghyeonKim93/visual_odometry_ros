@@ -118,14 +118,13 @@ void Landmark::addObservationAndRelatedFrame(const Pixel& p, const FramePtr& fra
         if(ax < 0 || ax > 1 || ay < 0 || ay > 1) 
             throw std::runtime_error("ax ay invalid!");
 
-        const cv::Mat& I0  = frame->getImage();
+        const cv::Mat& I0  = frame->getImageFloat();
         const cv::Mat& du0 = frame->getImageDu();
         const cv::Mat& dv0 = frame->getImageDv();
 
         image_processing::interpImage3SameRatio(I0, du0, dv0, pts_patt, 
             ax, ay, axay,
             I0_patt_, du0_patt_, dv0_patt_, mask_patt_);
-
 
         return;
     }
@@ -176,26 +175,31 @@ void Landmark::addObservationAndRelatedKeyframe(const Pixel& p, const FramePtr& 
     related_keyframes_.push_back(kf);
 };
 
-void               Landmark::setDead()                  { is_alive_ = false; };
+void Landmark::changeLastObservation(const Pixel& p)
+{
+    observations_.back() = p;
+};  
 
-uint32_t           Landmark::getID() const              { return id_; };
-uint32_t           Landmark::getAge() const             { return age_; };
-float              Landmark::getInverseDepth() const    { return invd_; };
-float              Landmark::getCovarianceInverseDepth() const { return cov_invd_; };
-const Point&       Landmark::get3DPoint() const         { return Xw_; };
-const PixelVec&    Landmark::getObservations() const    { return observations_; };
-const FramePtrVec& Landmark::getRelatedFramePtr() const { return related_frames_; };
+void               Landmark::setDead() { is_alive_ = false; };
+
+uint32_t           Landmark::getID() const                      { return id_; };
+uint32_t           Landmark::getAge() const                     { return age_; };
+float              Landmark::getInverseDepth() const            { return invd_; };
+float              Landmark::getCovarianceInverseDepth() const  { return cov_invd_; };
+const Point&       Landmark::get3DPoint() const                 { return Xw_; };
+const PixelVec&    Landmark::getObservations() const            { return observations_; };
+const FramePtrVec& Landmark::getRelatedFramePtr() const         { return related_frames_; };
 const PixelVec&    Landmark::getObservationsOnKeyframes() const { return observations_on_keyframes_; };
 const FramePtrVec& Landmark::getRelatedKeyframePtr() const      { return related_keyframes_; };
 
-const std::vector<float>& Landmark::getImagePatchVec() const { return this->I0_patt_;};
-const std::vector<float>& Landmark::getDuPatchVec()    const { return this->du0_patt_;};
-const std::vector<float>& Landmark::getDvPatchVec()    const { return this->dv0_patt_;};
-const MaskVec&            Landmark::getMaskPatchVec()  const { return this->mask_patt_;};
+const std::vector<float>& Landmark::getImagePatchVec() const { return this->I0_patt_; };
+const std::vector<float>& Landmark::getDuPatchVec() const    { return this->du0_patt_; };
+const std::vector<float>& Landmark::getDvPatchVec() const    { return this->dv0_patt_; };
+const MaskVec&            Landmark::getMaskPatchVec()  const { return this->mask_patt_; };
 
-const bool&        Landmark::isAlive() const           { return is_alive_; };
-const bool&        Landmark::isTriangulated() const    { return is_triangulated_; };
-const bool&        Landmark::isBundled() const         { return is_bundled_; };
+const bool&        Landmark::isAlive() const            { return is_alive_; };
+const bool&        Landmark::isTriangulated() const     { return is_triangulated_; };
+const bool&        Landmark::isBundled() const          { return is_bundled_; };
 
 float              Landmark::getMinParallax() const     { return min_parallax_; };
 float              Landmark::getMaxParallax() const     { return max_parallax_; };

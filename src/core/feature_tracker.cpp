@@ -36,17 +36,6 @@ void FeatureTracker::track(const cv::Mat& img0, const cv::Mat& img1, const Pixel
     // printf(" - FEATURE_TRACKER - 'track()'\n");
 };
 
-void scaleRefinement(const cv::Mat& img0, const cv::Mat& img1, const PixelVec& pts0,  uint32_t window_size, float thres_err,
-            PixelVec& pts_track, MaskVec& mask_valid)
-{
-    int n_cols = img0.size().width;
-    int n_rows = img0.size().height;
-
-    int n_pts = pts0.size();
-    mask_valid.resize(n_pts, true);
-
-};
-
 void FeatureTracker::trackBidirection(const cv::Mat& img0, const cv::Mat& img1, const PixelVec& pts0, uint32_t window_size, uint32_t max_pyr_lvl, float thres_err, float thres_bidirection,
                 PixelVec& pts_track, MaskVec& mask_valid)
 {
@@ -102,7 +91,6 @@ void FeatureTracker::trackBidirection(const cv::Mat& img0, const cv::Mat& img1, 
     
     // printf(" - FEATURE_TRACKER - 'trackBidirection()'\n");
 };
-
 
 void FeatureTracker::trackBidirectionWithPrior(const cv::Mat& img0, const cv::Mat& img1, const PixelVec& pts0, uint32_t window_size, uint32_t max_pyr_lvl, float thres_err, float thres_bidirection, 
             PixelVec& pts_track, MaskVec& mask_valid)
@@ -258,8 +246,6 @@ void FeatureTracker::calcPrior(const PixelVec& pts0, const PointVec& Xw, const P
     }
 };
 
-
-
 void FeatureTracker::trackWithScale(const cv::Mat& img0, const cv::Mat& img1, const cv::Mat& dI0u, const cv::Mat& dI0v, const PixelVec& pts0, const std::vector<float>& scale_est,
             PixelVec& pts_track, MaskVec& mask_valid)
 {
@@ -311,7 +297,7 @@ void FeatureTracker::trackWithScale(const cv::Mat& img0, const cv::Mat& img1, co
     int win_len     = 2*half_win_sz+1;
     int n_elem      = win_len*win_len;
 
-    int   MAX_ITER     = 50;
+    int   MAX_ITER     = 20;
     float EPS_ERR_RATE = 1e-3;
     float EPS_UPDATE   = 1e-4;
 
@@ -503,45 +489,30 @@ void FeatureTracker::trackWithScale(const cv::Mat& img0, const cv::Mat& img1, co
 };
 
 
-
 void FeatureTracker::refineTrackWithScale(const cv::Mat& img1, const LandmarkPtrVec& lms, const std::vector<float>& scale_est,
         PixelVec& pts_track, MaskVec& mask_valid)
 {
+    std::cout << "RefineTrackWithScale starts.\n";
     if(pts_track.size() != lms.size() ) throw std::runtime_error("pts_track.size() != lms.size()");
     
     int n_pts = lms.size(); 
-
-    int half_win_sz = 7;
-    int win_len     = 2*half_win_sz+1;
-    int n_elem      = win_len*win_len;
-
+    
     int   MAX_ITER     = 50;
     float EPS_ERR_RATE = 1e-3;
     float EPS_UPDATE   = 1e-4;
 
     float minEigThreshold = 1e-4;
 
-    // Get images
+    // Get images (CV_32FC1)
     cv::Mat I1;
     img1.convertTo(I1, CV_32FC1);
 
     int n_cols = I1.cols;
     int n_rows = I1.rows;
 
-    mask_valid.resize(n_pts, true);
-
-    // Generate patch
-    PixelVec patt(n_elem);
-    PixelVec patt_s(n_elem);
-    int ind = 0;
-    for(int v = 0; v < win_len; ++v) {
-        for(int u = !(v & 0x01); u < win_len; u += 2) {
-            patt[ind].x = (float)(u - half_win_sz);
-            patt[ind].y = (float)(v - half_win_sz);
-            ++ind;
-        }
-    }
-    n_elem = ind;
+    // Get patch pixels from the static member of Landmark class.
+    const PixelVec& patt = Landmark::patt_;
+    int n_elem = patt.size();
 
     // containers
     std::vector<float> I1_patt(n_elem);
@@ -549,16 +520,16 @@ void FeatureTracker::refineTrackWithScale(const cv::Mat& img1, const LandmarkPtr
     // temporal container
     PixelVec pts_warp(n_elem);
     MaskVec  mask_I1(n_elem);
-    
+    PixelVec patt_s(n_elem);
     for(int i = 0; i < n_pts; ++i)
     {
         // If invalid point, skip.
-        if(!mask_valid.at(i)) 
+        if(!mask_valid[i]) 
             continue;
 
-        const LandmarkPtr& lm = lms[i];
-        const Pixel& pt1   = pts_track.at(i);
-        const float& scale = scale_est.at(i);
+        const LandmarkPtr& lm = lms.at(i);
+        const Pixel& pt1      = pts_track.at(i);
+        const float& scale    = scale_est.at(i);
         
         const FloatVec& I0_patt  = lm->getImagePatchVec();
         const FloatVec& du0_patt = lm->getDuPatchVec();
@@ -566,7 +537,7 @@ void FeatureTracker::refineTrackWithScale(const cv::Mat& img1, const LandmarkPtr
         const MaskVec& mask_I0   = lm->getMaskPatchVec();
         
         // Invalid when scale is too much changed.
-        if(scale >= 2.2)
+        if(scale >= 3.0)
         {
             mask_valid.at(i) = false;
             continue;
@@ -574,13 +545,13 @@ void FeatureTracker::refineTrackWithScale(const cv::Mat& img1, const LandmarkPtr
 
         // Make scaled patch , Calculate patch points
         for(int j = 0; j < n_elem; ++j)
-            patt_s[j] = patt[j]*scale;
+            patt_s.at(j) = patt.at(j)*scale;
 
         // interpolate data
         float A11 = 0, A12 = 0, A22 = 0;
         for(int j = 0; j < n_elem; ++j)
         {   
-            if(mask_I0[j])
+            if(mask_I0.at(j))
             {   
                 const float& du0 = du0_patt[j];
                 const float& dv0 = dv0_patt[j];
@@ -593,7 +564,7 @@ void FeatureTracker::refineTrackWithScale(const cv::Mat& img1, const LandmarkPtr
         float D = A11*A22 - A12*A12;
 
         if(D < minEigThreshold){
-            mask_valid[i] = false; // not update.
+            mask_valid.at(i) = false; // not update.
             continue;
         }
 
@@ -610,18 +581,29 @@ void FeatureTracker::refineTrackWithScale(const cv::Mat& img1, const LandmarkPtr
             // updated point
             pt_update = pt1 + t;
 
+            if(std::isnan(pt_update.x) || std::isnan(pt_update.y)){
+                mask_valid[i] = false;
+                continue;
+            }
+            if(pt_update.x > n_cols-2 || pt_update.x < 1 
+            || pt_update.y > n_rows-2 || pt_update.y < 1 )
+            {
+                mask_valid.at(i) = false;
+                continue;
+            }
+
             // calculate ratios
             float ax   = pt_update.x - floor(pt_update.x);
             float ay   = pt_update.y - floor(pt_update.y);
             float axay = ax*ay;
             if(ax < 0 || ax > 1 || ay < 0 || ay > 1){
-                mask_valid[i] = false;
+                mask_valid.at(i) = false;
                 continue;
             }
 
             // warp patch points
             for(int j = 0; j < n_elem; ++j)
-                pts_warp[j] = pt_update + patt_s[j];
+                pts_warp.at(j) = pt_update + patt_s.at(j);
 
             // interpolate data
             image_processing::interpImageSameRatio(I1, pts_warp, 
@@ -634,11 +616,11 @@ void FeatureTracker::refineTrackWithScale(const cv::Mat& img1, const LandmarkPtr
             err_curr = 0;
             for(int j = 0; j < n_elem; ++j)
             {   
-                if(mask_I0[j] && mask_I1[j])
+                if(mask_I0.at(j) && mask_I1.at(j))
                 {   
-                    const float& du0 = du0_patt[j];
-                    const float& dv0 = dv0_patt[j];
-                    float r = I1_patt[j] - I0_patt[j];
+                    const float& du0 = du0_patt.at(j);
+                    const float& dv0 = dv0_patt.at(j);
+                    float r = I1_patt.at(j) - I0_patt.at(j);
 
                     b1       += du0*r;
                     b2       += dv0*r;
@@ -674,17 +656,18 @@ void FeatureTracker::refineTrackWithScale(const cv::Mat& img1, const LandmarkPtr
         // push results
         if(std::isnan(err_curr))
         {
-            mask_valid[i] = false;
+            mask_valid.at(i) = false;
         }
         else
         {
             if(err_curr <= 30) 
             {
-                pts_track[i]  = pt1 + t;
-                mask_valid[i] = true;
+                pts_track.at(i)  = pt1 + t;
+                mask_valid.at(i) = true;
             }
             else
-                mask_valid[i] = false; // not update.
+                mask_valid.at(i) = false; // not update.
         }
     } // END i-th pixel
+    std::cout << "RefineTrackWithScale ends.\n";
 };

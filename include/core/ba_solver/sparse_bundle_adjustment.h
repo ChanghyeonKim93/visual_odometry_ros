@@ -76,6 +76,7 @@ typedef std::vector<_BA_Vec3>               BlockVec3;
             delta_theta = [x;y];
 */
 
+/// @brief landmark structure for a Sparse Local Bundle Adjustment (SLBA)
 struct LandmarkBA {
     _BA_Point         X;
     FramePtrVec       kfs_seen; // 해당 키프레임에서 어떤 좌표로 보였는지를 알아야 함.
@@ -97,14 +98,13 @@ struct LandmarkBA {
     };
 };
 
+/// @brief parameter class for Sparse Bundle Adjustment
 class SparseBAParameters {
-
 private: // Reference Pose and scaling factor for numerical stability
     _BA_PoseSE3 Twj_ref_;
     _BA_PoseSE3 Tjw_ref_;
     _BA_numeric pose_scale_;
     _BA_numeric inv_pose_scale_;
-
 
 private: // all frames and landmarks used for BA.
     std::set<FramePtr>       frameset_all_;
@@ -375,7 +375,7 @@ public:
     };
 };
 
-// A sparse solver for a feature-based Bundle adjustment problem.
+/// @brief A sparse solver for a feature-based Bundle adjustment problem.
 class SparseBundleAdjustmentSolver{
 private:
     std::shared_ptr<Camera> cam_;
@@ -430,32 +430,39 @@ private:
     _BA_numeric THRES_EPS_;
 
 public:
-    // Constructor for BundleAdjustmentSolver ( se3 (6-DoF), 3D points (3-DoF) )
-    // Sparse solver with 6x6 block diagonals, 3x3 block diagonals, 6x3 and 3x6 blocks.
+    /// @brief Constructor for BundleAdjustmentSolver ( se3 (6-DoF), 3D points (3-DoF) ). Sparse solver with 6x6 block diagonals, 3x3 block diagonals, 6x3 and 3x6 blocks.
     SparseBundleAdjustmentSolver();
 
-    // Set connectivities, variables...
+    /// @brief Set connectivities, variables...
+    /// @param ba_params bundle adjustment parameters
     void setBAParameters(const std::shared_ptr<SparseBAParameters>& ba_params);
 
-    // Set Huber threshold
+    /// @brief Set Huber threshold for SLBA
+    /// @param thres_huber Huber norm threshold value
     void setHuberThreshold(_BA_numeric thres_huber);
 
-    // Set camera.
+    /// @brief Set camera pointer
+    /// @param cam camera pointer
     void setCamera(const std::shared_ptr<Camera>& cam);
 
-    // Solve the BA for fixed number of iterations
+    /// @brief Solve the BA for fixed number of iterations
+    /// @param MAX_ITER Maximum iterations
+    /// @return true when success, false when failed.
     bool solveForFiniteIterations(int MAX_ITER);
 
-    // Reset local BA solver.
+    /// @brief Reset local BA solver.
     void reset();
 
 private:
-    // Set problem sizes and resize the storages.
+    /// @brief Set problem sizes and resize the storages.
+    /// @param N the number of poses (including fixed & optimizable poses)
+    /// @param N_opt the number of optimizable poses (N_opt < N)
+    /// @param M the number of landmarks
+    /// @param n_obs the number of observations
     void setProblemSize(int N, int N_opt, int M, int n_obs);
 
 // Related to parameter vector
 private:
-
     void setParameterVectorFromPosesPoints();
     void getPosesPointsFromParameterVector();
     void zeroizeStorageMatrices();    

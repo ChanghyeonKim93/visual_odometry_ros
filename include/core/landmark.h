@@ -95,6 +95,8 @@ public:
 public:
     void addObservationAndRelatedFrame(const Pixel& p, const FramePtr& frame);
     void addObservationAndRelatedKeyframe(const Pixel& p, const FramePtr& frame);
+
+    void changeLastObservation(const Pixel& p);
     
     void set3DPoint(const Point& Xw);
 

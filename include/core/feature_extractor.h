@@ -19,7 +19,7 @@
 #include "core/type_defines.h"
 #include "core/image_processing.h"
 
-class FeatureExtractor ;
+class FeatureExtractor;
 
 struct ParamsORB {
 	int   MaxFeatures     ;// % MaxFeatures (300) % The maximum number of features to retain.
@@ -119,7 +119,7 @@ struct WeightBin {
 	};
 };
 
-class FeatureExtractor {
+class FeatureEx tractor {
 private:
 	WeightBin* weight_bin_;
 
@@ -137,7 +137,10 @@ private:
 	float r_;
 
 public:
+	/// @brief FeatureExtractor class constructor
 	FeatureExtractor();
+
+	/// @brief FeatureExtractor class destructor
 	~FeatureExtractor();
 
 	void initParams(int n_cols, int n_rows, int n_bins_u, int n_bins_v, int THRES_FAST, int radius);
