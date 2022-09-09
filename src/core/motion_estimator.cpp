@@ -668,17 +668,16 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
     geometry::SE3Log_f(T10_init,xi10);
     
     float err_prev = 1e10f;
+    PoseSE3 T10_optimized = T10_init;
+
+    Eigen::Matrix<float,6,6> JtWJ;
+    Eigen::Matrix<float,6,1> mJtWr;
     for(uint32_t iter = 0; iter < MAX_ITER; ++iter){
-        PoseSE3 T10;
-        geometry::se3Exp_f(xi10,T10);
-
-        const Rot3& R10 = T10.block<3,3>(0,0);
-        const Pos3& t10 = T10.block<3,1>(0,3);
-
-        Eigen::Matrix<float,6,6> JtWJ;
-        Eigen::Matrix<float,6,1> mJtWr;
-        JtWJ.setZero();
         mJtWr.setZero();
+        JtWJ.setZero();
+
+        const Rot3& R10 = T10_optimized.block<3,3>(0,0);
+        const Pos3& t10 = T10_optimized.block<3,1>(0,3);
 
         float err_curr = 0.0f;
         float inv_npts = 1.0f/(float)n_pts;
@@ -704,14 +703,15 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
             // Huber weight calculation by the Manhattan distance
             float weight     = 1.0f;
             bool flag_weight = false;
-
             float absrxry = abs(rx)+abs(ry);
-            if(absrxry >= THRES_HUBER){
+            if(absrxry >= THRES_HUBER)
+            {
                 weight = THRES_HUBER/absrxry; 
                 flag_weight = true;
             } 
 
-            if(absrxry >= THRES_REPROJ_ERROR){
+            if(absrxry >= THRES_REPROJ_ERROR)
+            {
                 mask_inlier[i] = false;
                 ++cnt_invalid;
             }
@@ -727,18 +727,20 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
             Jt(4,0) = fx*(1.0f+xiz*xiz);
             Jt(5,0) = -fx*yiz;
 
-            if(flag_weight) {
+            if(flag_weight) 
+            {
                 float w_rx = weight*rx;
                 float err = w_rx*rx;
                 JtWJ.noalias() += weight*(Jt*Jt.transpose());
                 mJtWr.noalias() -= (w_rx)*Jt;
                 err_curr += err;
             }
-            else {
+            else 
+            {
                 float err = rx*rx;
                 JtWJ.noalias() += Jt*Jt.transpose();
                 mJtWr.noalias() -= rx*Jt;
-                err_curr += rx*rx;
+                err_curr += err;
             }
 
             // JtWJ, JtWr for y
@@ -752,26 +754,29 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
              if(flag_weight) {
                 float w_ry = weight*ry;
                 float err = w_ry*ry;
-                JtWJ.noalias() += weight*(Jt*Jt.transpose());
-                mJtWr.noalias() -= (w_ry)*Jt;
+                JtWJ.noalias()  += weight*(Jt*Jt.transpose());
+                mJtWr.noalias() -= w_ry*Jt;
                 err_curr += err;
             }
             else {
                 float err = ry*ry;
-                JtWJ.noalias() += Jt*Jt.transpose();
+                JtWJ.noalias()  += Jt*Jt.transpose();
                 mJtWr.noalias() -= ry*Jt;
                 err_curr += err;
             }
         } // END FOR
-        err_curr *= inv_npts*0.5f;
+        err_curr *= (inv_npts*0.5f);
         float delta_err = abs(err_curr-err_prev);
 
         // Solve H^-1*Jtr;
         for(int i = 0; i < 6; ++i) JtWJ(i,i) *= (1.0f+lambda); // lambda 
         PoseSE3Tangent delta_xi = JtWJ.ldlt().solve(mJtWr);
         delta_xi *= step_size; 
-        geometry::addFrontse3_f(xi10, delta_xi);
-        // xi10 += delta_xi;
+
+        // Update matrix
+        PoseSE3 dT;
+        geometry::se3Exp_f(delta_xi, dT);
+        T10_optimized.noalias() = dT*T10_optimized;
         
         err_prev = err_curr;
         // std::cout << "reproj. err. (avg): " << err_curr << ", step: " << delta_xi.transpose() << std::endl;
@@ -786,7 +791,8 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
 
     if(!std::isnan(xi10.norm())){
         PoseSE3 T01_update;
-        geometry::se3Exp_f(-xi10, T01_update);
+        // geometry::se3Exp_f(-xi10, T01_update);
+        T01_update << geometry::inverseSE3_f(T10_optimized);
         R01_true = T01_update.block<3,3>(0,0);
         t01_true = T01_update.block<3,1>(0,3);
     }

@@ -147,9 +147,6 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
     for(int iter = 0; iter < MAX_ITER; ++iter){
         std::cout << iter <<"-th iteration...\n";
 
-        // set Poses and Points.
-        getPosesPointsFromParameterVector();
-
         // Reset A, B, Bt, C, Cinv, a, b, x, y...
         zeroizeStorageMatrices();
 
@@ -399,13 +396,16 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
         // Update step
         for(_BA_Index j_opt = 0; j_opt < N_opt_; ++j_opt){
             std::cout << j_opt <<"-th xi update : " 
-            << params_poses_[j_opt].transpose() << " + " << x_[j_opt].transpose() << " --> " ;
+                << params_poses_[j_opt].transpose() << " + " << x_[j_opt].transpose() << " --> " ;
+            
             geometry::addFrontse3(params_poses_[j_opt], x_[j_opt]);
             std::cout << params_poses_[j_opt].transpose() << std::endl;
-
         }
         for(_BA_Index i = 0; i < M_; ++i)
             params_points_[i].noalias() += y_[i];
+
+        this->getPosesPointsFromParameterVector();
+
 
         _BA_numeric average_error = 0.5*err/(_BA_numeric)n_obs_;
             
