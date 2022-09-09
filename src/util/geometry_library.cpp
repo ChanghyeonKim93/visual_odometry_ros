@@ -301,38 +301,32 @@ namespace geometry {
 
         theta = std::sqrt(w.transpose() * w);
         wx << 0, -w(2), w(1),
-            w(2), 0, -w(0),
+             w(2), 0, -w(0),
             -w(1), w(0), 0;
 
-        if (theta < 1e-7) {
-            R = Eigen::Matrix3d::Identity() + wx + 0.5 * wx * wx;
-            V = Eigen::Matrix3d::Identity() + 0.5 * wx + wx * wx *0.33333333333333333333333333;
+        Eigen::Matrix3d wxwx = wx * wx;
+        if (theta < 1e-9) {
+            R = Eigen::Matrix3d::Identity() + wx + 0.5*wxwx;
+            V = Eigen::Matrix3d::Identity() + 0.5*wx + wxwx * 0.33333333333333333333333333;
         }
         else {
-            R = Eigen::Matrix3d::Identity() + (sin(theta) / theta) * wx + ((1 - cos(theta)) / (theta*theta)) * (wx*wx);
-            V = Eigen::Matrix3d::Identity() + ((1 - cos(theta)) / (theta*theta)) * wx + ((theta - sin(theta)) / (theta*theta*theta)) * (wx*wx);
+            double invtheta2 = 1.0/(theta*theta);
+            R = Eigen::Matrix3d::Identity() + (sin(theta) / theta) * wx + ((1 - cos(theta)) * invtheta2) * wxwx;
+            V = Eigen::Matrix3d::Identity() + ( (1 - cos(theta)) * invtheta2 ) * wx + ((theta - sin(theta)) / (theta*theta*theta)) * wxwx;
         }
         t = V * v;
 
         // assign rigid body transformation matrix (in SE(3))
         T = Eigen::Matrix4d::Zero();
-        T(0, 0) = R(0, 0);
-        T(0, 1) = R(0, 1);
-        T(0, 2) = R(0, 2);
+        T(0,0) = R(0, 0); T(0,1) = R(0,1); T(0,2) = R(0,2);
+        T(1,0) = R(1, 0); T(1,1) = R(1,1); T(1,2) = R(1,2);
+        T(2,0) = R(2, 0); T(2,1) = R(2,1); T(2,2) = R(2,2);
 
-        T(1, 0) = R(1, 0);
-        T(1, 1) = R(1, 1);
-        T(1, 2) = R(1, 2);
+        T(0,3) = t(0);
+        T(1,3) = t(1);
+        T(2,3) = t(2);
 
-        T(2, 0) = R(2, 0);
-        T(2, 1) = R(2, 1);
-        T(2, 2) = R(2, 2);
-
-        T(0, 3) = t(0);
-        T(1, 3) = t(1);
-        T(2, 3) = t(2);
-
-        T(3, 3) = 1.0;
+        T(3,3) = 1.0;
 
         // for debug
         // std::cout << R << std::endl;
