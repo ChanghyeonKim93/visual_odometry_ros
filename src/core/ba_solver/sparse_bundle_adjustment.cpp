@@ -15,6 +15,16 @@
             delta_theta = [x;y];
 */
 
+
+/*
+ 1   0.00141298  0.000289544   0.00548874
+ -0.00141299            1 -1.80506e-05    0.0176284
+ -0.000289589  1.76435e-05            1     -1.33855
+           0            0            0            1
+xi_jw: -nan -nan -nan -nan  nan -nan
+
+*/
+
 SparseBundleAdjustmentSolver::SparseBundleAdjustmentSolver() 
 : N_(0), N_opt_(0), M_(0), n_obs_(0), THRES_EPS_(0), THRES_HUBER_(0)
 {
@@ -587,10 +597,12 @@ void SparseBundleAdjustmentSolver::reset(){
 void SparseBundleAdjustmentSolver::setParameterVectorFromPosesPoints(){
     // 1) Pose part
     for(_BA_Index j_opt = 0; j_opt < N_opt_; ++j_opt){
+        const _BA_PoseSE3& Tjw = ba_params_->getOptPose(j_opt);
         _BA_PoseSE3Tangent xi_jw;
-        geometry::SE3Log(ba_params_->getOptPose(j_opt), xi_jw);
+        geometry::SE3Log(Tjw, xi_jw);
         params_poses_[j_opt] = xi_jw;
 
+        std::cout << "Pose:\n" << Tjw << std::endl;
         std::cout << "xi_jw: " << xi_jw.transpose() << std::endl;
     }
 
@@ -603,15 +615,13 @@ void SparseBundleAdjustmentSolver::getPosesPointsFromParameterVector(){
     // Generate parameters
     // xi part 0~5, 6~11, ... 
     for(_BA_Index j_opt = 0; j_opt < N_opt_; ++j_opt){
-        _BA_PoseSE3 Tjw;
         if(std::isnan(params_poses_[j_opt].norm()))
         {
             std::cerr << "std::isnan params_poses !\n";
             std::cout << params_poses_[j_opt] << std::endl;
-            std::cout << Tjw << std::endl;
-            
         }
             
+        _BA_PoseSE3 Tjw ;
         geometry::se3Exp(params_poses_[j_opt], Tjw);
         ba_params_->updateOptPose(j_opt,Tjw);
     }
