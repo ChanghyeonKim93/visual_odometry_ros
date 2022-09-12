@@ -14,13 +14,12 @@
 #include "core/camera.h"
 #include "util/geometry_library.h"
 
-/*
-- Landmark
-    2d pixel point hisotry over image
-    Address of fraems where the landmark was seen.
-    3D coordinate of the landmark represented in the global frame. It can be obtained by scale propagation and recovery modules.
-*/
 
+
+/** @brief Image frame :
+ *  address of visual landmarks observed in the frame.
+ *  a 6-DoF motion w.r.t. the global frame {W}.
+ */ 
 class Frame{
 private:
     uint32_t id_;

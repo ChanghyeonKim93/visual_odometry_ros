@@ -13,10 +13,10 @@
 #include "core/frame.h"
 #include "core/camera.h"
 
-/*
-- Image frame :
-    address of visual landmarks observed in the frame.
-    a 6-DoF motion w.r.t. the global frame {W}.
+/** @brief - Landmark
+    2d pixel point hisotry over image
+    Address of fraems where the landmark was seen.
+    3D coordinate of the landmark represented in the global frame. It can be obtained by scale propagation and recovery modules.
 */
 class Landmark{
 private:
