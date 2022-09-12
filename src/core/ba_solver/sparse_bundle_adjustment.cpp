@@ -16,14 +16,6 @@
 */
 
 
-/*
- 1   0.00141298  0.000289544   0.00548874
- -0.00141299            1 -1.80506e-05    0.0176284
- -0.000289589  1.76435e-05            1     -1.33855
-           0            0            0            1
-xi_jw: -nan -nan -nan -nan  nan -nan
-
-*/
 
 SparseBundleAdjustmentSolver::SparseBundleAdjustmentSolver() 
 : N_(0), N_opt_(0), M_(0), n_obs_(0), THRES_EPS_(0), THRES_HUBER_(0)

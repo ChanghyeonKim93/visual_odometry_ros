@@ -1059,8 +1059,8 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     float THRES_DELTA_THETA = 1e-7;
     float THRES_ERROR       = 1e-7;
 
-    int NUM_MINIMUM_REQUIRED_KEYFRAMES = 5; // 최소 keyframe 갯수.
-    int NUM_FIX_KEYFRAMES_IN_WINDOW    = 4; // optimization에서 제외 할 keyframe 갯수. 과거 순.
+    int NUM_MINIMUM_REQUIRED_KEYFRAMES = 2; // 최소 keyframe 갯수.
+    int NUM_FIX_KEYFRAMES_IN_WINDOW    = 1; // optimization에서 제외 할 keyframe 갯수. 과거 순.
 
     // Check whether there are enough keyframes
     if(kfs_window->getCurrentNumOfKeyframes() < NUM_MINIMUM_REQUIRED_KEYFRAMES){

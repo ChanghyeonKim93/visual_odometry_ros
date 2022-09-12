@@ -391,30 +391,33 @@ namespace geometry {
     };
 
     void SE3Log(const Eigen::Matrix<double,4,4>& T, Eigen::Matrix<double,6,1>& xi){
+        Eigen::Matrix<double,3,3> wx;
+        Eigen::Matrix<double,3,3> lnR, Vin;
+        Eigen::Matrix<double,3,1> w, v;
+
+        const Eigen::Matrix<double,3,3>& R = T.block<3, 3>(0, 0);
+        const Eigen::Matrix<double,3,1>& t = T.block<3, 1>(0, 3);
+
+
+        double inCos = (R.trace() - 1.0)*0.5;
         double theta = 0.0f;
-        double A, B;
-        Eigen::Matrix3d wx, R;
-        Eigen::MatrixXd lnR, Vin;
-        Eigen::Vector3d t, w, v;
-
-        R = T.block<3, 3>(0, 0);
-        t = T.block<3, 1>(0, 3);
-
-        theta = acos((R.trace() - 1.0)*0.5);
-
-        if (theta < 1e-9) {
-            Vin = Eigen::MatrixXd::Identity(3, 3);
+        if (inCos >= 0.999999999) {
+            Vin = Eigen::Matrix<double,3,3>::Identity();
             w << 0, 0, 0;
         }
         else {
+            theta = acos( inCos );
+            double invTheta = 1.0/theta;
+            double invTheta2 = invTheta*invTheta;
+
             lnR = (theta / (2.0 * sin(theta)))*(R - R.transpose());
             w << -lnR(1, 2), lnR(0, 2), -lnR(0, 1);
             wx << 0, -w(2), w(1),
                   w(2), 0, -w(0),
                  -w(1), w(0), 0;
-            A = sin(theta) / theta;
-            B = (1.0 - cos(theta)) / (theta*theta);
-            Vin = Eigen::MatrixXd::Identity(3, 3) - 0.5*wx + (1.0 / (theta*theta))*(1.0 - A / (2.0 * B))*(wx*wx);
+            double A = sin(theta) * invTheta;
+            double B = (1.0 - cos(theta)) * invTheta2;
+            Vin = Eigen::Matrix<double,3,3>::Identity() - 0.5*wx + invTheta2*(1.0 - A / (2.0 * B))*(wx*wx);
         }
 
         v = Vin*t;
@@ -425,6 +428,19 @@ namespace geometry {
         xi(3) = w(0);
         xi(4) = w(1);
         xi(5) = w(2);
+
+        if( std::isnan(xi.norm())){
+            std::cout << "============ SE3Log NAN!! ============\n";
+            std::cout << "Original T: \n" << T << std::endl;
+            std::cout << "R:\n" << R << std::endl;
+            std::cout << "trace R: " << R.trace() << std::endl;
+            std::cout << "(tr R - 1 ) * 0.5: " << (R.trace() - 1.0)*0.5 << std::endl;
+            std::cout << "t:\n" << t << std::endl;
+            std::cout << "theta: " << theta << std::endl;
+            std::cout << "xi: " << xi.transpose() <<std::endl;
+            std::cout << "============              ============\n";
+
+        }
         // for debug
         // std::cout << xi << std::endl;
     };
