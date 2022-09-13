@@ -69,6 +69,7 @@ set(SRC ${SRC}
   src/util/signal_handler_linux.cpp
   src/util/geometry_library.cpp
   src/util/histogram.cpp
+  src/util/trigonometry_fast.cpp
 )
 
 set(includeDirs ${includeDirs} ${CMAKE_CURRENT_BINARY_DIR})
