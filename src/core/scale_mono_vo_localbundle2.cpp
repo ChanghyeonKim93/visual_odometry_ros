@@ -28,7 +28,8 @@ void ScaleMonoVO::trackImageLocalBundle2(const cv::Mat& img, const double& times
 		cam_->undistortImage(img, img_undist);
 		img_undist.convertTo(img_undist, CV_8UC1);
 	}
-	else img.copyTo(img_undist);
+	else 
+		img.copyTo(img_undist);
 
 	// frame_curr에 img_undist와 시간 부여 (gradient image도 함께 사용)
 	frame_curr->setImageAndTimestamp(img_undist, timestamp);
@@ -87,17 +88,15 @@ void ScaleMonoVO::trackImageLocalBundle2(const cv::Mat& img, const double& times
 			this->pruneInvalidLandmarks(lmtrack_prev, mask_track, lmtrack_klt);
 
 			// Scale refinement 50ms
-			MaskVec mask_refine(lmtrack_klt.pts0.size(), true);
-			// tracker_->refineScale(I0, I1, frame_curr->getImageDu(), frame_curr->getImageDv(), pts0_trackok, 1.25f, 
-			// 	pts1_trackok, mask_refine);
-			
+			MaskVec mask_refine(lmtrack_klt.pts0.size(), true);			
 			LandmarkTracking lmtrack_scaleok;
 			this->pruneInvalidLandmarks(lmtrack_klt, mask_refine, lmtrack_scaleok);
 
 			// 5-point algorithm 2ms
 			MaskVec mask_5p(lmtrack_scaleok.pts0.size());
 			PointVec X0_inlier(lmtrack_scaleok.pts0.size());
-			Rot3 dR10; Pos3 dt10;
+			Rot3 dR10; 
+			Pos3 dt10;
 			if( !motion_estimator_->calcPose5PointsAlgorithm(lmtrack_scaleok.pts0, lmtrack_scaleok.pts1, cam_, dR10, dt10, X0_inlier, mask_5p) ) 
 				throw std::runtime_error("calcPose5PointsAlgorithm() is failed.");
 
@@ -120,9 +119,9 @@ void ScaleMonoVO::trackImageLocalBundle2(const cv::Mat& img, const double& times
 			PoseSE3 dT10; dT10 << dR10, dt10, 0.0f, 0.0f, 0.0f, 1.0f;
 			PoseSE3 dT01 = geometry::inverseSE3_f(dT10);
 
-			frame_curr->setPose(Twc_prev*dT01);		
-			frame_curr->setPoseDiff10(dT10);	
-				
+			frame_curr->setPose(Twc_prev*dT01);
+			frame_curr->setPoseDiff10(dT10);
+							
 #ifdef RECORD_FRAME_STAT
 statcurr_frame.Twc   = frame_curr->getPose();
 statcurr_frame.Tcw   = frame_curr->getPoseInv();
@@ -416,7 +415,55 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 	}
 
 	// Check keyframe update rules.
-	if(keyframes_->checkUpdateRule(frame_curr)){
+	if(keyframes_->checkUpdateRule(frame_curr))
+	{
+		// If there exist keyframe already, check turning region or not.
+		if(keyframes_->getList().size() > 0)
+		{
+			// Find turning region
+			// Steering angle을 계산한다.
+			PoseSE3 T01     = keyframes_->getList().back()->getPoseInv()*frame_curr->getPose();
+			const Rot3& R01 = T01.block<3,3>(0,0);
+			
+			float steering_angle_curr = motion_estimator_->calcSteeringAngleFromRotationMat(R01);
+			frame_curr->setSteeringAngle(steering_angle_curr);
+			std::cout << " === NEW KEYFRAME TURNING ANGLE: " << steering_angle_curr*R2D << " [deg]\n";
+
+			// Detect turn region by a steering angle.
+			if(scale_estimator_->detectTurnRegions(frame_curr)){
+				std::cout << " ===  ===  Turn region is detected !\n";
+
+				FramePtrVec Ft = scale_estimator_->getAllTurnRegions(); // all turn regions
+				for(auto f : Ft) stat_.stat_turn.turn_regions.push_back(f);
+
+				// VO를 통해 유지되어온 scale 궤적. 
+				std::vector<float> scales_vo;
+				for(auto f : scale_estimator_->getLastTurnRegion()){
+					PoseSE3 dT01_f = f->getPoseDiff01();
+					scales_vo.push_back(dT01_f.block<3,1>(0,3).norm());
+				}
+				std::sort(scales_vo.begin(), scales_vo.end());
+
+				// Find median 
+				// int idx_median = (int)((float)scales_vo.size()*0.5);
+				// std::cout << scales_vo.size() <<" , " <<  idx_median << std::endl;
+				// float scaler = scale_estimator_->getLastTurnRegion().back()->getScale()/scales_vo[idx_median];
+				
+				// std::cout <<" scaler : " << scaler << std::endl;
+				// for(auto f : scale_estimator_->getLastTurnRegion()){
+				// 	PoseSE3 dT01_f = f->getPoseDiff01();
+				// 	PoseSE3 Twc = f->getPose();
+				// 	Twc*= dT01_f.inverse();
+				// 	dT01_f.block<3,1>(0,3) *= scaler;
+				// 	Twc*= dT01_f;
+				// 	f->setPose(Twc);
+				// 	f->setPoseDiff10(dT01_f.inverse());
+				// }
+			}
+
+		}
+		
+
 		// Add new keyframe
 		keyframes_->addNewKeyframe(frame_curr);
 

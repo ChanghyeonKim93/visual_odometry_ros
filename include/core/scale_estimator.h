@@ -33,15 +33,18 @@
 
 class ScaleEstimator{
 public:
-    ScaleEstimator(const std::shared_ptr<std::mutex> mut, 
+    ScaleEstimator(
+        const std::shared_ptr<std::mutex> mut, 
         const std::shared_ptr<std::condition_variable> cond_var,
         const std::shared_ptr<bool> flag_do_ASR);
     ~ScaleEstimator();
 
+public:
     void module_ScaleForwardPropagation(const LandmarkPtrVec& lmvec, const FramePtrVec& framevec, const PoseSE3& dT10); // SFP module return : scale of the current motion.
     void module_AbsoluteScaleRecovery(); // SFP module return : scale of the current motion.
 
     bool detectTurnRegions(const FramePtr& frame);
+    bool detectTurnRegions(const FramePtr& frame, const Rot3& Rpc);
     const FramePtrVec& getAllTurnRegions() const;
     const FramePtrVec& getLastTurnRegion() const;
 

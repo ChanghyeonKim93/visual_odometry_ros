@@ -114,15 +114,15 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
         ++cnt_seen[lmba.pts_on_kfs.size()];
     }
 
-    for(int i = 0; i < cnt_seen.size(); ++i)
-        std::cout << i << " seen: " << cnt_seen[i] << std::endl;
+    // for(int i = 0; i < cnt_seen.size(); ++i)
+    //     std::cout << i << " seen: " << cnt_seen[i] << std::endl;
 
     // poses
     int cntt = 0;
     for(const auto& f : ba_params_->getAllFrameset()){
         const _BA_PoseSE3& T_tmp = ba_params_->getPose(f);
-        std::cout << cntt++ << "-th kf, ptr:" << f <<" begin: " << T_tmp.data()
-        << ", id: " << f->getID() << " pose:\n" << ba_params_->getPose(f) << std::endl;
+        // std::cout << cntt++ << "-th kf, ptr:" << f <<" begin: " << T_tmp.data()
+        // << ", id: " << f->getID() << " pose:\n" << ba_params_->getPose(f) << std::endl;
     }
 
     bool flag_nan_pass   = true;
@@ -147,7 +147,7 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
     _BA_numeric err_prev = 1e10f;
     _BA_numeric lambda   = 0.0000001;
     for(int iter = 0; iter < MAX_ITER; ++iter){
-        std::cout << iter <<"-th iteration...\n";
+        // std::cout << iter <<"-th iteration...\n";
 
         // Reset A, B, Bt, C, Cinv, a, b, x, y...
         zeroizeStorageMatrices();
@@ -397,11 +397,11 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
                 
         // Update step
         for(_BA_Index j_opt = 0; j_opt < N_opt_; ++j_opt){
-            std::cout << j_opt <<"-th xi update : " 
-                << params_poses_[j_opt].transpose() << " + " << x_[j_opt].transpose() << " --> " ;
+            // std::cout << j_opt <<"-th xi update : " 
+                // << params_poses_[j_opt].transpose() << " + " << x_[j_opt].transpose() << " --> " ;
             
             geometry::addFrontse3(params_poses_[j_opt], x_[j_opt]);
-            std::cout << params_poses_[j_opt].transpose() << std::endl;
+            // std::cout << params_poses_[j_opt].transpose() << std::endl;
         }
         for(_BA_Index i = 0; i < M_; ++i)
             params_points_[i].noalias() += y_[i];
@@ -411,7 +411,7 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
 
         _BA_numeric average_error = 0.5*err/(_BA_numeric)n_obs_;
             
-        std::cout << iter << "-th iter, error : " << average_error << "\n";
+        // std::cout << iter << "-th iter, error : " << average_error << "\n";
 
         // Check extraordinary cases.
         flag_nan_pass   = std::isnan(err) ? false : true;
@@ -519,23 +519,6 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
                 std::cout << i <<"-th lm, " << j << "-th obs: " << pts[j].transpose() <<std::endl;
             }
         }
-        
-        // for(int j = 0; j < N_opt_; ++j){
-        //     std::cout << j << "-th A:\n";
-        //     std::cout << A_[j] << std::endl;
-        // }
-        // for(int i = 0; i < M_; ++i){
-        //     std::cout << i << "-th Cinv:\n";
-        //     std::cout << Cinv_[i] << std::endl;
-        // }
-        // for(int j = 0; j < N_opt_; ++j){
-        //     std::cout << j << "-th x:\n";
-        //     std::cout << x_[j] << std::endl;
-        // }
-        // for(int i = 0; i < M_; ++i){
-        //     std::cout << i << "-th y:\n";
-        //     std::cout << y_[i] << std::endl;
-        // }
 
         throw std::runtime_error("Local BA NAN!\n");        
         std::cout << "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n";
@@ -594,8 +577,8 @@ void SparseBundleAdjustmentSolver::setParameterVectorFromPosesPoints(){
         geometry::SE3Log(Tjw, xi_jw);
         params_poses_[j_opt] = xi_jw;
 
-        std::cout << "Pose:\n" << Tjw << std::endl;
-        std::cout << "xi_jw: " << xi_jw.transpose() << std::endl;
+        // std::cout << "Pose:\n" << Tjw << std::endl;
+        // std::cout << "xi_jw: " << xi_jw.transpose() << std::endl;
     }
 
     // 2) Point part
