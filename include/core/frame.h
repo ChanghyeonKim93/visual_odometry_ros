@@ -30,6 +30,8 @@ private:
     PoseSE3 dT10_;
     PoseSE3 dT01_;
 
+    PoseSE3 dTkc_;
+
     float steering_angle_;
     float scale_;
 
@@ -56,8 +58,8 @@ public:
     Frame();
 
     // Set
-    void setPose(const Eigen::Matrix4f& Twc);
-    void setPoseDiff10(const Eigen::Matrix4f& dT10);
+    void setPose(const PoseSE3& Twc);
+    void setPoseDiff10(const PoseSE3& dT10);
     void setSteeringAngle(float st_angle);
     void setScale(float scale);
     void makeThisKeyframe();
@@ -65,6 +67,8 @@ public:
     void makeThisTurningFrame();
     void setImageAndTimestamp(const cv::Mat& img, const double& timestamp); 
     void setPtsSeenAndRelatedLandmarks(const PixelVec& pts, const LandmarkPtrVec& landmarks);
+    
+    void setPoseDiffFromLastKeyframe(const PoseSE3& dTkc);
 
     // Get
     const uint32_t& getID() const;
@@ -84,6 +88,9 @@ public:
     bool isKeyframe() const;
     bool isKeyframeInWindow() const;
     bool isTurningFrame() const;
+
+    const PoseSE3& getPoseDiffFromLastKeyframe() const;
+    
 };
 
 #endif

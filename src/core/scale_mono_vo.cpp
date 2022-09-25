@@ -9,7 +9,8 @@
  * @date 10-July-2022
  */
 ScaleMonoVO::ScaleMonoVO(std::string mode, std::string directory_intrinsic)
-: cam_(nullptr), system_flags_(), dataset_(), frame_prev_(nullptr) {
+: cam_(nullptr), system_flags_(), dataset_(), frame_prev_(nullptr) 
+{
 	std::cout << "Scale mono VO starts\n";
 		
 	// Initialize camera
@@ -459,7 +460,7 @@ statcurr_execution.time_5p = timer::toc(false);
 			frame_curr->setPoseDiff10(dT10);		
 
 			// Steering angle을 계산한다.
-			steering_angle_curr = motion_estimator_->calcSteeringAngleFromRotationMat(dR10.transpose());
+			steering_angle_curr = scale_estimator_->calcSteeringAngleFromRotationMat(dR10.transpose());
 			frame_curr->setSteeringAngle(steering_angle_curr);
 
 			// Detect turn region by a steering angle.
@@ -746,53 +747,50 @@ float ScaleMonoVO::calcLandmarksMeanAge(const LandmarkPtrVec& lms){
 
 void ScaleMonoVO::showTracking(const std::string& window_name, const cv::Mat& img, const PixelVec& pts0, const PixelVec& pts1, const PixelVec& pts1_new){
 	cv::namedWindow(window_name);
-	cv::Mat img_draw;
-	img.copyTo(img_draw);
-	cv::cvtColor(img_draw, img_draw, CV_GRAY2RGB);
+	img.copyTo(img_debug_);
+	cv::cvtColor(img_debug_, img_debug_, CV_GRAY2RGB);
 	for(int i = 0; i < pts1.size(); ++i){
-		cv::line(img_draw,pts0[i],pts1[i], cv::Scalar(0,255,255),1);
+		cv::line(img_debug_,pts0[i],pts1[i], cv::Scalar(0,255,255),1);
 	}
 	for(int i = 0; i < pts0.size(); ++i) {
-		cv::circle(img_draw, pts0[i], 3.0, cv::Scalar(0,0,0),2); // alived magenta
-		cv::circle(img_draw, pts0[i], 2.0, cv::Scalar(255,0,255),1); // alived magenta
+		cv::circle(img_debug_, pts0[i], 3.0, cv::Scalar(0,0,0),2); // alived magenta
+		cv::circle(img_debug_, pts0[i], 2.0, cv::Scalar(255,0,255),1); // alived magenta
 	}
 	for(int i = 0; i < pts1.size(); ++i){
-		cv::circle(img_draw, pts1[i], 3.0, cv::Scalar(0,0,0),2); // green tracked points
-		cv::circle(img_draw, pts1[i], 2.0, cv::Scalar(0,255,0),1); // green tracked points
+		cv::circle(img_debug_, pts1[i], 3.0, cv::Scalar(0,0,0),2); // green tracked points
+		cv::circle(img_debug_, pts1[i], 2.0, cv::Scalar(0,255,0),1); // green tracked points
 	}
 	for(int i = 0; i < pts1_new.size(); ++i){
-		cv::circle(img_draw, pts1_new[i], 3.0, cv::Scalar(0,0,0), 2); // blue new points
-		cv::circle(img_draw, pts1_new[i], 2.0, cv::Scalar(255,0,0),1); // blue new points
+		cv::circle(img_debug_, pts1_new[i], 3.0, cv::Scalar(0,0,0), 2); // blue new points
+		cv::circle(img_debug_, pts1_new[i], 2.0, cv::Scalar(255,0,0),1); // blue new points
 	}
 	
-	cv::imshow(window_name, img_draw);
+	cv::imshow(window_name, img_debug_);
 	cv::waitKey(3);
 };
 
 void ScaleMonoVO::showTrackingBA(const std::string& window_name, const cv::Mat& img, const PixelVec& pts1, const PixelVec& pts1_project, const MaskVec& mask_valid){	
 	cv::namedWindow(window_name);
-	cv::Mat img_draw;
-	img.copyTo(img_draw);
-	cv::cvtColor(img_draw, img_draw, CV_GRAY2RGB);
+	img.copyTo(img_debug_);
+	cv::cvtColor(img_debug_, img_debug_, CV_GRAY2RGB);
 	for(int i = 0; i < pts1.size(); ++i) {
 		if(mask_valid[i])
-			cv::circle(img_draw, pts1[i], 1.0, cv::Scalar(0,0,255),2); // alived magenta
+			cv::circle(img_debug_, pts1[i], 1.0, cv::Scalar(0,0,255),4); // alived magenta
 	}
 	for(int i = 0; i < pts1.size(); ++i){
 		if(mask_valid[i])
-			cv::rectangle(img_draw, cv::Point2f(pts1_project[i].x-4,pts1_project[i].y-4),cv::Point2f(pts1_project[i].x+2,pts1_project[i].y+2), 
+			cv::rectangle(img_debug_, cv::Point2f(pts1_project[i].x-8,pts1_project[i].y-8),cv::Point2f(pts1_project[i].x+4,pts1_project[i].y+4), 
 				cv::Scalar(0,255,0), 1);
 	}
 	
-	cv::imshow(window_name, img_draw);
+	cv::imshow(window_name, img_debug_);
 	cv::waitKey(3);
 };
 
 void ScaleMonoVO::showTracking(const std::string& window_name, const cv::Mat& img, const LandmarkPtrVec& lms){
 	cv::namedWindow(window_name);
-	cv::Mat img_draw;
-	img.copyTo(img_draw);
-	cv::cvtColor(img_draw, img_draw, CV_GRAY2RGB);
+	img.copyTo(img_debug_);
+	cv::cvtColor(img_debug_, img_debug_, CV_GRAY2RGB);
 
 	for(int i = 0; i < lms.size(); ++i){
 		const LandmarkPtr& lm = lms[i];
@@ -803,18 +801,23 @@ void ScaleMonoVO::showTracking(const std::string& window_name, const cv::Mat& im
 		for(int j = pts.size()-1; j >= pts.size()-n_past+1; --j){
 			const Pixel& p1 = pts[j];
 			const Pixel& p0 = pts[j-1];
-			cv::line(img_draw, p0,p1, cv::Scalar(0,255,255),1);
-			cv::circle(img_draw, p0, 3.0, cv::Scalar(0,0,0),2); // green tracked points
-			cv::circle(img_draw, p0, 2.0, cv::Scalar(0,255,0),1); // green tracked points
-			cv::circle(img_draw, p1, 3.0, cv::Scalar(0,0,0),2); // green tracked points
-			cv::circle(img_draw, p1, 2.0, cv::Scalar(0,255,0),1); // green tracked points
+			cv::line(img_debug_, p0,p1, cv::Scalar(0,255,255),1);
+			cv::circle(img_debug_, p0, 3.0, cv::Scalar(0,0,0),2); // green tracked points
+			cv::circle(img_debug_, p0, 2.0, cv::Scalar(0,255,0),1); // green tracked points
+			cv::circle(img_debug_, p1, 3.0, cv::Scalar(0,0,0),2); // green tracked points
+			cv::circle(img_debug_, p1, 2.0, cv::Scalar(0,255,0),1); // green tracked points
 		}
 	}
-	cv::imshow(window_name, img_draw);
+	cv::imshow(window_name, img_debug_);
 	cv::waitKey(3);
 };
 
 
 ScaleMonoVO::AlgorithmStatistics ScaleMonoVO::getStatistics() const{
 	return stat_;
+};
+
+const cv::Mat& ScaleMonoVO::getDebugImage()
+{
+	return img_debug_;
 };

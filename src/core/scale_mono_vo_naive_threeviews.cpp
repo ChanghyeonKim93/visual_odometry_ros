@@ -182,7 +182,7 @@ timer::tic();
 			}
 
 			// Steering angle을 계산한다.
-			steering_angle_curr = motion_estimator_->calcSteeringAngleFromRotationMat(dR10.transpose());
+			steering_angle_curr = scale_estimator_->calcSteeringAngleFromRotationMat(dR10.transpose());
 			frame_curr->setSteeringAngle(steering_angle_curr);
 
 			// Frame_curr의 자세를 넣는다.

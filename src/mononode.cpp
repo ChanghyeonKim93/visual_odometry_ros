@@ -36,6 +36,7 @@ MonoNode::MonoNode(ros::NodeHandle& nh) : nh_(nh)
     topicname_statistics_ = "/scale_mono_vo/statistics";
     pub_statistics_ = nh_.advertise<scale_mono_vo_ros::statisticsStamped>(topicname_statistics_,1);
 
+    pub_debug_image_ = nh_.advertise<sensor_msgs::Image>("/scale_mono_vo/debug_image",1);
 
     // scale publisher
     trans_prev_gt_ << 0,0,0;
@@ -224,7 +225,19 @@ void MonoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
     }
     convertPointVecToPointCloud2(X,msg_turns_, "map");
     pub_turns_.publish(msg_turns_);
+
+
+    // Debug image
     
+    const cv::Mat& img_debug = scale_mono_vo_->getDebugImage();
+    cv_bridge::CvImage reduced_msg;
+    reduced_msg.header.stamp = ros::Time::now(); // Same timestamp and tf frame as input image
+    reduced_msg.header.frame_id = "debug_image";
+    reduced_msg.encoding        = "bgr8"; // Or whatever
+    reduced_msg.image           = img_debug; // Your cv::Mat
+
+    pub_debug_image_.publish(reduced_msg.toImageMsg());
+   
 };
 
 void MonoNode::groundtruthCallback(const geometry_msgs::PoseStampedConstPtr& msg){

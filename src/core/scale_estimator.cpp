@@ -2,21 +2,22 @@
 
 std::shared_ptr<Camera> ScaleEstimator::cam_ = nullptr;
 
-ScaleEstimator::ScaleEstimator(const std::shared_ptr<std::mutex> mut, 
+ScaleEstimator::ScaleEstimator(
+    const std::shared_ptr<std::mutex> mut, 
     const std::shared_ptr<std::condition_variable> cond_var,
     const std::shared_ptr<bool> flag_do_ASR)
 {
     // Mutex from the outside
-    mut_ = mut;
-    cond_var_ = cond_var;
+    mut_         = mut;
+    cond_var_    = cond_var;
     flag_do_ASR_ = flag_do_ASR;
 
     // Detecting turn region variables
-    cnt_turn_ = 0;
+    cnt_turn_    = 0;
 
     thres_cnt_turn_ = 15;
     // thres_psi_ = 1.0 * M_PI / 180.0;
-    thres_psi_ = 0.02;
+    thres_psi_   = 2.0*M_PI/180.0;
 
     // SFP parameters
     thres_age_past_horizon_ = 20;
@@ -24,8 +25,8 @@ ScaleEstimator::ScaleEstimator(const std::shared_ptr<std::mutex> mut,
     thres_age_recon_        = 15;
     thres_flow_             = 5.0;
 
-    thres_parallax_use_   = 0.5*D2R;
-    thres_parallax_recon_ = 60*D2R;
+    thres_parallax_use_     = 0.5*D2R;
+    thres_parallax_recon_   = 60*D2R;
 
     terminate_future_ = terminate_promise_.get_future();
     runThread();
@@ -33,7 +34,8 @@ ScaleEstimator::ScaleEstimator(const std::shared_ptr<std::mutex> mut,
     printf(" - SCALE_ESTIMATOR is constructed.\n");
 };
 
-ScaleEstimator::~ScaleEstimator(){
+ScaleEstimator::~ScaleEstimator()
+{
     // Terminate signal .
     std::cerr << "SCALE_ESTIMATOR - terminate signal published...\n";
     terminate_promise_.set_value();
@@ -42,13 +44,16 @@ ScaleEstimator::~ScaleEstimator(){
     mut_->lock();
     *flag_do_ASR_ = true;
     mut_->unlock();
+    
     cond_var_->notify_all();
 
     // wait for TX & RX threads to terminate ...
     std::cerr << "                   - waiting 1 second to join a thread ...\n";
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
-    if(thread_.joinable()) thread_.join();
+    if(thread_.joinable()) 
+        thread_.join();
+    
     std::cerr << "                   - SCALE_ESTIMATOR thread joins successfully.\n";
 
     printf(" - SCALE_ESTIMATOR is destructed.\n");
@@ -81,12 +86,9 @@ void ScaleEstimator::process(std::shared_future<void> terminate_signal){
 void ScaleEstimator::module_ScaleForwardPropagation(const LandmarkPtrVec& lmvec, const FramePtrVec& framevec, const PoseSE3& dT10)
 {
     // intrinsic parameters
-    const float& fx = cam_->fx();
-    const float& fy = cam_->fy();
-    const float& fxinv = cam_->fxinv();
-    const float& fyinv = cam_->fyinv();
-    const float& cx = cam_->cx();
-    const float& cy = cam_->cy();
+    const float& fx = cam_->fx(), fy = cam_->fy();
+    const float& fxinv = cam_->fxinv(), fyinv = cam_->fyinv();
+    const float& cx = cam_->cx(), cy = cam_->cy();
     const Eigen::Matrix3f& K    = cam_->K();
     const Eigen::Matrix3f& Kinv = cam_->Kinv();
 
@@ -129,9 +131,6 @@ void ScaleEstimator::module_ScaleForwardPropagation(const LandmarkPtrVec& lmvec,
     }
 
     uint32_t M_tmp = lms_no_depth.size();
-    // std::cout << "No  depth size: " << lms_no_depth.size() << std::endl;
-    // std::cout << "Yes depth size: " << lms_depth.size() << std::endl;
-    // std::cout << frame_curr->getID() <<" -th frame, Mtmp : " << M_tmp << std::endl;
 
     // Generate Matrices
     uint32_t mat_size = 3*M_tmp + 1;
@@ -354,8 +353,8 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame){
             float mean_scale = 0.0f;
             std::vector<float> scales_t1;
             for(auto f : frames_t1_){
-                Pos3 u01 = f->getPoseDiff01().block<3,1>(0,3);
-                float s = calcScaleByKinematics(f->getSteeringAngle(), u01, L);
+                Pos3 t01 = f->getPoseDiff01().block<3,1>(0,3);
+                float s = calcScaleByKinematics(f->getSteeringAngle(), t01, L);
                 scales_t1.push_back(s);
                 // PoseSE3 dT10_est;
                 // dT10_est << dRj, uj*scale_est,0,0,0,1;
@@ -400,16 +399,39 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame){
 };
 
 
-bool ScaleEstimator::detectTurnRegions(const FramePtr& frame, const Rot3& Rpc){
+bool ScaleEstimator::detectTurnRegions(
+    const std::shared_ptr<Keyframes>& keyframes, const FramePtr& frame)
+{
+    // 새로운 turning region이 감지되었는지 판단.
     bool flag_turn_detected = false;
 
-    float psi = frame->getSteeringAngle();
-    if( abs(psi) > thres_psi_ ) { // Current psi is over the threshold
+    // Calculate steering angle from the last keyframe.
+    const PoseSE3& Twk = keyframes->getList().back()->getPose();
+    const PoseSE3& Twc = frame->getPose();
+    PoseSE3 Tkc = Twk.inverse()*Twc; 
+        
+    const Rot3& Rkc = Tkc.block<3,3>(0,0);
+    const Pos3& tkc = Tkc.block<3,1>(0,3);
+
+    float psi_kc = this->calcSteeringAngleFromRotationMat(Rkc);
+    
+    frame->setSteeringAngle(psi_kc);
+    frame->setPoseDiffFromLastKeyframe(Tkc);
+
+    std::cout << frame->getID() << "-th steering angle: " << psi_kc*R2D << " [deg]\n";
+        
+    if( abs(psi_kc) > this->thres_psi_ )
+    { 
+        // Current psi is over the threshold
         frames_t1_.push_back(frame); // Stack the 
         ++cnt_turn_;
     }
-    else { // end of array of turn regions
-        if(cnt_turn_ >= thres_cnt_turn_){ // sufficient frames
+    else
+    { 
+        // End of array of turn regions
+        if(cnt_turn_ >= thres_cnt_turn_)
+        {
+            // Sufficient frames, 
             // Do Absolute Scale Recovery
             frames_t0_; // Ft0
             frames_t1_; // Ft1
@@ -421,16 +443,34 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame, const Rot3& Rpc){
             float L = 1.08;
             float mean_scale = 0.0f;
             std::vector<float> scales_t1;
-            for(auto f : frames_t1_){
-                Pos3 u01 = f->getPoseDiff01().block<3,1>(0,3);
-                float s = calcScaleByKinematics(f->getSteeringAngle(), u01, L);
+            std::vector<float> ratios;
+            for(auto f : frames_t1_)
+            {
+                Pos3 t01 = f->getPoseDiffFromLastKeyframe().block<3,1>(0,3);
+                float s = calcScaleByKinematics(f->getSteeringAngle(), t01, L);
+                
+                float ratio = s/t01.norm();
+
                 scales_t1.push_back(s);
                 // PoseSE3 dT10_est;
                 // dT10_est << dRj, uj*scale_est,0,0,0,1;
                 // frame_curr->setPose(Twjm1*dT10_est.inverse());
                 // frame_curr->setPoseDiff10(dT10_est);
-                std::cout << f->getID() << "-th image scale : " << s <<", angle: " << f->getSteeringAngle()*R2D << " [deg]" << std::endl;
+                std::cout << " ------------------- " 
+                << f->getID() << "-th image scale : " << s 
+                << ", est: " << t01.norm() << " ratio: " << ratio 
+                << ", angle: " << f->getSteeringAngle()*R2D << " [deg]" << std::endl;
+                
+                ratios.push_back(ratio);
             }
+
+            std::sort(ratios.begin(), ratios.end());
+            std::cout <<" ratios: ";
+            for(auto r : ratios){
+                std::cout << r <<" ";
+            }
+            std::cout << std::endl;
+            std::cout <<"ratio median: " << ratios[(int)((float)ratios.size()*0.5f)-1] << std::endl;
 
             std::sort(scales_t1.begin(), scales_t1.end());
             int idx_median = (int)((float)scales_t1.size()*0.5f)-1;
@@ -456,7 +496,9 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame, const Rot3& Rpc){
             }
             std::cout << "\n";
         }
-        else { // insufficient frames. The stacked frames are not of the turning region.
+        else 
+        { 
+            // insufficient frames. The stacked frames are not of the turning region.
             for(auto f : frames_t1_)
                 frames_u_.push_back(f);
         }
@@ -466,6 +508,13 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame, const Rot3& Rpc){
 
     return flag_turn_detected;
 };
+
+
+
+
+
+
+
 
 const FramePtrVec& ScaleEstimator::getAllTurnRegions() const{
     return frames_all_t_;
@@ -503,10 +552,6 @@ void ScaleEstimator::solveLeastSquares_SFP(const SpMat& AtA, const SpVec& Atb, u
 
     this->calcAinvB_SFP(Ainv_vec, B, M_tmp, AinvB);
     BtAinv = AinvB.transpose().eval();
-    // std::cout << "AinvB size: " << AinvB.innerSize() << " x " << AinvB.outerSize() <<std::endl;
-    // std::cout << "BtAinv size: " << BtAinv.innerSize() << " x " << BtAinv.outerSize() <<std::endl;
-    // std::cout << "B size: " << B.innerSize() << " x " << B.outerSize() <<std::endl;
-    // std::cout << "BtAinv B size: " << (BtAinv*B).innerSize() << " x " << (BtAinv*B).outerSize() <<std::endl;
     
     SpVec x;
     float y;
@@ -634,17 +679,65 @@ void ScaleEstimator::setSFP_ThresParallaxRecon(float thres_parallax_recon){
     thres_parallax_recon_ = thres_parallax_recon;
 };
 
-float ScaleEstimator::calcScaleByKinematics(float psi, const Pos3& u01, float L){
+float ScaleEstimator::calcScaleByKinematics(float psi, const Pos3& t01, float L){
     
-    float costheta = u01(2)/u01.norm();
+    // projection 
+    Vec3 j_vec(0,1,0);
+    Vec3 tp = t01 - (t01.dot(j_vec))*j_vec;
+    
+    float costheta = t01(2)/t01.norm();
     if(costheta >= 0.99999f) costheta = 0.99999f;
     if(costheta <= -0.99999f) costheta = -0.99999f;
 
-    float theta = acos(costheta);
 
-    psi = abs(psi);
-    theta = abs(theta);
+    float costheta_p = tp(2)/tp.norm();
+    if(costheta_p >= 0.99999f)  costheta_p = 0.99999f;
+    if(costheta_p <= -0.99999f) costheta_p = -0.99999f;
+
+
+    float theta = acos(costheta);
+    float theta_p = acos(costheta_p);
+    std::cout << "theta: " << theta*R2D <<" [deg], theta_p: " << theta_p*R2D << " [deg]\n";
+
+
+    psi   = abs(psi);
+    theta = abs(theta_p);
 
     float s = L*2.0f*(sin(psi)/(sin(theta)-sin(psi-theta)));
     return s;
+};
+
+float ScaleEstimator::calcSteeringAngleFromRotationMat(const Rot3& R)
+{
+    // Mat33 S = R-R.transpose();
+    float inCos = 0.5f*(R.trace()-1.0f);
+    if(inCos >=  0.999999999) 
+        inCos =  0.999999999;
+
+    if(inCos <= -0.999999999)
+        inCos = -0.999999999;
+
+    float psi = acos(inCos);
+
+    Vec3 v; // rotation vector direction.
+    v << R(2,1)-R(1,2), R(0,2)-R(2,0), R(1,0)-R(0,1);
+    v = v/v.norm();
+    std::cout << "v: " << v.transpose() << std::endl;
+
+    Vec3 j_vec(0,1,0);
+    float vjdot = v.dot(j_vec);
+    std::cout << "vjdot: " << vjdot << std::endl;
+
+    std::cout <<"psi : " << psi*R2D << " [deg], psi_p: " << psi*(vjdot)*R2D << " [deg]\n";
+
+    if(std::isnan(psi))
+        throw std::runtime_error("MotionEstimator-'calcSteeringAngleFromRotationMat', std::isnan(psi) == true");    
+    
+    if( vjdot < 0 )
+        psi = -psi;
+
+    psi = psi*(vjdot);
+    std::cout << "psi: " << psi*R2D << " [deg]\n";
+
+    return psi;
 };

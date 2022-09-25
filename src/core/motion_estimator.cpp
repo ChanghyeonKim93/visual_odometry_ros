@@ -1018,30 +1018,6 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const LandmarkPtrVec& lms, co
     return is_success;
 };
 
-float MotionEstimator::calcSteeringAngleFromRotationMat(const Rot3& R)
-{
-    float psi = 0;
-    Mat33 S = R-R.transpose();
-    Vec3 v;
-    v << -S(1,2),S(0,2),-S(0,1);
-
-    Vec3 j_vec; j_vec << 0,1,0;
-    float vjdot = v.dot(j_vec);
-
-    float inCos = 0.5*(R.trace()-1.0f);
-
-    if(inCos >= 1.0) 
-        inCos = 0.999999999;
-    if(inCos <= -1.0)
-        inCos = -0.999999999;
-
-    psi = acos(inCos);
-    if(vjdot < 0) 
-        psi = -psi;
-
-    return psi;
-};
-
 void MotionEstimator::addData(SpMat& mat, const Eigen::MatrixXf& mat_part, int row_start, int col_start, int row_sz, int col_sz)
 {
     // Sparse matrix default : column-major order. 

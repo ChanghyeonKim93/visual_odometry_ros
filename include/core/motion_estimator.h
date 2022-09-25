@@ -57,8 +57,6 @@ public:
     bool calcPoseOnlyBundleAdjustment(const LandmarkPtrVec& lms, const PixelVec& pts1, const std::shared_ptr<Camera>& cam,
         Rot3& R01_true, Pos3& t01_true, MaskVec& mask_inlier);
 
-    float calcSteeringAngleFromRotationMat(const Rot3& R);
-
     bool localBundleAdjustmentSparseSolver(const std::shared_ptr<Keyframes>& kfs, const std::shared_ptr<Camera>& cam);
 
 public:

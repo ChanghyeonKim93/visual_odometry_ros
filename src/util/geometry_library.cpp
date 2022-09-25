@@ -284,6 +284,55 @@ namespace geometry {
         return q;
     };
 
+    Vector3d r2euler(const Matrix3d& R)
+    {
+        double sy = std::sqrt(R(0,0) * R(0,0) + R(1,0)*R(1,0));
+
+        bool is_singular = sy < 1e-6;
+        double x,y,z;
+        if(is_singular)
+        {
+            x = atan2(-R(1,2),R(1,1));
+            y = atan2(-R(2,0),sy);
+            z = 0;
+        }
+        else
+        {
+            x = atan2(R(2,1),R(2,2));
+            y = atan2(-R(2,0), sy);
+            z = atan2(R(1,0), R(0,0));
+        }
+
+        Vector3d euler;
+        euler << x,y,z;
+        return euler;
+    };
+
+    Vector3f r2euler_f(const Matrix3f& R)
+    {
+        float sy = std::sqrt(R(0,0) * R(0,0) + R(1,0)*R(1,0));
+
+        bool is_singular = sy < 1e-6;
+        float x,y,z;
+        if(is_singular)
+        {
+            x = atan2(-R(1,2),R(1,1));
+            y = atan2(-R(2,0),sy);
+            z = 0;
+        }
+        else
+        {
+            x = atan2(R(2,1),R(2,2));
+            y = atan2(-R(2,0), sy);
+            z = atan2(R(1,0), R(0,0));
+        }
+
+        Vector3f euler;
+        euler << x,y,z;
+        return euler;
+    };
+
+
     void se3Exp(const Eigen::Matrix<double,6,1>& xi, Eigen::Matrix<double,4,4>& T){
         // initialize variables
         double theta = 0.0;

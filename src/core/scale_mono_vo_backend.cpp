@@ -200,7 +200,7 @@ statcurr_execution.time_5p = timer::toc(false);
 #endif				
 
 			// Steering angle을 계산한다.
-			float steering_angle_curr = motion_estimator_->calcSteeringAngleFromRotationMat(dT01.block<3,3>(0,0));
+			float steering_angle_curr = scale_estimator_->calcSteeringAngleFromRotationMat(dT01.block<3,3>(0,0));
 			frame_curr->setSteeringAngle(steering_angle_curr);
 
 			// Detect turn region by a steering angle.

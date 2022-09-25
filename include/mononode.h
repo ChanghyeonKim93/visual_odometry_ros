@@ -75,6 +75,11 @@ private:
     nav_msgs::Path msg_trajectory_gt_;
     std::string topicname_trajectory_gt_;
 
+    // Publisher for debug image
+    ros::Publisher pub_debug_image_;
+    sensor_msgs::Image msg_debug_image_;
+    
+
 
     // Publishers for scales
     Vec3 trans_prev_gt_;

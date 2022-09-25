@@ -421,17 +421,9 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 		if(keyframes_->getList().size() > 0)
 		{
 			// Find turning region
-			// Steering angle을 계산한다.
-			PoseSE3 T01     = keyframes_->getList().back()->getPoseInv()*frame_curr->getPose();
-			const Rot3& R01 = T01.block<3,3>(0,0);
-			
-			float steering_angle_curr = motion_estimator_->calcSteeringAngleFromRotationMat(R01);
-			frame_curr->setSteeringAngle(steering_angle_curr);
-			std::cout << " === NEW KEYFRAME TURNING ANGLE: " << steering_angle_curr*R2D << " [deg]\n";
-
-			// Detect turn region by a steering angle.
-			if(scale_estimator_->detectTurnRegions(frame_curr)){
-				std::cout << " ===  ===  Turn region is detected !\n";
+			if(scale_estimator_->detectTurnRegions(keyframes_, frame_curr))
+			{
+				std::cout << " ===  ===  Turn region is detected! \n";
 
 				FramePtrVec Ft = scale_estimator_->getAllTurnRegions(); // all turn regions
 				for(auto f : Ft) stat_.stat_turn.turn_regions.push_back(f);
@@ -515,15 +507,19 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 		// lms1_final 중, depth가 복원되지 않은 경우 복원해준다.
 		uint32_t cnt_recon = 0;
 		
-		for(auto lm : frame_curr->getRelatedLandmarkPtr()){
-			if(!lm->isTriangulated() && lm->getLastParallax() >= THRES_PARALLAX){
-				if(lm->getObservationsOnKeyframes().size() > 1){ // 2번 이상 keyframe에서 보였다.
+		for(auto lm : frame_curr->getRelatedLandmarkPtr())
+		{
+			if(!lm->isTriangulated() && lm->getLastParallax() >= THRES_PARALLAX)
+			{
+				if(lm->getObservationsOnKeyframes().size() > 1)
+				{
+					// 2번 이상 keyframe에서 보였다.
 					const Pixel& pt0 = lm->getObservationsOnKeyframes().front();
 					const Pixel& pt1 = lm->getObservationsOnKeyframes().back();
 
 					const PoseSE3& Tw0 = lm->getRelatedKeyframePtr().front()->getPose();
 					const PoseSE3& Tw1 = lm->getRelatedKeyframePtr().back()->getPose();
-					PoseSE3 T10_tmp =  geometry::inverseSE3_f(Tw1) * Tw0;
+					PoseSE3 T10_tmp = geometry::inverseSE3_f(Tw1) * Tw0;
 
 					// Reconstruct points
 					Point X0, X1;

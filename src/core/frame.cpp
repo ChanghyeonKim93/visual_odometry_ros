@@ -21,6 +21,10 @@ void Frame::setPoseDiff10(const Eigen::Matrix4f& dT10){
     dT01_ = geometry::inverseSE3_f(dT10);
 };
 
+void Frame::setPoseDiffFromLastKeyframe(const PoseSE3& dTkc){
+    dTkc_ = dTkc;
+};
+
 void Frame::setSteeringAngle(float st_angle){
     steering_angle_ = st_angle;
 };
@@ -129,4 +133,8 @@ bool Frame::isKeyframeInWindow() const{
 };
 bool Frame::isTurningFrame() const {
     return is_turning_frame_;
+};
+
+const PoseSE3& Frame::getPoseDiffFromLastKeyframe() const {
+    return dTkc_;
 };

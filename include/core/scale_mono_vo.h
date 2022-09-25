@@ -230,6 +230,10 @@ private:
 	LandmarkPtrVec all_landmarks_;
 	FramePtrVec    all_frames_;
 	
+// debug image.
+private:
+	cv::Mat img_debug_;
+
 public:
 	ScaleMonoVO(std::string mode, std::string directory_intrinsic);
 	~ScaleMonoVO();
@@ -263,6 +267,9 @@ private:
 	void showTracking(const std::string& window_name, const cv::Mat& img, const PixelVec& pts0, const PixelVec& pts1, const PixelVec& pts1_new);
 	void showTrackingBA(const std::string& window_name, const cv::Mat& img, const PixelVec& pts1, const PixelVec& pts1_project, const MaskVec& mask_valid);
 	void showTracking(const std::string& window_name, const cv::Mat& img, const LandmarkPtrVec& lms);
+
+public:
+	const cv::Mat& getDebugImage();
 
 private:
 	void runDataset(); // run algorithm

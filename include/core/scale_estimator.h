@@ -30,7 +30,9 @@
 #include "core/mapping.h"
 #include "core/landmark.h"
 #include "core/frame.h"
+#include "core/keyframes.h"
 
+/// @brief ScaleEstimator class. This class runs on another thread.
 class ScaleEstimator{
 public:
     ScaleEstimator(
@@ -40,14 +42,18 @@ public:
     ~ScaleEstimator();
 
 public:
-    void module_ScaleForwardPropagation(const LandmarkPtrVec& lmvec, const FramePtrVec& framevec, const PoseSE3& dT10); // SFP module return : scale of the current motion.
+    void module_ScaleForwardPropagation(
+        const LandmarkPtrVec& lmvec, const FramePtrVec& framevec, const PoseSE3& dT10); // SFP module return : scale of the current motion.
     void module_AbsoluteScaleRecovery(); // SFP module return : scale of the current motion.
 
     bool detectTurnRegions(const FramePtr& frame);
-    bool detectTurnRegions(const FramePtr& frame, const Rot3& Rpc);
+    bool detectTurnRegions(const std::shared_ptr<Keyframes>& keyframes, const FramePtr& frame);
     const FramePtrVec& getAllTurnRegions() const;
     const FramePtrVec& getLastTurnRegion() const;
+    
+    float calcSteeringAngleFromRotationMat(const Rot3& R);
 
+// 외부에서 입력하는 파라미터.
 public:
     void setTurnRegion_ThresPsi(float psi);
     void setTurnRegion_ThresCountTurn(uint32_t thres_cnt_turn);

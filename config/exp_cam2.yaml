@@ -1,0 +1,63 @@
+%YAML:1.0
+#--------------------------------------------------------------------------------------------
+# Camera Parameters
+#--------------------------------------------------------------------------------------------
+
+# Flag do undistortion
+flagDoUndistortion: 1 # 0: do not undistort an image (KITTI), 1: undistort an image
+
+# Camera calibration and distortion parameters (OpenCV) 
+Camera.fx: 891.24753
+Camera.fy: 891.18223
+Camera.cx: 522.21205
+Camera.cy: 389.76297
+
+Camera.k1: -0.163810
+Camera.k2: 0.125211
+Camera.k3: -0.000737
+Camera.p1: -0.001757
+Camera.p2: 0.0
+
+Camera.width: 1032
+Camera.height: 772
+
+#--------------------------------------------------------------------------------------------
+# User setting Parameters
+#--------------------------------------------------------------------------------------------
+
+# Parameters of feature tracker
+feature_tracker.thres_error: 70.0      
+feature_tracker.thres_bidirection: 1.0
+feature_tracker.thres_sampson: 0.5
+feature_tracker.window_size: 15
+feature_tracker.max_level: 5
+
+# Parameters of map update
+map_update.thres_parallax: 1.0
+
+# Parameters of feature extractor
+feature_extractor.n_features: 100
+feature_extractor.n_bins_u: 24
+feature_extractor.n_bins_v: 16
+feature_extractor.thres_fastscore: 20.0
+feature_extractor.radius: 10.0
+
+# Parameters of motion estimator
+motion_estimator.thres_1p_error: 120.0 # pixels
+motion_estimator.thres_5p_error: 1.0 # pixels
+motion_estimator.thres_poseba_error: 5.0 # pixels
+
+# Parameters of scale estimator
+scale_estimator.initial_scale: 0.76 # meters
+scale_estimator.thres_turn_psi: 1.2 # degrees
+scale_estimator.thres_cnt_turns: 7
+
+scale_estimator.thres_age_past_horizon: 20
+scale_estimator.thres_age_use: 2
+scale_estimator.thres_age_recon: 2
+scale_estimator.thres_parallax_use: 0.5 # degrees
+scale_estimator.thres_parallax_recon: 20.0 # degrees
+
+# Parameters of keyframe update
+keyframe_update.thres_alive_ratio: 0.8
+keyframe_update.thres_mean_parallax: 1.0
