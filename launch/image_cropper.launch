@@ -1,0 +1,26 @@
+<launch>
+    <node pkg="scale_mono_vo_ros" name="image_cropper" type="image_cropper" output="screen">
+        <!-- Image topicname to be subscribed -->
+        <param name="image_name_0" type="string" value="/0/image_raw"/>
+        <param name="image_name_1" type="string" value="/1/image_raw"/>
+        <param name="image_name_2" type="string" value="/2/image_raw"/>
+
+        <param name="img0_left_crop"   type="int" value="50"/>
+        <param name="img0_right_crop"  type="int" value="50"/>
+        <param name="img0_top_crop"    type="int" value="120"/>
+        <param name="img0_bottom_crop" type="int" value="120"/>
+
+        <param name="img1_left_crop"   type="int" value="50"/>
+        <param name="img1_right_crop"  type="int" value="50"/>
+        <param name="img1_top_crop"    type="int" value="120"/>
+        <param name="img1_bottom_crop" type="int" value="120"/>
+
+        <param name="img2_left_crop"   type="int" value="200"/>
+        <param name="img2_right_crop"  type="int" value="200"/>
+        <param name="img2_top_crop"    type="int" value="200"/>
+        <param name="img2_bottom_crop" type="int" value="200"/>
+        
+        <!-- Topicname of the groundtruth -->
+        <param name="n_cameras" type="int" value="3"/>
+    </node>
+</launch> 
