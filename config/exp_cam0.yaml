@@ -7,15 +7,15 @@
 flagDoUndistortion: 1 # 0: do not undistort an image (KITTI), 1: undistort an image
 
 # Camera calibration and distortion parameters (OpenCV) 
-Camera.fx: 667.89548
-Camera.fy: 667.54477
-Camera.cx: 549.91789
-Camera.cy: 394.40125
+Camera.fx: 667.59708
+Camera.fy: 667.40554
+Camera.cx: 545.66678
+Camera.cy: 395.18554
 
-Camera.k1: -0.296418
-Camera.k2: 0.097061
-Camera.k3: -0.000118
-Camera.p1: 0.000181
+Camera.k1: -0.296981
+Camera.k2: 0.097228
+Camera.k3: 0.000187
+Camera.p1: -0.000192
 Camera.p2: 0.0
 
 Camera.width: 1032
@@ -28,7 +28,7 @@ Camera.height: 772
 # Parameters of feature tracker
 feature_tracker.thres_error: 70.0      
 feature_tracker.thres_bidirection: 1.0
-feature_tracker.thres_sampson: 0.5
+feature_tracker.thres_sampson: 0.2
 feature_tracker.window_size: 13
 feature_tracker.max_level: 6
 
@@ -37,9 +37,9 @@ map_update.thres_parallax: 1.0
 
 # Parameters of feature extractor
 feature_extractor.n_features: 100
-feature_extractor.n_bins_u: 28
-feature_extractor.n_bins_v: 16
-feature_extractor.thres_fastscore: 20.0
+feature_extractor.n_bins_u: 32
+feature_extractor.n_bins_v: 20
+feature_extractor.thres_fastscore: 15.0
 feature_extractor.radius: 5.0
 
 # Parameters of motion estimator

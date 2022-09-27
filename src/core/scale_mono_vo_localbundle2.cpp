@@ -572,8 +572,8 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 	std::cout << "# of all landmarks: " << X_world_recon.size() << std::endl;
 
 #ifdef RECORD_FRAME_STAT
-// statcurr_frame.mappoints.resize(0);
-// statcurr_frame.mappoints = X_world_recon;
+statcurr_frame.mappoints.resize(0);
+statcurr_frame.mappoints = X_world_recon;
 #endif
 
 	// Update statistics

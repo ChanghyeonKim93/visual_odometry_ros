@@ -209,6 +209,7 @@ void MonoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
 
     // Publish mappoints
     sensor_msgs::PointCloud2 msg_mappoint;
+    mappoints_.resize(0);
     for(auto x : stat.stats_frame.back().mappoints){
         mappoints_.push_back(x);
     }
