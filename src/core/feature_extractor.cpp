@@ -99,6 +99,9 @@ void FeatureExtractor::extractORBwithBinning(const cv::Mat& img, PixelVec& pts_e
 	}
 	else img_in = img;
 
+	int n_cols = img_in.cols;
+	int n_rows = img_in.rows;
+
 	int overlap = floor(1 * params_orb_.EdgeThreshold);
 
 	std::vector<cv::KeyPoint> fts_tmp;
@@ -131,6 +134,8 @@ void FeatureExtractor::extractORBwithBinning(const cv::Mat& img, PixelVec& pts_e
 					v_range[0] = v_idx[v] - overlap;
 					v_range[1] = v_idx[v + 1] + overlap;
 				}
+				if(v_range[0] <= 0) v_range[0] = 0;
+				if(v_range[1] > n_rows) v_range[1] = n_rows-1;
 
 				if (u == 0) {
 					u_range[0] = u_idx[u];
@@ -144,6 +149,9 @@ void FeatureExtractor::extractORBwithBinning(const cv::Mat& img, PixelVec& pts_e
 					u_range[0] = u_idx[u] - overlap;
 					u_range[1] = u_idx[u + 1] + overlap;
 				}
+				if(u_range[0] <= 0) u_range[0] = 0;
+				if(u_range[1] > n_cols) u_range[1] = n_cols-1;
+				
 				// image sampling
 				// TODO: which one is better? : sampling vs. masking
 				// std::cout << "set ROI \n";
