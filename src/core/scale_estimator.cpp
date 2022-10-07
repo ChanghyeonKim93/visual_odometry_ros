@@ -1,12 +1,14 @@
 #include "core/scale_estimator.h"
 
-std::shared_ptr<Camera> ScaleEstimator::cam_ = nullptr;
-
 ScaleEstimator::ScaleEstimator(
+    const std::shared_ptr<Camera> cam,
     const std::shared_ptr<std::mutex> mut, 
     const std::shared_ptr<std::condition_variable> cond_var,
     const std::shared_ptr<bool> flag_do_ASR)
 {
+
+    cam_ = cam;
+
     // Mutex from the outside
     mut_         = mut;
     cond_var_    = cond_var;

@@ -9,27 +9,19 @@
  * @date 10-July-2022
  */
 ScaleMonoVO::ScaleMonoVO(std::string mode, std::string directory_intrinsic)
-: cam_(nullptr), system_flags_(), dataset_(), frame_prev_(nullptr) 
+: cam_(nullptr), system_flags_(), frame_prev_(nullptr) 
 {
 	std::cout << "Scale mono VO starts\n";
 		
 	// Initialize camera
 	cam_ = std::make_shared<Camera>();
-	ScaleEstimator::cam_ = cam_;
 
-	if(mode == "dataset"){
-		std::cout <<"ScaleMonoVO - 'dataset' mode.\n";
-		std::string dir_dataset = "D:/#DATASET/kitti/data_odometry_gray";
-		std::string dataset_num = "00";
-
-		this->loadCameraIntrinsicAndUserParameters_KITTI_IMAGE0(dir_dataset + "/dataset/sequences/" + dataset_num + "/intrinsic.yaml");
-
-		// Get dataset filenames.
-		dataset_loader::getImageFileNames_KITTI(dir_dataset, dataset_num, dataset_);
-
-		runDataset(); // run while loop
+	if(mode == "dataset")
+	{
+		throw std::runtime_error("dataset mode is not supported.");
 	}
-	else if(mode == "rosbag"){
+	else if(mode == "rosbag")
+	{
 		std::cout << "ScaleMonoVO - 'rosbag' mode.\n";
 		
 		this->loadCameraIntrinsicAndUserParameters(directory_intrinsic);
@@ -58,7 +50,7 @@ ScaleMonoVO::ScaleMonoVO(std::string mode, std::string directory_intrinsic)
 	mut_scale_estimator_      = std::make_shared<std::mutex>();
 	cond_var_scale_estimator_ = std::make_shared<std::condition_variable>(); // New pose 가 도
 	flag_do_ASR_              = std::make_shared<bool>(false);
-	scale_estimator_          = std::make_shared<ScaleEstimator>(mut_scale_estimator_, cond_var_scale_estimator_, flag_do_ASR_);
+	scale_estimator_          = std::make_shared<ScaleEstimator>(cam_, mut_scale_estimator_, cond_var_scale_estimator_, flag_do_ASR_);
 	
 	scale_estimator_->setTurnRegion_ThresCountTurn(params_.scale_estimator.thres_cnt_turns);
 	scale_estimator_->setTurnRegion_ThresPsi(params_.scale_estimator.thres_turn_psi*D2R);
@@ -82,95 +74,6 @@ ScaleMonoVO::ScaleMonoVO(std::string mode, std::string directory_intrinsic)
  */
 ScaleMonoVO::~ScaleMonoVO() {
 	std::cout << "Scale mono VO is terminated.\n";
-};
-
-
-/**
- * @brief Run scale mono vo on the dataset.
- * @details 낱장 이미지 파일들로 저장되어있는 (ex. KITTI) 데이터에 대해 scale mono vo 알고리즘 구동. 
- * @return void
- * @author Changhyeon Kim (hyun91015@gmail.com)
- * @date 10-July-2022
- */
-void ScaleMonoVO::runDataset() {
-	
-	cv::Mat img0 = cv::imread(dataset_.image_names[0], cv::IMREAD_GRAYSCALE);
-	cv::Mat img0f;
-	img0.convertTo(img0f, CV_32FC1);
-	std::cout << "input image type: " << image_processing::type2str(img0f) << std::endl;
-	/*while (true) {
-
-	}*/
-};
-
-/**
- * @brief load monocular camera intrinsic parameters from yaml file.
- * @details 카메라의 intrinsic parameter (fx,fy,cx,cy, distortion)을 얻어온다. 
- * @param dir file directory
- * @return void
- * @author Changhyeon Kim (hyun91015@gmail.com)
- * @date 21-July-2022
- */
-void ScaleMonoVO::loadCameraIntrinsicAndUserParameters_KITTI_IMAGE0(const std::string& dir) {
-
-	cv::FileStorage fs(dir, cv::FileStorage::READ);
-	if (!fs.isOpened()) throw std::runtime_error("intrinsic file cannot be found!\n");
-
-	int rows, cols;
-	rows = fs["Camera.height"];	cols = fs["Camera.width"];
-
-	float fx, fy, cx, cy;
-	fx = fs["Camera.fx"];	fy = fs["Camera.fy"];
-	cx = fs["Camera.cx"];	cy = fs["Camera.cy"];
-
-	float k1,k2,k3,p1,p2;
-	k1 = fs["Camera.k1"];	k2 = fs["Camera.k2"];	k3 = fs["Camera.k3"];
-	p1 = fs["Camera.p1"];	p2 = fs["Camera.p2"];
-
-	cv::Mat cvK_tmp;
-	cvK_tmp = cv::Mat(3,3,CV_32FC1);
-	cvK_tmp.at<float>(0,0) = fx;	cvK_tmp.at<float>(0,1) = 0.0f;	cvK_tmp.at<float>(0,2) = cx;
-	cvK_tmp.at<float>(1,0) = 0.0f;	cvK_tmp.at<float>(1,1) = fy;	cvK_tmp.at<float>(1,2) = cy;
-	cvK_tmp.at<float>(2,0) = 0.0f;	cvK_tmp.at<float>(2,1) = 0.0f;	cvK_tmp.at<float>(2,2) = 1.0f;
-	
-	cv::Mat cvD_tmp;
-	cvD_tmp = cv::Mat(1,5,CV_32FC1);
-	cvD_tmp.at<float>(0,0) = k1;
-	cvD_tmp.at<float>(0,1) = k2;
-	cvD_tmp.at<float>(0,2) = p1;
-	cvD_tmp.at<float>(0,3) = p2;
-	cvD_tmp.at<float>(0,4) = k3;
-
-	if(cam_ == nullptr) throw std::runtime_error("cam_ is not allocated.");
-	cam_->initParams(cols, rows, cvK_tmp, cvD_tmp);
-
-	std::cout << "fx: " << cam_->fx() <<", "
-			  << "fy: " << cam_->fy() <<", "
-			  << "cx: " << cam_->cx() <<", "
-			  << "cy: " << cam_->cy() <<", "
-			  << "cols: " << cam_->cols() <<", "
-			  << "rows: " << cam_->rows() <<"\n";
-
-	// Load user setting parameters
-	params_.feature_tracker.thres_error = fs["feature_tracker.thres_error"];
-	params_.feature_tracker.thres_bidirection = fs["feature_tracker.thres_bidirection"];
-	params_.feature_tracker.window_size = (int)fs["feature_tracker.window_size"];
-	params_.feature_tracker.max_level = (int)fs["feature_tracker.max_level"];
-
-
-	params_.feature_extractor.n_features = (int)fs["feature_extractor.n_features"];
-	params_.feature_extractor.n_bins_u   = (int)fs["feature_extractor.n_bins_u"];
-	params_.feature_extractor.n_bins_v   = (int)fs["feature_extractor.n_bins_v"];
-	params_.feature_extractor.thres_fastscore = fs["feature_extractor.thres_fastscore"];
-	params_.feature_extractor.radius          = fs["feature_extractor.radius"];
-
-	params_.keyframe_update.thres_alive_ratio   = fs["keyframe_update.thres_alive_ratio"];
-	params_.keyframe_update.thres_mean_parallax = fs["keyframe_update.thres_mean_parallax"];
-	
-	params_.map_update.thres_parallax = fs["map_update.thres_parallax"];
-	params_.map_update.thres_parallax *= D2R;
-
-	std::cout << " - 'loadCameraIntrinsicMono()' - loaded.\n";
 };
 
 /**
@@ -356,7 +259,7 @@ void ScaleMonoVO::saveLandmarks(const LandmarkPtrVec& lms, bool verbose){
 		std::cout << "# of all accumulated landmarks: " << all_landmarks_.size() << std::endl;
 };
 
-void ScaleMonoVO::saveLandmarks(const LandmarkPtr& lm, bool verbose){
+void ScaleMonoVO::saveLandmark(const LandmarkPtr& lm, bool verbose){
 	all_landmarks_.push_back(lm);
 	
 	if(verbose)
@@ -371,7 +274,7 @@ void ScaleMonoVO::saveFrames(const FramePtrVec& frames, bool verbose){
 		std::cout << "# of all accumulated frames   : " << all_frames_.size() << std::endl;
 };
 
-void ScaleMonoVO::saveFrames(const FramePtr& frame, bool verbose){
+void ScaleMonoVO::saveFrame(const FramePtr& frame, bool verbose){
 	all_frames_.push_back(frame);
 	
 	if(verbose)

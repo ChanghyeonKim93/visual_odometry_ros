@@ -23,7 +23,7 @@ void ScaleMonoVO::trackImageBackend(const cv::Mat& img, const double& timestamp,
 
 	// 현재 이미지에 대한 새로운 Frame 생성
 	FramePtr frame_curr = std::make_shared<Frame>(cam_, false, nullptr);
-	this->saveFrames(frame_curr);
+	this->saveFrame(frame_curr);
 	
 	// 이미지 undistort (KITTI라서 할 필요 X)
 	cv::Mat img_undist;
@@ -259,7 +259,7 @@ timer::tic();
 						lmtrack_final.pts0.push_back(p0_new);
 						lmtrack_final.pts1.push_back(p1_new);
 						lmtrack_final.lms.push_back(ptr);
-						this->saveLandmarks(ptr);
+						this->saveLandmark(ptr);
 					}
 				}
 			}

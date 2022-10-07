@@ -16,84 +16,36 @@
 #include "util/geometry_library.h"
 #include "util/timer.h"
 
-typedef double _BA_numeric; 
-
-typedef Eigen::Matrix<_BA_numeric,-1,-1> _BA_MatX;
-
-typedef Eigen::Matrix<_BA_numeric,2,2> _BA_Mat22;
-
-typedef Eigen::Matrix<_BA_numeric,2,3> _BA_Mat23;
-typedef Eigen::Matrix<_BA_numeric,3,2> _BA_Mat32;
-
-typedef Eigen::Matrix<_BA_numeric,2,6> _BA_Mat26;
-typedef Eigen::Matrix<_BA_numeric,6,2> _BA_Mat62;
-
-typedef Eigen::Matrix<_BA_numeric,3,3> _BA_Mat33;
-
-typedef Eigen::Matrix<_BA_numeric,3,6> _BA_Mat36;
-typedef Eigen::Matrix<_BA_numeric,6,3> _BA_Mat63;
-
-typedef Eigen::Matrix<_BA_numeric,6,6> _BA_Mat66;
-
-typedef Eigen::Matrix<_BA_numeric,2,1> _BA_Vec2;
-typedef Eigen::Matrix<_BA_numeric,3,1> _BA_Vec3;
-typedef Eigen::Matrix<_BA_numeric,6,1> _BA_Vec6;
-
-typedef int                            _BA_Index;
-typedef Eigen::Matrix<_BA_numeric,2,1> _BA_Pixel;
-typedef Eigen::Matrix<_BA_numeric,3,1> _BA_Point;
-typedef Eigen::Matrix<_BA_numeric,3,3> _BA_Rot3;
-typedef Eigen::Matrix<_BA_numeric,3,1> _BA_Pos3;
-typedef Eigen::Matrix<_BA_numeric,4,4> _BA_PoseSE3;
-typedef Eigen::Matrix<_BA_numeric,6,1> _BA_PoseSE3Tangent;
-
-typedef std::vector<_BA_Index> _BA_IndexVec;
-typedef std::vector<_BA_Pixel> _BA_PixelVec;
-typedef std::vector<_BA_Point> _BA_PointVec;
-
-typedef std::vector<_BA_Mat66>              BlockDiagMat66; 
-typedef std::vector<_BA_Mat33>              BlockDiagMat33; 
-typedef std::vector<std::vector<_BA_Mat63>> BlockFullMat63; 
-typedef std::vector<std::vector<_BA_Mat36>> BlockFullMat36;
-typedef std::vector<std::vector<_BA_Mat66>> BlockFullMat66;
-typedef std::vector<_BA_Vec6>               BlockVec6;
-typedef std::vector<_BA_Vec3>               BlockVec3;
+#include "core/ba_solver/ba_types.h"
 
 
-/*
-    <Problem we want to solve>
-        H*delta_theta = J.transpose()*r;
-
-    where
-    - Hessian  
-            H = [A_,  B_;
-                 Bt_, C_];
-
-    - Jacobian multiplied by residual vector 
-            J.transpose()*r = [a;b];
-
-    - Update parameters
-            delta_theta = [x;y];
-*/
+struct LandmarkBA;
+class SparseBAParameters;
+class SparseBundleAdjustmentSolver;
 
 /// @brief landmark structure for a Sparse Local Bundle Adjustment (SLBA)
-struct LandmarkBA {
-    _BA_Point         X;
-    FramePtrVec       kfs_seen; // 해당 키프레임에서 어떤 좌표로 보였는지를 알아야 함.
-    _BA_IndexVec      kfs_index; // 해당 키프레임이 window에서 몇번째인가 저장.
+struct LandmarkBA
+{
+    _BA_Point         X; // 3D point represented in the reference frame
+    FramePtrVec       kfs_seen;   // 해당 키프레임에서 어떤 좌표로 보였는지를 알아야 함.
     _BA_PixelVec      pts_on_kfs; // 각 키프레임에서 추적된 pixel 좌표.
     
-    LandmarkPtr       lm;
+    LandmarkPtr       lm; // 해당 landmark의 original pointer.
 
-    LandmarkBA() {
+    /// @brief constructor of landmark structure for sparse bundle adjustment
+    LandmarkBA() 
+    {
         lm = nullptr;
         X  = _BA_Vec3::Zero();
     };
-    LandmarkBA(const LandmarkBA& lmba) {
+
+    /// @brief constructor of landmark structure for sparse bundle adjustment
+    /// @param lmba landmark pointer of original landmark
+    LandmarkBA(const LandmarkBA& lmba) 
+    {
         lm              = lmba.lm;
         X               = lmba.X;
         kfs_seen        = lmba.kfs_seen;
-        kfs_index       = lmba.kfs_index;
         pts_on_kfs      = lmba.pts_on_kfs;
     };
 };
@@ -125,6 +77,7 @@ private:
     std::map<FramePtr,_BA_PoseSE3> posemap_all_; // pose map Tjw
 
     std::map<FramePtr,_BA_Index> indexmap_opt_; // optimization pose index map
+
     FramePtrVec  framemap_opt_; // j-th optimization frame ptr
 
 // Get methods (numbers)
@@ -154,6 +107,13 @@ public:
     };
 
     const LandmarkBA& getLandmarkBA(_BA_Index i){
+        if( i >= lmbavec_all_.size())
+            throw std::runtime_error("i >= lmbavec_all_.size()");
+        return lmbavec_all_.at(i);
+    };
+
+    // Reference version
+    LandmarkBA& getLandmarkBARef(_BA_Index i){
         if( i >= lmbavec_all_.size())
             throw std::runtime_error("i >= lmbavec_all_.size()");
         return lmbavec_all_.at(i);
@@ -256,14 +216,17 @@ public:
     SparseBAParameters() 
     : N_(0), N_opt_(0), N_fix_(0), M_(0), n_obs_(0),
     pose_scale_(10.0), inv_pose_scale_(1.0/pose_scale_)
-    { };
+    { 
 
-    ~SparseBAParameters(){
+    };
+
+    ~SparseBAParameters()
+    {
         std::cout << "Sparse BA Parameters is deleted.\n";
     };
 
     void setPosesAndPoints(
-        const FramePtrVec&      frames, 
+        const FramePtrVec&  frames, 
         const _BA_IndexVec& idx_fix, 
         const _BA_IndexVec& idx_optimize)
     {
@@ -314,7 +277,6 @@ public:
             lm_ba.X = this->scalingPoint(lm_ba.X);
             
             lm_ba.kfs_seen.reserve(10);
-            lm_ba.kfs_index.reserve(10);
             lm_ba.pts_on_kfs.reserve(10);
 
             // 현재 landmark가 보였던 keyframes을 저장한다.
@@ -387,8 +349,27 @@ public:
     };
 };
 
+
+
+/*
+    <Problem we want to solve>
+        H*delta_theta = J.transpose()*r;
+
+    where
+    - Hessian  
+            H = [A_,  B_;
+                 Bt_, C_];
+
+    - Jacobian multiplied by residual vector 
+            J.transpose()*r = [a;b];
+
+    - Update parameters
+            delta_theta = [x;y];
+*/
+
 /// @brief A sparse solver for a feature-based Bundle adjustment problem.
-class SparseBundleAdjustmentSolver{
+class SparseBundleAdjustmentSolver
+{
 private:
     std::shared_ptr<Camera> cam_;
 

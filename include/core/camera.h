@@ -14,7 +14,8 @@
 
 
 /// @brief Camera class.
-class Camera {
+class Camera 
+{
 private:
 	int n_cols_, n_rows_;
 

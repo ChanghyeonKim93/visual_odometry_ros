@@ -40,20 +40,14 @@
 #include "core/scale_estimator.h"
 
 #include "core/image_processing.h"
-#include "core/dataset_loader.h"
 #include "core/mapping.h"
 
 #include "util/timer.h"
 
-class ScaleMonoVO;
-
-class ScaleMonoVO {
+class ScaleMonoVO 
+{
 public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-
-// Dataset related.
-private:
-	dataset_loader::DatasetStruct dataset_;
 
 // Camera object
 private:
@@ -249,10 +243,10 @@ private:
 	int pruneInvalidLandmarks(const LandmarkTracking& lmtrack, const MaskVec& mask,
 		LandmarkTracking& lmtrack_alive);
 	void updateKeyframe(const FramePtr& frame);
+	void saveLandmark(const LandmarkPtr& lm, bool verbose = false);
 	void saveLandmarks(const LandmarkPtrVec& lms, bool verbose = false);
-	void saveLandmarks(const LandmarkPtr& lm, bool verbose = false);
+	void saveFrame(const FramePtr& frame, bool verbose = false);
 	void saveFrames(const FramePtrVec& frames, bool verbose = false);
-	void saveFrames(const FramePtr& frame, bool verbose = false);
 
 private:
 	float calcLandmarksMeanAge(const LandmarkPtrVec& lms);
@@ -266,10 +260,6 @@ public:
 	const cv::Mat& getDebugImage();
 
 private:
-	void runDataset(); // run algorithm
-
-private:
-	void loadCameraIntrinsicAndUserParameters_KITTI_IMAGE0(const std::string& dir); // functions for loading yaml files.
 	void loadCameraIntrinsicAndUserParameters(const std::string& dir);
 };
 
