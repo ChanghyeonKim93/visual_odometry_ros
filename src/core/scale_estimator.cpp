@@ -121,10 +121,11 @@ void ScaleEstimator::module_ScaleForwardPropagation(const LandmarkPtrVec& lmvec,
     for(int m = 0; m < lmvec.size(); ++m){
         const LandmarkPtr& lm = lmvec[m];
         if(    lm->getAge()          >= thres_age_use_ 
-            // && lm->getAvgOptFlow()   >= thres_flow_
             && lm->getLastParallax() >= thres_parallax_use_
             && lm->isTriangulated() == false) 
-                lms_no_depth.push_back(lm);    
+        {
+            lms_no_depth.push_back(lm);        
+        }
 
         if(lm->isTriangulated()) 
             lms_depth.push_back(lm);

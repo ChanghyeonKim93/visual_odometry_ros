@@ -103,7 +103,26 @@ public:
     bool isTurningFrame() const;
 
     const PoseSE3& getPoseDiffFromLastKeyframe() const;
-    
+
+// For stereo frame
+    bool isRightImage() const;
+    const FramePtr& getLeftFramePtr() const;
+};
+
+/// @brief Stereo frame structure. (not used now.)
+struct StereoFrame
+{
+    FramePtr lower; // frame pointr to lower frame (same as left frame)
+    FramePtr upper; // frame pointr to upper frame (same as right frame)
+
+    /// @brief Constructor of StereoFrame structure.
+    /// @param f_l frame pointer to lower frame.
+    /// @param f_u frame pointer to upper frame.
+    StereoFrame(const FramePtr& f_l, const FramePtr& f_u)
+    {
+        lower = f_l;
+        upper = f_u;
+    };
 };
 
 #endif

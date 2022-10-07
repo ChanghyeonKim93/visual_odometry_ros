@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <exception>
+#include <memory>
 #include <vector>
 #include <string>
 
@@ -51,29 +52,28 @@ struct ParamsORB {
 };
 
 struct WeightBin {
-	int* weight ;
-	int* u_bound;
-	int* v_bound;
+	std::vector<int> weight ;
+	std::vector<int> u_bound;
+	std::vector<int> v_bound;
 	int n_bins_u;
 	int n_bins_v;
 	int u_step  ;
 	int v_step  ;
 	int n_bins_total;
 
-	WeightBin() {
-		weight  = nullptr;
-		u_bound = nullptr;
-		v_bound = nullptr;
+	WeightBin() 
+	{
+		u_bound.resize(0);
+		v_bound.resize(0);
 		n_bins_u = 0;
 		n_bins_v = 0;
 		u_step = 0;
 		v_step = 0;
 		n_bins_total = 0;
 	};
-	~WeightBin() {
-		if (weight != nullptr) delete weight;
-		if (v_bound != nullptr) delete v_bound;
-		if (u_bound != nullptr) delete u_bound;
+
+	~WeightBin() 
+	{
 	};
 
 	void init(int n_cols, int n_rows, int n_bins_u, int n_bins_v) {
@@ -81,11 +81,12 @@ struct WeightBin {
 		this->n_bins_v = n_bins_v;
 		n_bins_total = n_bins_u*n_bins_v;
 
-		weight = new int[this->n_bins_u*this->n_bins_v];
-		for (int i = 0; i < this->n_bins_u*this->n_bins_v; ++i) weight[i] = 1;
+		weight.resize(this->n_bins_u*this->n_bins_v);
+		for (int i = 0; i < this->n_bins_u*this->n_bins_v; ++i) 
+			weight[i] = 1;
 
-		this->u_bound = new int[this->n_bins_u + 1];
-		this->v_bound = new int[this->n_bins_v + 1];
+		this->u_bound.resize(this->n_bins_u + 1);
+		this->v_bound.resize(this->n_bins_v + 1);
 
 		this->u_bound[0] = 1;
 		this->v_bound[0] = 1;
@@ -113,15 +114,18 @@ struct WeightBin {
 			int u_idx = floor((float)p.x / (float)u_step);
 			int v_idx = floor((float)p.y / (float)v_step);
 			int bin_idx = v_idx * n_bins_u + u_idx;
-			if(bin_idx >= 0 && bin_idx < n_bins_total) weight[bin_idx] = 0;
+
+			if(bin_idx >= 0 && bin_idx < n_bins_total) 
+				weight[bin_idx] = 0;
 		}
 		// std::cout <<" - FEATURE_EXTRACTOR - WeightBin - 'update' : # input points: "<<n_pts << "\n";
 	};
 };
 
-class FeatureExtractor {
+class FeatureExtractor 
+{
 private:
-	WeightBin* weight_bin_;
+	std::shared_ptr<WeightBin> weight_bin_;
 
 	ParamsORB  params_orb_;
 	cv::Ptr<cv::ORB> extractor_orb_; // orb extractor
@@ -148,7 +152,6 @@ public:
 	void resetWeightBin();
 	void suppressCenterBins();
 	void extractORBwithBinning(const cv::Mat& img, PixelVec& pts_extracted, bool flag_nonmax);
-	void extractHarriswithBinning(const cv::Mat& img, PixelVec& pts_extracted);
 	
 	void extractAndComputeORB(const cv::Mat& img, std::vector<cv::KeyPoint>& kpts_extracted, cv::Mat& desc_extracted);
 	void extractAndComputORBwithBinning(const cv::Mat& img, std::vector<cv::KeyPoint>& kpts_extracted, cv::Mat& desc_extracted);

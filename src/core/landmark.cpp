@@ -22,11 +22,6 @@ is_alive_(true), is_triangulated_(false), is_bundled_(false)
     max_parallax_ = 0.0f;
     avg_parallax_ = 0.0f;
     last_parallax_ = 0.0f;
-
-    min_optflow_ = 1000.0f;
-    max_optflow_ = 0.0f;
-    avg_optflow_ = 0.0f;
-    last_optflow_ = 0.0f;
 };
 
 Landmark::Landmark(const Pixel& p, const FramePtr& frame, const std::shared_ptr<Camera>& cam)
@@ -54,11 +49,6 @@ is_alive_(true), is_triangulated_(false), is_bundled_(false)
     max_parallax_  = 0.0f;
     avg_parallax_  = 0.0f;
     last_parallax_ = 0.0f;
-
-    min_optflow_   = 1000.0f;
-    max_optflow_   = 0.0f;
-    avg_optflow_   = 0.0f;
-    last_optflow_  = 0.0f;
 
     // Add observation
     this->addObservationAndRelatedFrame(p, frame);
@@ -133,18 +123,6 @@ void Landmark::addObservationAndRelatedFrame(const Pixel& p, const FramePtr& fra
     avg_parallax_ = avg_parallax_*(float)(age_-1.0f);
     avg_parallax_ += parallax_curr;
     avg_parallax_ *= invage;
-
-    // Calculate optical flow 
-    Pixel dp = p1-p0;
-    float optflow_now = sqrt(dp.x*dp.x + dp.y*dp.y);
-    last_optflow_ = optflow_now;
-    if(optflow_now >= max_optflow_) max_optflow_ = optflow_now;
-    if(optflow_now <= min_optflow_) min_optflow_ = optflow_now; 
-
-    avg_optflow_ = avg_optflow_*(float)(age_-1.0f);
-    avg_optflow_ += optflow_now;
-    avg_optflow_ *= invage;
-
 };    
 
 void Landmark::addObservationAndRelatedKeyframe(const Pixel& p, const FramePtr& kf)
@@ -181,8 +159,3 @@ float              Landmark::getMinParallax() const     { return min_parallax_; 
 float              Landmark::getMaxParallax() const     { return max_parallax_; };
 float              Landmark::getAvgParallax() const     { return avg_parallax_; };
 float              Landmark::getLastParallax() const    { return last_parallax_; };
-
-float              Landmark::getMinOptFlow() const      { return min_optflow_; };
-float              Landmark::getMaxOptFlow() const      { return max_optflow_; };
-float              Landmark::getAvgOptFlow() const      { return avg_optflow_; };
-float              Landmark::getLastOptFlow() const     { return last_optflow_; };

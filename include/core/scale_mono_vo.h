@@ -57,7 +57,7 @@ private:
 
 // Camera object
 private:
-	std::shared_ptr<Camera>           cam_;
+	std::shared_ptr<Camera> cam_;
 
 // Modules
 private:
@@ -219,7 +219,7 @@ private:
 
 // For tracker
 private:
-	FramePtr             frame_prev_;
+	FramePtr frame_prev_;
 
 // For keyframes
 private:

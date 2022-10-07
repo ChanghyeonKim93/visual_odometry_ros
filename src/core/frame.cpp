@@ -11,7 +11,7 @@ Frame::Frame(const std::shared_ptr<Camera>& cam, bool is_right_image = false, co
     scale_          = 0.0f;
     timestamp_      = 0.0;
     id_             = frame_counter_++;
-    
+
 // Stereo right image only.
     is_right_image_ = is_right_image;
     frame_left_     = frame_left;
@@ -139,6 +139,18 @@ bool Frame::isKeyframeInWindow() const{
 };
 bool Frame::isTurningFrame() const {
     return is_turning_frame_;
+};
+
+bool Frame::isRightImage() const {
+    return is_right_image_;
+};
+
+const FramePtr& Frame::getLeftFramePtr() const
+{
+    if(!is_right_image_) 
+        throw std::runtime_error("In Frame::getLeftFramePtr() : This frame is not a right frame of a stereo camera!");
+    
+    return frame_left_;
 };
 
 const PoseSE3& Frame::getPoseDiffFromLastKeyframe() const {

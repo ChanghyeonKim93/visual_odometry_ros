@@ -18,7 +18,8 @@
 // 3D coordinate of the landmark represented in the global frame. It can be obtained by scale propagation and recovery modules.
 
 /// @brief Landmark class
-class Landmark{
+class Landmark
+{
 private:
     uint32_t id_; // feature unique id
     Point    Xw_; // 3D point represented in the global frame.
@@ -54,11 +55,6 @@ private:
     float avg_parallax_; // average parallax
     float last_parallax_; // the last parallax
  
-    float min_optflow_;
-    float max_optflow_;
-    float avg_optflow_;
-    float last_optflow_;
-
     // Eigen::Vector3f normal_vector_;
 
 public: // static counter
@@ -124,24 +120,46 @@ public:
     float              getMaxParallax() const;  
     float              getAvgParallax() const;  
     float              getLastParallax() const;  
-
-    float              getMinOptFlow() const;
-    float              getMaxOptFlow() const;
-    float              getAvgOptFlow() const;
-    float              getLastOptFlow() const;
 };
 
-struct LandmarkTracking{
+/// @brief A temporal structur for monocular feature tracking 
+struct LandmarkTracking
+{
     PixelVec pts0;
     PixelVec pts1;
     LandmarkPtrVec lms;
     std::vector<float> scale_change;
 
-    LandmarkTracking(){
+    LandmarkTracking()
+    {
         pts0.reserve(1000);
         pts1.reserve(1000);
         lms.reserve(1000);
         scale_change.reserve(1000);
+    };
+};
+
+/// @brief A temporal structur for stereo feature tracking 
+struct StereoLandmarkTracking 
+{
+    // lower camera prev. and current.
+    PixelVec pts_l0;
+    PixelVec pts_l1;
+
+    // upper camera prev. and current.
+    PixelVec pts_u0;
+    PixelVec pts_u1;
+
+    // LandmarkPtr vector.
+    LandmarkPtrVec lms;
+
+    /// @brief Constructor of StereoLandmarkTracking
+    StereoLandmarkTracking()
+    {
+        pts_l0.reserve(1000); pts_l1.reserve(1000);
+        pts_u0.reserve(1000); pts_u1.reserve(1000);
+    
+        lms.reserve(1000);
     };
 };
 
