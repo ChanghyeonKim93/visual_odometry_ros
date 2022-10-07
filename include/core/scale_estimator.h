@@ -33,9 +33,11 @@
 #include "core/keyframes.h"
 
 /// @brief ScaleEstimator class. This class runs on another thread.
-class ScaleEstimator{
+class ScaleEstimator
+{
 public:
     ScaleEstimator(
+        const std::shared_ptr<Camera> cam,
         const std::shared_ptr<std::mutex> mut, 
         const std::shared_ptr<std::condition_variable> cond_var,
         const std::shared_ptr<bool> flag_do_ASR);
@@ -81,8 +83,8 @@ private:
     void calcAinvB_SFP(const std::vector<Mat33>& Ainv_vec, const SpVec& B, uint32_t M_tmp,
         SpVec& AinvB);
 
-public:
-    static std::shared_ptr<Camera> cam_;
+private:
+    std::shared_ptr<Camera> cam_;
 
 private:
     std::thread thread_;
