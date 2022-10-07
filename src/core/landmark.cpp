@@ -6,7 +6,6 @@ PixelVec Landmark::patt_ = PixelVec();
 Landmark::Landmark()
 : id_(landmark_counter_++), age_(0), 
 Xw_(0,0,0), x_front_(0,0,0), 
-invd_(0.0f), cov_invd_(100000.0f), 
 is_alive_(true), is_triangulated_(false), is_bundled_(false)
 {
     // Reserve storages
@@ -32,7 +31,6 @@ is_alive_(true), is_triangulated_(false), is_bundled_(false)
 Landmark::Landmark(const Pixel& p, const FramePtr& frame)
 : id_(landmark_counter_++), age_(0), 
 Xw_(0,0,0), x_front_(0,0,0), 
-invd_(0.0f), cov_invd_(100000.0f), 
 is_alive_(true), is_triangulated_(false), is_bundled_(false)
 {
     // Reserve storages
@@ -44,8 +42,8 @@ is_alive_(true), is_triangulated_(false), is_bundled_(false)
     related_keyframes_.reserve(50);
     
     // normalized coordinate
-    x_front_(0)= ( p.x-cam_->cx() )*cam_->fxinv();
-    x_front_(1)= ( p.y-cam_->cy() )*cam_->fyinv();
+    x_front_(0)= ( p.x - cam_->cx() )*cam_->fxinv();
+    x_front_(1)= ( p.y - cam_->cy() )*cam_->fyinv();
     x_front_(2)= 1.0f;
 
     // Initialize parallax and opt flow.
@@ -73,29 +71,6 @@ void Landmark::set3DPoint(const Point& Xw) {
 void Landmark::setBundled() { 
     is_bundled_ = true; 
 };
-void Landmark::setInverseDepth(float invd_curr) { 
-    invd_ = invd_curr; 
-};
-void Landmark::setCovarianceInverseDepth(float cov_invd_curr) { 
-    cov_invd_ = cov_invd_curr; 
-};
-void Landmark::updateInverseDepth(float invd_curr, float cov_invd_curr)
-{
-    // new std
-    float invd_new = (invd_*cov_invd_curr + invd_curr*cov_invd_)/(cov_invd_ + cov_invd_curr);
-    invd_ = invd_new;
-
-    float cov_new = cov_invd_curr*cov_invd_/(cov_invd_curr+cov_invd_);
-    cov_invd_ = cov_new;
-
-
-    Point Xf;
-    Xf = x_front_ * (1.0f/invd_);
-
-    const PoseSE3& Twf = related_frames_.front()->getPose();
-    Xw_ = Twf.block<3,3>(0,0)*Xf + Twf.block<3,1>(0,3);
-};
-
 void Landmark::addObservationAndRelatedFrame(const Pixel& p, const FramePtr& frame) 
 {
     // push observation.
@@ -184,8 +159,6 @@ void               Landmark::setDead() { is_alive_ = false; };
 
 uint32_t           Landmark::getID() const                      { return id_; };
 uint32_t           Landmark::getAge() const                     { return age_; };
-float              Landmark::getInverseDepth() const            { return invd_; };
-float              Landmark::getCovarianceInverseDepth() const  { return cov_invd_; };
 const Point&       Landmark::get3DPoint() const                 { return Xw_; };
 const PixelVec&    Landmark::getObservations() const            { return observations_; };
 const FramePtrVec& Landmark::getRelatedFramePtr() const         { return related_frames_; };

@@ -13,11 +13,11 @@
 #include "core/frame.h"
 #include "core/camera.h"
 
-/** @brief - Landmark
-    2d pixel point hisotry over image
-    Address of fraems where the landmark was seen.
-    3D coordinate of the landmark represented in the global frame. It can be obtained by scale propagation and recovery modules.
-*/
+// 2d pixel point hisotry over image
+// Address of fraems where the landmark was seen.
+// 3D coordinate of the landmark represented in the global frame. It can be obtained by scale propagation and recovery modules.
+
+/// @brief Landmark class
 class Landmark{
 private:
     uint32_t id_; // feature unique id
@@ -30,9 +30,6 @@ private:
     std::vector<float> dv0_patt_;// 최초로 관측 된 위치에서의 patch (derivative along v)
     MaskVec mask_patt_; // valid mask
     
-    float invd_; // inverse depth of the 3D point represented in the first seen image.
-    float cov_invd_; // covariance of the inverse depth 
-
     PixelVec observations_; // 2D pixel observation history of this landmark
     std::vector<float> view_sizes_; // (approx.) 2D patch size compared to the firstly observed image. (s1 = s2*d1/d2)
     FramePtrVec related_frames_; // frame history where this landmark was seen
@@ -101,23 +98,12 @@ public:
     void set3DPoint(const Point& Xw);
 
     void setBundled();
-    void setInverseDepth(float invd_curr);
     void setDead();
     
-    void updateInverseDepth(float invd_curr, float cov_invd_curr);
-    void setCovarianceInverseDepth(float cov_invd_curr);
-    
-    // void setTrackInView(bool value);
-    // void setTrackProjUV(float u, float v);
-    // void setTrackScaleLevel(uint32_t lvl);
-    // void setTrackViewCos(float vcos);
-
 // Get methods
 public:
     uint32_t           getID() const;
     uint32_t           getAge() const;
-    float              getInverseDepth() const;
-    float              getCovarianceInverseDepth() const;
     const Point&       get3DPoint() const;
     const PixelVec&    getObservations() const;
     const PixelVec&    getObservationsOnKeyframes() const;
