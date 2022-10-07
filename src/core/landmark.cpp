@@ -1,13 +1,14 @@
 #include "core/landmark.h"
 
-std::shared_ptr<Camera> Landmark::cam_ = nullptr;
 PixelVec Landmark::patt_ = PixelVec();
 
-Landmark::Landmark()
+Landmark::Landmark(const std::shared_ptr<Camera>& cam)
 : id_(landmark_counter_++), age_(0), 
 Xw_(0,0,0), x_front_(0,0,0), 
 is_alive_(true), is_triangulated_(false), is_bundled_(false)
 {
+    cam_ = cam;
+
     // Reserve storages
     observations_.reserve(200);
     related_frames_.reserve(200);
@@ -28,11 +29,13 @@ is_alive_(true), is_triangulated_(false), is_bundled_(false)
     last_optflow_ = 0.0f;
 };
 
-Landmark::Landmark(const Pixel& p, const FramePtr& frame)
+Landmark::Landmark(const Pixel& p, const FramePtr& frame, const std::shared_ptr<Camera>& cam)
 : id_(landmark_counter_++), age_(0), 
 Xw_(0,0,0), x_front_(0,0,0), 
 is_alive_(true), is_triangulated_(false), is_bundled_(false)
 {
+    cam_ = cam;
+
     // Reserve storages
     observations_.reserve(200);
     related_frames_.reserve(200);

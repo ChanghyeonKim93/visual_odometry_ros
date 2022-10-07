@@ -114,13 +114,8 @@ void MonoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
     }    
     // update camera pose.
     double time_now = cv_ptr->header.stamp.toSec();
-    // scale_mono_vo_->trackImage(cv_ptr->image, time_now);
-    // scale_mono_vo_->trackImageLocalBundle(cv_ptr->image, time_now);
-    scale_mono_vo_->trackImageLocalBundle2(cv_ptr->image, time_now);
-    // scale_mono_vo_->trackImageLocalBundle3(cv_ptr->image, time_now);
-    // scale_mono_vo_->trackImageAP3P(cv_ptr->image, time_now);
-    // scale_mono_vo_->trackImageNaiveThreeviews(cv_ptr->image, time_now);
-
+    scale_mono_vo_->trackImage(cv_ptr->image, time_now);
+    
     // Get odometry results
     ScaleMonoVO::AlgorithmStatistics stat;
     stat = scale_mono_vo_->getStatistics();

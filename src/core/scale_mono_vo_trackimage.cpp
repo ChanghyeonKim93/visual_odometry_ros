@@ -9,7 +9,8 @@
  * @author Changhyeon Kim (hyun91015@gmail.com)
  * @date 10-July-2022
  */
-void ScaleMonoVO::trackImageLocalBundle2(const cv::Mat& img, const double& timestamp){
+void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp)
+{
 	float THRES_SAMPSON  = params_.feature_tracker.thres_sampson;
 	float THRES_PARALLAX = params_.map_update.thres_parallax;
 
@@ -19,7 +20,7 @@ void ScaleMonoVO::trackImageLocalBundle2(const cv::Mat& img, const double& times
 	AlgorithmStatistics::ExecutionStatistics statcurr_execution;
 			
 	// 현재 이미지에 대한 새로운 Frame 생성
-	FramePtr frame_curr = std::make_shared<Frame>();
+	FramePtr frame_curr = std::make_shared<Frame>(cam_, false, nullptr);
 	this->saveFrames(frame_curr);
 	
 	// 이미지 undistort (KITTI라서 할 필요 X)
@@ -29,7 +30,8 @@ void ScaleMonoVO::trackImageLocalBundle2(const cv::Mat& img, const double& times
 		cam_->undistortImage(img, img_undist);
 		img_undist.convertTo(img_undist, CV_8UC1);
 	}
-	else img.copyTo(img_undist);
+	else 
+		img.copyTo(img_undist);
 
 	// frame_curr에 img_undist와 시간 부여 (gradient image도 함께 사용)
 	frame_curr->setImageAndTimestamp(img_undist, timestamp);
@@ -53,7 +55,7 @@ void ScaleMonoVO::trackImageLocalBundle2(const cv::Mat& img, const double& times
 			// 초기 landmark 생성
 			for(auto pt : lmtrack_curr.pts1)
 			{
-				LandmarkPtr lm_new = std::make_shared<Landmark>(pt, frame_curr);
+				LandmarkPtr lm_new = std::make_shared<Landmark>(pt, frame_curr, cam_);
 				lmtrack_curr.lms.push_back(lm_new);
 			}
 			
@@ -156,7 +158,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 					{
 						const Pixel& p0_new = pts0_new[i];
 						const Pixel& p1_new = pts1_new[i];
-						LandmarkPtr ptr = std::make_shared<Landmark>(p0_new, frame_prev_);
+						LandmarkPtr ptr = std::make_shared<Landmark>(p0_new, frame_prev_, cam_);
 						ptr->addObservationAndRelatedFrame(p1_new, frame_curr);
 
 						lmtrack_final.pts0.push_back(p0_new);
@@ -412,7 +414,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 				if( mask_new[i] ){
 					const Pixel& p0_new = pts0_new[i];
 					const Pixel& p1_new = pts1_new[i];
-					LandmarkPtr ptr = std::make_shared<Landmark>(p0_new, frame_prev_);
+					LandmarkPtr ptr = std::make_shared<Landmark>(p0_new, frame_prev_,cam_);
 					ptr->addObservationAndRelatedFrame(p1_new, frame_curr);
 
 					lmtrack_final.pts0.push_back(p0_new);

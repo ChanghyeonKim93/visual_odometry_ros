@@ -33,6 +33,8 @@ private:
     PixelVec observations_; // 2D pixel observation history of this landmark
     std::vector<float> view_sizes_; // (approx.) 2D patch size compared to the firstly observed image. (s1 = s2*d1/d2)
     FramePtrVec related_frames_; // frame history where this landmark was seen
+  
+    std::shared_ptr<Camera> cam_; // camera object.
 
 // keyframes
 private:
@@ -61,7 +63,6 @@ private:
 
 public: // static counter
     inline static uint32_t landmark_counter_ = 0; // unique id counter.
-    static std::shared_ptr<Camera> cam_; // camera object.
     static PixelVec patt_;
 
     static void setPatch(int half_win_sz) {
@@ -84,8 +85,8 @@ public: // static counter
 
 
 public:
-    Landmark(); // cosntructor
-    Landmark(const Pixel& p, const FramePtr& frame); // constructor with observation.
+    Landmark(const std::shared_ptr<Camera>& cam); // cosntructor
+    Landmark(const Pixel& p, const FramePtr& frame, const std::shared_ptr<Camera>& cam); // constructor with observation.
     ~Landmark();// destructor
 
 // Set methods

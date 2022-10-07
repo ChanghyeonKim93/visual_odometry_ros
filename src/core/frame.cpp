@@ -1,14 +1,20 @@
 #include "core/frame.h"
-std::shared_ptr<Camera> Frame::cam_ = nullptr;
 
-Frame::Frame() 
-: is_keyframe_(false), is_keyframe_in_window_(false), is_turning_frame_(false) {
+Frame::Frame(const std::shared_ptr<Camera>& cam, bool is_right_image = false, const FramePtr& frame_left = nullptr)
+: is_keyframe_(false), is_keyframe_in_window_(false), is_turning_frame_(false) 
+{
+    cam_ = cam;
+
     Twc_ = PoseSE3::Identity();
     Tcw_ = PoseSE3::Identity();
     steering_angle_ = 0.0f;
     scale_          = 0.0f;
     timestamp_      = 0.0;
     id_             = frame_counter_++;
+    
+// Stereo right image only.
+    is_right_image_ = is_right_image;
+    frame_left_     = frame_left;
 };
 
 void Frame::setPose(const PoseSE3& Twc) { 

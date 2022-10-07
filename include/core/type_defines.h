@@ -22,6 +22,7 @@
 class Frame;
 class Landmark;
 
+typedef float                     Illumi;
 typedef cv::Point2f               Pixel;
 typedef Eigen::Vector3f           Point;
 typedef bool                      Mask;
@@ -33,12 +34,19 @@ typedef std::vector<int>          IntVec;
 typedef std::vector<float>        FloatVec;
 typedef std::vector<double>       DoubleVec;
 
+typedef std::vector<Illumi>       IllumiVec;
 typedef std::vector<Pixel>        PixelVec;
 typedef std::vector<Point>        PointVec;
 typedef std::vector<Mask>         MaskVec;
 typedef std::vector<FramePtr>     FramePtrVec;
 typedef std::vector<LandmarkPtr>  LandmarkPtrVec;
 
+typedef std::vector<cv::Mat>      ImagePyramid;
+
+
+// For image pyramid
+typedef std::vector<IllumiVec>    IllumiVecPyramid;
+typedef std::vector<MaskVec>      MaskVecPyramid;
 
 typedef Eigen::Vector3f           Pos3;
 typedef Eigen::Matrix3f           Rot3;
@@ -64,6 +72,10 @@ typedef Eigen::Matrix<float,6,1>  Vec6;
 
 typedef Eigen::Matrix<float,6,1>    PoseSE3Tangent;
 typedef std::vector<PoseSE3Tangent> PoseSE3TangentVec;
+
+struct StereoFrame;
+typedef std::shared_ptr<StereoFrame>    StereoFramePtr;
+typedef std::vector<StereoFramePtr>     StereoFramePtrVec;
 
 // For large matrix
 typedef Eigen::SparseMatrix<float> SpMat;

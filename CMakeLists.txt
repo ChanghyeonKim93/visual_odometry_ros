@@ -41,13 +41,11 @@ catkin_package(
 )
 
 set(SRC ${SRC} 
-  src/mononode.cpp
+  src/ros_wrapper/mononode.cpp
 
   src/core/scale_mono_vo.cpp
-  src/core/scale_mono_vo_localbundle.cpp
-  src/core/scale_mono_vo_naive_threeviews.cpp
   src/core/scale_mono_vo_backend.cpp
-  src/core/scale_mono_vo_localbundle2.cpp
+  src/core/scale_mono_vo_trackimage.cpp
 
   src/core/camera.cpp
   src/core/frame.cpp
@@ -81,15 +79,15 @@ include_directories( ${catkin_INCLUDE_DIRS} )
 include_directories( ${Eigen_INCLUDE_DIRS} )
 
 # executables
-add_executable(vo_node src/main.cpp ${SRC})
+add_executable(vo_node src/ros_wrapper/main.cpp ${SRC})
 target_link_libraries (vo_node ${catkin_LIBRARIES} ${Eigen_LIBRARIES})
 
 # executables
-add_executable(backend_node src/main_backend_only.cpp src/backend_node.cpp ${SRC})
+add_executable(backend_node src/ros_wrapper/main_backend_only.cpp src/ros_wrapper/backend_node.cpp ${SRC})
 target_link_libraries (backend_node ${catkin_LIBRARIES} ${Eigen_LIBRARIES})
 
 # executabls
-add_executable(test_orb_matching_node src/main_orbmatching_test.cpp ${SRC})
+add_executable(test_orb_matching_node src/ros_wrapper/main_orbmatching_test.cpp ${SRC})
 target_link_libraries (test_orb_matching_node ${catkin_LIBRARIES} ${Eigen_LIBRARIES})
 
 

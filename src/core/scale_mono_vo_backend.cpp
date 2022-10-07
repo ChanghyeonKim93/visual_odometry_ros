@@ -22,16 +22,18 @@ void ScaleMonoVO::trackImageBackend(const cv::Mat& img, const double& timestamp,
 	std::cout << "start track backend...\n";
 
 	// 현재 이미지에 대한 새로운 Frame 생성
-	FramePtr frame_curr = std::make_shared<Frame>();
+	FramePtr frame_curr = std::make_shared<Frame>(cam_, false, nullptr);
 	this->saveFrames(frame_curr);
 	
 	// 이미지 undistort (KITTI라서 할 필요 X)
 	cv::Mat img_undist;
-	if(system_flags_.flagDoUndistortion) {
+	if(system_flags_.flagDoUndistortion) 
+	{
 		cam_->undistortImage(img, img_undist);
 		img_undist.convertTo(img_undist, CV_8UC1);
 	}
-	else img.copyTo(img_undist);
+	else 
+		img.copyTo(img_undist);
 
 	// frame_curr에 img_undist, pose, dT01, 시간 부여
 	frame_curr->setImageAndTimestamp(img_undist, timestamp);
@@ -84,7 +86,7 @@ void ScaleMonoVO::trackImageBackend(const cv::Mat& img, const double& timestamp,
 #endif
 			// 초기 landmark 생성
 			lms1.reserve(pts1.size());
-			for(auto p : pts1) lms1.push_back(std::make_shared<Landmark>(p, frame_curr));
+			for(auto p : pts1) lms1.push_back(std::make_shared<Landmark>(p, frame_curr, cam_));
 			
 			// Related Landmark와 tracked pixels를 업데이트
 			frame_curr->setPtsSeenAndRelatedLandmarks(pts1,lms1);
@@ -251,7 +253,7 @@ timer::tic();
 					if( mask_new[i] ){
 						const Pixel& p0_new = pts0_new[i];
 						const Pixel& p1_new = pts1_new[i];
-						LandmarkPtr ptr = std::make_shared<Landmark>(p0_new, frame_prev_);
+						LandmarkPtr ptr = std::make_shared<Landmark>(p0_new, frame_prev_, cam_);
 						ptr->addObservationAndRelatedFrame(p1_new, frame_curr);
 
 						lmtrack_final.pts0.push_back(p0_new);
