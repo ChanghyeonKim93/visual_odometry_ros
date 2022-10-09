@@ -35,6 +35,13 @@
 /// @brief ScaleEstimator class. This class runs on another thread.
 class ScaleEstimator
 {
+
+// 동작방식 : 따로 thread가 돌며, scale update가 수행되어야 하는 상황에 flag와 함께 frame정보를 넘겨준다.
+// ScaleForwardPropagation : Keyframes in window, current pose, previous poses
+// recoverAbsoluteScalesBetweenTurns (ASR): 
+// Input: frames_all, idx_t1, idx_t2, camera
+//        내부에서는 local bundle adjustment 처럼 구동한다.
+
 public:
     ScaleEstimator(
         const std::shared_ptr<Camera> cam,
@@ -43,11 +50,19 @@ public:
         const std::shared_ptr<bool> flag_do_ASR);
     ~ScaleEstimator();
 
-public:
+// Two modules: Scale Forward Propagation (SFP), Absolute Scale Recovery (ASR)
+// SFP: called at every new keyframes
+// ASR: called when new turning region is detected.
+private:
     void module_ScaleForwardPropagation(
         const LandmarkPtrVec& lmvec, const FramePtrVec& framevec, const PoseSE3& dT10); // SFP module return : scale of the current motion.
     void module_AbsoluteScaleRecovery(); // SFP module return : scale of the current motion.
 
+
+// 이것도 class 안에서 구동 되도록 바꿀 것.
+// 매 keyframe이 생성 될 때 마다 해당 keyframe을 ScaleEstimator로 전달한다. (복사 & 원본 포인터 가지고 있기)
+// 
+public:
     bool detectTurnRegions(const FramePtr& frame);
     bool detectTurnRegions(const std::shared_ptr<Keyframes>& keyframes, const FramePtr& frame);
     const FramePtrVec& getAllTurnRegions() const;
@@ -72,6 +87,9 @@ private:
 
 private:
     float calcScaleByKinematics(float psi, const Pos3& u01, float L);
+
+public:
+
     
 // Functions related to the Scale Forward Propagation 
 private:
