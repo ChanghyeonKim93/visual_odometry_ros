@@ -55,15 +55,6 @@ ScaleMonoVO::ScaleMonoVO(std::string mode, std::string directory_intrinsic)
 	
 	scale_estimator_          = std::make_shared<ScaleEstimator>(cam_, L, mut_scale_estimator_, cond_var_scale_estimator_, flag_do_ASR_);
 	
-	scale_estimator_->setTurnRegion_ThresCountTurn(params_.scale_estimator.thres_cnt_turns);
-	scale_estimator_->setTurnRegion_ThresPsi(params_.scale_estimator.thres_turn_psi*D2R);
-
-	scale_estimator_->setSFP_ThresAgePastHorizon(params_.scale_estimator.thres_age_past_horizon);
-	scale_estimator_->setSFP_ThresAgeUse(params_.scale_estimator.thres_age_use);
-	scale_estimator_->setSFP_ThresAgeRecon(params_.scale_estimator.thres_age_recon);
-	scale_estimator_->setSFP_ThresParallaxUse(params_.scale_estimator.thres_parallax_use*D2R);
-	scale_estimator_->setSFP_ThresParallaxRecon(params_.scale_estimator.thres_parallax_recon*D2R);
-
 	// Initialize keyframes class
 	keyframes_ = std::make_shared<Keyframes>();
 };

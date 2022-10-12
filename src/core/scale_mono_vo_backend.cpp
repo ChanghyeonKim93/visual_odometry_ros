@@ -202,20 +202,20 @@ statcurr_execution.time_5p = timer::toc(false);
 #endif				
 
 			// Steering angle을 계산한다.
-			float steering_angle_curr = scale_estimator_->calcSteeringAngleFromRotationMat(dT01.block<3,3>(0,0));
-			frame_curr->setSteeringAngle(steering_angle_curr);
+			// float steering_angle_curr = scale_estimator_->calcSteeringAngleFromRotationMat(dT01.block<3,3>(0,0));
+			// frame_curr->setSteeringAngle(steering_angle_curr);
 
-			// Detect turn region by a steering angle.
-			if(scale_estimator_->detectTurnRegions(frame_curr)){
-				FramePtrVec frames_turn_tmp;
-				frames_turn_tmp = scale_estimator_->getAllTurnRegions();
-				for(auto f :frames_turn_tmp)
-					stat_.stat_turn.turn_regions.push_back(f);
-			}
+			// // Detect turn region by a steering angle.
+			// if(scale_estimator_->detectTurnRegions(frame_curr)){
+			// 	FramePtrVec frames_turn_tmp;
+			// 	frames_turn_tmp = scale_estimator_->getAllTurnRegions();
+			// 	for(auto f :frames_turn_tmp)
+			// 		stat_.stat_turn.turn_regions.push_back(f);
+			// }
 
-#ifdef RECORD_FRAME_STAT
-statcurr_frame.steering_angle = steering_angle_curr;
-#endif
+// #ifdef RECORD_FRAME_STAT
+// statcurr_frame.steering_angle = steering_angle_curr;
+// #endif
 
 #ifdef RECORD_FRAME_STAT
 statcurr_frame.Twc = frame_curr->getPose();

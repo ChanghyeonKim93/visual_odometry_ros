@@ -430,35 +430,17 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 	}
 
 	// Check keyframe update rules.
-	if(keyframes_->checkUpdateRule(frame_curr))
+	bool flag_add_new_keyframe = keyframes_->checkUpdateRule(frame_curr);
+	if( flag_add_new_keyframe )
 	{
-		// If there exist keyframe already, check turning region or not.
-		if(keyframes_->getList().size() > 0)
-		{
-			// Find turning region
-			// if(scale_estimator_->detectTurnRegions(keyframes_, frame_curr))
-			// {
-			// 	std::cout << " ===  ===  Turn region is detected! \n";
-
-			// 	FramePtrVec Ft = scale_estimator_->getAllTurnRegions(); // all turn regions
-			// 	for(auto f : Ft) stat_.stat_turn.turn_regions.push_back(f);
-
-			// 	// VO를 통해 유지되어온 scale 궤적. 
-			// 	std::vector<float> scales_vo;
-			// 	for(auto f : scale_estimator_->getLastTurnRegion()){
-			// 		PoseSE3 dT01_f = f->getPoseDiff01();
-			// 		scales_vo.push_back(dT01_f.block<3,1>(0,3).norm());
-			// 	}
-			// 	std::sort(scales_vo.begin(), scales_vo.end());
-
-			// }
-
-		}
-		
 
 		// Add new keyframe
 		keyframes_->addNewKeyframe(frame_curr);
 
+		// Add this frame to the scale estimator
+		scale_estimator_->insertNewFrame(frame_curr);
+
+		
 		// Make variables for refine tracking
 		const LandmarkPtrVec& lms_final = frame_curr->getRelatedLandmarkPtr();
 		FloatVec scale_estimated(lms_final.size(), 1.0f);
@@ -466,7 +448,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 		PixelVec pts_refine(lms_final.size());
 
 		for(int i = 0; i < lms_final.size(); ++i){
-			// Estimate current scale...
+			// Estimate current image-patch-scale...
 			const LandmarkPtr& lm = lms_final[i];
 			if(lm->isTriangulated()) {
 				const Point& Xw = lm->get3DPoint();
@@ -486,7 +468,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 
 				// std::cout << i << "-th point:" << Xw.transpose() << " scale: " << scale << std::endl;
 			}
-			else
+			else 
 				mask_final[i] = false;
 		}
 
@@ -506,12 +488,11 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 		// Reconstruct map points
 		// lms1_final 중, depth가 복원되지 않은 경우 복원해준다.
 		uint32_t cnt_recon = 0;
-		
 		for(auto lm : frame_curr->getRelatedLandmarkPtr())
 		{
-			if(!lm->isTriangulated() && lm->getLastParallax() >= THRES_PARALLAX)
+			if( !lm->isTriangulated() && lm->getLastParallax() >= THRES_PARALLAX )
 			{
-				if(lm->getObservationsOnKeyframes().size() > 1)
+				if( lm->getObservationsOnKeyframes().size() > 1 )
 				{
 					// 2번 이상 keyframe에서 보였다.
 					const Pixel& pt0 = lm->getObservationsOnKeyframes().front();
@@ -533,6 +514,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 					if(dpt0_norm2 > 1.0) 
 						continue;
 
+
 					Pixel pt1_proj = cam_->projectToPixel(X1);
 					Pixel dpt1 = pt1 - pt1_proj;
 					float dpt1_norm2 = dpt1.x*dpt1.x + dpt1.y*dpt1.y;
@@ -541,8 +523,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 						continue;
 
 					// Check the point in front of cameras
-					if(X0(2) > 0 && X1(2) > 0)
-					{
+					if(X0(2) > 0 && X1(2) > 0) {
 						Point Xworld = Tw0.block<3,3>(0,0)*X0 + Tw0.block<3,1>(0,3);
 						lm->set3DPoint(Xworld);
 						++cnt_recon;
@@ -553,12 +534,11 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 		std::cout << " Recon done. : " << cnt_recon << "\n";
 
 		// Do local bundle adjustment for keyframes.
-		// motion_estimator_->localBundleAdjustment(keyframes_, cam_);
 		motion_estimator_->localBundleAdjustmentSparseSolver(keyframes_, cam_);
 	}
 	
 	// Replace the 'frame_prev_' with 'frame_curr'
-	frame_prev_ = frame_curr;
+	this->frame_prev_ = frame_curr;
 
 	// Visualization 3D points
 	PointVec X_world_recon;

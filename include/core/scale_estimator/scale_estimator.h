@@ -32,8 +32,12 @@
 #include "core/frame.h"
 #include "core/keyframes.h"
 
+// Scale Forward Propagation
+#include "core/scale_estimator/scale_forward_propagation.h"
+#include "core/scale_estimator/absolute_scale_recovery.h"
+
 // Absolute Scale Recovery
-#include "core/ba_solver/scale_constraint.h"
+#include "core/scale_estimator/scale_constraint.h"
 
 /// @brief ScaleEstimator class. This class runs on another thread.
 class ScaleEstimator
@@ -43,8 +47,16 @@ class ScaleEstimator
 // recoverAbsoluteScalesBetweenTurns (ASR): 
 // Input: frames_all, idx_t1, idx_t2, camera
 //        내부에서는 local bundle adjustment 처럼 구동한다.
+
+// Camera
 private:
     std::shared_ptr<Camera> cam_;
+
+// Two modules : SFP, ASR
+private:
+    std::shared_ptr<ScaleForwardPropagation> sfp_module_;
+    std::shared_ptr<AbsoluteScaleRecovery>   asr_module_;
+
 
 private:
     float L_; //  car length;
@@ -63,17 +75,6 @@ private:
     float    THRES_PSI_;
 
     uint32_t cnt_turn_;
-
-// SFP parameters
-private:
-    uint32_t thres_age_past_horizon_; // SFP parameter
-    uint32_t thres_age_use_;
-    uint32_t thres_age_recon_;
-    float thres_parallax_use_;
-    float thres_parallax_recon_;
-    
-    float thres_flow_;
-
 
 // Currently focused frames.
 private:
@@ -121,61 +122,33 @@ public:
     /// @brief Destructor of ScaleEstimator
     ~ScaleEstimator();
 
-public:
-    /// @brief Insert new frame. In this function, scale is estimated via kinematics if this frame has sufficient rotation motion.
-    /// @param frame New frame (might be a keyframe)
-    void insertNewFrame(const FramePtr& frame);
-
-// Two modules: Scale Forward Propagation (SFP), Absolute Scale Recovery (ASR)
-// SFP: called at every new keyframes
-// ASR: called when new turning region is detected.
-private:
-    void module_ScaleForwardPropagation(
-        const LandmarkPtrVec& lmvec, const FramePtrVec& framevec, const PoseSE3& dT10); // SFP module return : scale of the current motion.
-    void module_AbsoluteScaleRecovery(); // SFP module return : scale of the current motion.
-
-
-// 이것도 class 안에서 구동 되도록 바꿀 것.
-// 매 keyframe이 생성 될 때 마다 해당 keyframe을 ScaleEstimator로 전달한다. (복사 & 원본 포인터 가지고 있기)
-// 
-public:
-    bool detectTurnRegions(const FramePtr& frame);
-    // bool detectTurnRegions(const std::shared_ptr<Keyframes>& keyframes, const FramePtr& frame);
-    const FramePtrVec& getAllTurnRegions() const;
-    const FramePtrVec& getLastTurnRegion() const;
-    
-    float calcSteeringAngleFromRotationMat(const Rot3& R);
-
-// 외부에서 입력하는 파라미터.
-public:
-    void setTurnRegion_ThresPsi(float psi);
-    void setTurnRegion_ThresCountTurn(uint32_t thres_cnt_turn);
-
-    void setSFP_ThresAgePastHorizon(uint32_t age_past_horizon);
-    void setSFP_ThresAgeUse(uint32_t age_use);
-    void setSFP_ThresAgeRecon(uint32_t age_recon);
-    void setSFP_ThresParallaxUse(float thres_parallax_use);
-    void setSFP_ThresParallaxRecon(float thres_parallax_recon);
-
+// Multithread functions
 private:
     void runThread();
     void process(std::shared_future<void> terminate_signal);
 
-private:
-    float calcScaleByKinematics(float psi, const Pos3& u01, float L);
-
+// Public methods
 public:
+    void setTurnRegion_ThresPsi(float psi);
+    void setTurnRegion_ThresCountTurn(uint32_t thres_cnt_turn);
 
-    
-// Functions related to the Scale Forward Propagation 
+    /// @brief Insert new frame. In this function, scale is estimated via kinematics if this frame has sufficient rotation motion.
+    /// @param frame New frame (might be a keyframe)
+    void insertNewFrame(const FramePtr& frame);
+    const FramePtrVec& getAllTurnRegions() const;
+    const FramePtrVec& getLastTurnRegion() const;
+
+// Calculate functions for scale and steering angle
 private:
-    void solveLeastSquares_SFP(const SpMat& AtA, const SpVec& Atb, uint32_t M_tmp,
-        SpVec& theta);
+    float calcSteeringAngle(const Rot3& R);
+    float calcScale(float psi, const Pos3& u01, float L);
 
-    void calcAinvVec_SFP(const SpMat& AA, std::vector<Mat33>& Ainv_vec, uint32_t M_tmp);
-
-    void calcAinvB_SFP(const std::vector<Mat33>& Ainv_vec, const SpVec& B, uint32_t M_tmp,
-        SpVec& AinvB);
+// 이것도 class 안에서 구동 되도록 바꿀 것.
+// 매 keyframe이 생성 될 때 마다 해당 keyframe을 ScaleEstimator로 전달한다. (복사 & 원본 포인터 가지고 있기)
+// 
+private:
+    bool detectTurnRegions(const FramePtr& frame);
+    
 
 
 };

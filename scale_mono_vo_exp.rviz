@@ -6,9 +6,8 @@ Panels:
       Expanded:
         - /Global Options1
         - /Grid1
-        - /VO_pose1/Status1
         - /VO_pose1/Shape1
-        - /ORB_pose1
+        - /VO_map_points1
         - /ORB_path1
       Splitter Ratio: 0.5010846257209778
     Tree Height: 291
@@ -103,7 +102,7 @@ Visualization Manager:
       Color: 255; 255; 255
       Color Transformer: FlatColor
       Decay Time: 0
-      Enabled: false
+      Enabled: true
       Invert Rainbow: false
       Max Color: 239; 41; 41
       Max Intensity: 255
@@ -120,7 +119,7 @@ Visualization Manager:
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: false
-      Value: false
+      Value: true
     - Angle Tolerance: 0.05000000074505806
       Class: rviz/Odometry
       Covariance:
@@ -138,7 +137,7 @@ Visualization Manager:
           Scale: 1
           Value: true
         Value: true
-      Enabled: false
+      Enabled: true
       Keep: 1
       Name: VO_pose
       Position Tolerance: 0.05000000074505806
@@ -155,12 +154,12 @@ Visualization Manager:
         Value: Axes
       Topic: /scale_mono_vo/pose
       Unreliable: true
-      Value: false
+      Value: true
     - Alpha: 1
       Buffer Length: 1
       Class: rviz/Path
       Color: 25; 255; 0
-      Enabled: false
+      Enabled: true
       Head Diameter: 0.30000001192092896
       Head Length: 0.20000000298023224
       Length: 0.30000001192092896
@@ -179,7 +178,7 @@ Visualization Manager:
       Shaft Length: 0.10000000149011612
       Topic: /scale_mono_vo/trajectory
       Unreliable: false
-      Value: false
+      Value: true
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -201,7 +200,7 @@ Visualization Manager:
       Queue Size: 1
       Selectable: true
       Size (Pixels): 1
-      Size (m): 0.5
+      Size (m): 0.4000000059604645
       Style: Spheres
       Topic: /scale_mono_vo/map_points
       Unreliable: false
@@ -250,7 +249,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/Image
       Enabled: true
-      Image Topic: /orb_slam2_mono/debug_image
+      Image Topic: /scale_mono_vo/debug_image
       Max Value: 1
       Median window: 5
       Min Value: 0
@@ -288,7 +287,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 270.17926025390625
+      Distance: 84.82945251464844
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -296,17 +295,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -3.8937203884124756
-        Y: 5.01270055770874
-        Z: 27.37997055053711
+        X: -8.320032119750977
+        Y: 21.31643295288086
+        Z: 111.0408706665039
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: -0.05479738861322403
+      Pitch: -0.13979680836200714
       Target Frame: <Fixed Frame>
-      Yaw: 4.728580474853516
+      Yaw: 4.698594093322754
     Saved: ~
 Window Geometry:
   Displays:
