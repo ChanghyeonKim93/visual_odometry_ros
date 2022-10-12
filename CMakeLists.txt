@@ -58,7 +58,8 @@ set(SRC ${SRC}
 
   src/core/ba_solver/sparse_bundle_adjustment.cpp
 
-  src/core/scale_estimator.cpp
+  src/core/scale_estimator/scale_estimator.cpp
+  
   src/core/image_processing.cpp
   src/core/mapping.cpp
 

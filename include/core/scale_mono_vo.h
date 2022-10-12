@@ -37,7 +37,7 @@
 #include "core/feature_tracker.h"
 #include "core/motion_estimator.h"
 
-#include "core/scale_estimator.h"
+#include "core/scale_estimator/scale_estimator.h"
 
 #include "core/image_processing.h"
 #include "core/mapping.h"

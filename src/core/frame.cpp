@@ -27,18 +27,6 @@ void Frame::setPoseDiff10(const Eigen::Matrix4f& dT10){
     dT01_ = geometry::inverseSE3_f(dT10);
 };
 
-void Frame::setPoseDiffFromLastKeyframe(const PoseSE3& dTkc){
-    dTkc_ = dTkc;
-};
-
-void Frame::setSteeringAngle(float st_angle){
-    steering_angle_ = st_angle;
-};
-
-void Frame::setScale(float scale){
-    scale_ = scale;
-};
-
 void Frame::setImageAndTimestamp(const cv::Mat& img, const double& timestamp) { 
     img.copyTo(image_); // CV_8UC1
     img.convertTo(image_float_,CV_32FC1);// CV_32FC1
@@ -75,10 +63,6 @@ void Frame::outOfKeyframeWindow(){
     is_keyframe_in_window_ = false;
 };
 
-void Frame::makeThisTurningFrame(){
-    is_turning_frame_ = true;
-};
-
 const uint32_t& Frame::getID() const { 
     return id_; 
 };
@@ -94,13 +78,6 @@ const PoseSE3& Frame::getPoseDiff10() const{
 };
 const PoseSE3& Frame::getPoseDiff01() const{
     return dT01_;
-};
-
-const float& Frame::getSteeringAngle() const{
-    return steering_angle_;
-};
-const float& Frame::getScale() const {
-    return scale_;
 };
 
 const cv::Mat& Frame::getImage() const {
@@ -137,9 +114,6 @@ bool Frame::isKeyframe() const{
 bool Frame::isKeyframeInWindow() const{
     return is_keyframe_in_window_;
 };
-bool Frame::isTurningFrame() const {
-    return is_turning_frame_;
-};
 
 bool Frame::isRightImage() const {
     return is_right_image_;
@@ -153,6 +127,54 @@ const FramePtr& Frame::getLeftFramePtr() const
     return frame_left_;
 };
 
-const PoseSE3& Frame::getPoseDiffFromLastKeyframe() const {
-    return dTkc_;
+
+
+
+// Related to turning frame
+void Frame::makeThisTurningFrame(const FramePtr& frame_previous_turning)
+{
+    frame_previous_turning_ = frame_previous_turning;
+    is_turning_frame_ = true;
+};
+
+void Frame::setSteeringAngle(float steering_angle){
+    steering_angle_ = steering_angle;
+};
+
+void Frame::setScaleRaw(float scale_raw){
+    scale_raw_ = scale_raw;
+};
+
+void Frame::setScale(float scale){
+    scale_ = scale;
+};
+
+const FramePtr& Frame::getPreviousTurningFrame() const
+{
+    return frame_previous_turning_;
+};
+
+const float& Frame::getSteeringAngle() const{
+    return steering_angle_;
+};
+
+const float& Frame::getScaleRaw() const {
+    return scale_raw_;
+};
+
+const float& Frame::getScale() const {
+    return scale_;
+};
+
+bool Frame::isTurningFrame() const {
+    return is_turning_frame_;
+};
+
+void Frame::makeThisNormalFrame()
+{
+    is_turning_frame_ = false;
+    frame_previous_turning_ = nullptr;
+    steering_angle_ = 0.0;
+    scale_raw_ = 0.0;
+    scale_ = 0.0;
 };

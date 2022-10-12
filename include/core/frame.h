@@ -34,9 +34,6 @@ private:
 
     PoseSE3 dTkc_; // SE(3) from the related keyframe to the current.
 
-    float steering_angle_;
-    float scale_;
-
     // Images of the frame
     cv::Mat image_; // image (uint8)
     cv::Mat image_float_; // image (float32)
@@ -52,9 +49,16 @@ private:
     LandmarkPtrVec related_landmarks_;
     PixelVec pts_seen_;
 
-
+// Flags
     bool is_keyframe_;
     bool is_keyframe_in_window_;
+
+// For scale estimator
+private:
+    FramePtr frame_previous_turning_; // 직전 터닝 프레임.
+    float steering_angle_;
+    float scale_raw_; // observed raw scale
+    float scale_;  // refined scale
     bool is_turning_frame_;
 
 // For stereo (right) frame
@@ -66,6 +70,11 @@ public: // static counter.
     inline static uint32_t frame_counter_ = 0; // Unique frame counter. (static)
     inline static int max_pyr_lvl_ = 5;
 
+
+
+
+
+
 public:
     Frame(const std::shared_ptr<Camera>& cam, bool is_right_image, const FramePtr& frame_left);
 
@@ -73,14 +82,10 @@ public:
     void setPose(const PoseSE3& Twc);
     void setPoseDiff10(const PoseSE3& dT10);
     void setImageAndTimestamp(const cv::Mat& img, const double& timestamp); 
-    void setSteeringAngle(float st_angle);
-    void setScale(float scale);
 
     void setPtsSeenAndRelatedLandmarks(const PixelVec& pts, const LandmarkPtrVec& landmarks);
-    void setPoseDiffFromLastKeyframe(const PoseSE3& dTkc);
-
+    
     void makeThisKeyframe();
-    void makeThisTurningFrame();
     void outOfKeyframeWindow();
 
     // Get
@@ -89,8 +94,6 @@ public:
     const PoseSE3& getPoseInv() const;
     const PoseSE3& getPoseDiff10() const;
     const PoseSE3& getPoseDiff01() const;
-    const float& getSteeringAngle() const;
-    const float& getScale() const;
     const cv::Mat& getImage() const ; 
     const cv::Mat& getImageFloat() const ; 
     const cv::Mat& getImageDu() const ; 
@@ -100,11 +103,26 @@ public:
     const double& getTimestamp() const;
     bool isKeyframe() const;
     bool isKeyframeInWindow() const;
-    bool isTurningFrame() const;
 
-    const PoseSE3& getPoseDiffFromLastKeyframe() const;
+
+// For scale estimator
+public:
+    void makeThisTurningFrame(const FramePtr& frame_previous_turning);
+    void setSteeringAngle(float steering_angle);
+    void setScaleRaw(float scale_raw);
+    void setScale(float scale);
+
+    const FramePtr& getPreviousTurningFrame() const;
+    const float&    getSteeringAngle() const;
+    const float&    getScaleRaw() const;
+    const float&    getScale() const;
+
+    bool isTurningFrame() const;
+    void makeThisNormalFrame();
+
 
 // For stereo frame
+public:
     bool isRightImage() const;
     const FramePtr& getLeftFramePtr() const;
 };

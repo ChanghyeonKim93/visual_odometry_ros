@@ -47,10 +47,13 @@ ScaleMonoVO::ScaleMonoVO(std::string mode, std::string directory_intrinsic)
 	motion_estimator_->setThres5p(params_.motion_estimator.thres_5p_error);
 
 	// Initialize scale estimator
+	double L = 1.45; // CAR experiment.
+
 	mut_scale_estimator_      = std::make_shared<std::mutex>();
 	cond_var_scale_estimator_ = std::make_shared<std::condition_variable>(); // New pose 가 도
 	flag_do_ASR_              = std::make_shared<bool>(false);
-	scale_estimator_          = std::make_shared<ScaleEstimator>(cam_, mut_scale_estimator_, cond_var_scale_estimator_, flag_do_ASR_);
+	
+	scale_estimator_          = std::make_shared<ScaleEstimator>(cam_, L, mut_scale_estimator_, cond_var_scale_estimator_, flag_do_ASR_);
 	
 	scale_estimator_->setTurnRegion_ThresCountTurn(params_.scale_estimator.thres_cnt_turns);
 	scale_estimator_->setTurnRegion_ThresPsi(params_.scale_estimator.thres_turn_psi*D2R);

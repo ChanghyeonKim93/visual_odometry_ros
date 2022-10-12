@@ -436,37 +436,22 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 		if(keyframes_->getList().size() > 0)
 		{
 			// Find turning region
-			if(scale_estimator_->detectTurnRegions(keyframes_, frame_curr))
-			{
-				std::cout << " ===  ===  Turn region is detected! \n";
+			// if(scale_estimator_->detectTurnRegions(keyframes_, frame_curr))
+			// {
+			// 	std::cout << " ===  ===  Turn region is detected! \n";
 
-				FramePtrVec Ft = scale_estimator_->getAllTurnRegions(); // all turn regions
-				for(auto f : Ft) stat_.stat_turn.turn_regions.push_back(f);
+			// 	FramePtrVec Ft = scale_estimator_->getAllTurnRegions(); // all turn regions
+			// 	for(auto f : Ft) stat_.stat_turn.turn_regions.push_back(f);
 
-				// VO를 통해 유지되어온 scale 궤적. 
-				std::vector<float> scales_vo;
-				for(auto f : scale_estimator_->getLastTurnRegion()){
-					PoseSE3 dT01_f = f->getPoseDiff01();
-					scales_vo.push_back(dT01_f.block<3,1>(0,3).norm());
-				}
-				std::sort(scales_vo.begin(), scales_vo.end());
+			// 	// VO를 통해 유지되어온 scale 궤적. 
+			// 	std::vector<float> scales_vo;
+			// 	for(auto f : scale_estimator_->getLastTurnRegion()){
+			// 		PoseSE3 dT01_f = f->getPoseDiff01();
+			// 		scales_vo.push_back(dT01_f.block<3,1>(0,3).norm());
+			// 	}
+			// 	std::sort(scales_vo.begin(), scales_vo.end());
 
-				// Find median 
-				// int idx_median = (int)((float)scales_vo.size()*0.5);
-				// std::cout << scales_vo.size() <<" , " <<  idx_median << std::endl;
-				// float scaler = scale_estimator_->getLastTurnRegion().back()->getScale()/scales_vo[idx_median];
-				
-				// std::cout <<" scaler : " << scaler << std::endl;
-				// for(auto f : scale_estimator_->getLastTurnRegion()){
-				// 	PoseSE3 dT01_f = f->getPoseDiff01();
-				// 	PoseSE3 Twc = f->getPose();
-				// 	Twc*= dT01_f.inverse();
-				// 	dT01_f.block<3,1>(0,3) *= scaler;
-				// 	Twc*= dT01_f;
-				// 	f->setPose(Twc);
-				// 	f->setPoseDiff10(dT01_f.inverse());
-				// }
-			}
+			// }
 
 		}
 		
