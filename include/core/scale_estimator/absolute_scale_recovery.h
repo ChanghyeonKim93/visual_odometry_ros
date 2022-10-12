@@ -23,7 +23,12 @@
 #include "core/mapping.h"
 #include "core/landmark.h"
 #include "core/frame.h"
-#include "core/keyframes.h"
+
+#include "util/timer.h"
+
+
+// SQP
+#include "core/scale_estimator/scale_constraint.h"
 
 class AbsoluteScaleRecovery
 {
@@ -35,7 +40,10 @@ public:
     ~AbsoluteScaleRecovery();
 
 public:
-    void runASR();
+    void runASR(
+        const FramePtrVec& frames_t0, 
+        const FramePtrVec& frames_u, 
+        const FramePtrVec& frames_t1);
 
 };
 

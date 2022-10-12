@@ -14,7 +14,7 @@ ScaleEstimator::ScaleEstimator(
     // Generate SFP, ASR
     sfp_module_ = std::make_shared<ScaleForwardPropagation>(cam);
     asr_module_ = std::make_shared<AbsoluteScaleRecovery>(cam);
-    
+
     // Mutex from the outside
     mut_         = mut;
     cond_var_    = cond_var;
@@ -114,9 +114,6 @@ void ScaleEstimator::insertNewFrame(const FramePtr& frame)
     // {
     //     // This is not a turning frame.
     // }
-    
-
-
 
     // Change the previous frame.
     frame_prev_ = frame;
@@ -235,10 +232,6 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame)
 
 
                 // Do Absolute Scale Recovery (ASR)
-                frames_turn_prev_; // F_tp (previous turning region)
-                frames_turn_curr_; // F_tc (current turning region)
-                frames_unconstrained_; // Fu
-
                 std::cout << "    - # frames- Ft0, Fu, Ft1: " 
                     << frames_turn_prev_.size() <<", "
                     << frames_unconstrained_.size() << ", "
@@ -260,7 +253,16 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame)
                     std::cout << f->getID() << " ";
                 std::cout << std::endl;        
 
-                
+
+                // If there is a previous turning frames, do ASR
+                if( frames_turn_prev_.size() > 0)
+                {
+                    asr_module_->runASR(
+                        frames_turn_prev_,
+                        frames_unconstrained_,
+                        frames_turn_curr_);
+                }
+                                
                 // Update previous turning region & empty the unconstrained region
                 frames_unconstrained_.resize(0);
                 frames_turn_prev_ = frames_turn_curr_;

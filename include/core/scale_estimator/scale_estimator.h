@@ -57,17 +57,10 @@ private:
     std::shared_ptr<ScaleForwardPropagation> sfp_module_;
     std::shared_ptr<AbsoluteScaleRecovery>   asr_module_;
 
-
+// Car Kinematic parameters (L, Rw)
 private:
     float L_; //  car length;
-
-
-// Thread data
-private:
-    std::thread thread_;
-    std::shared_ptr<std::mutex> mut_;
-    std::shared_ptr<std::condition_variable> cond_var_;
-    std::shared_ptr<bool> flag_do_ASR_;
+    Rot3 Rw_;
 
 // Turn region parameters 
 private:
@@ -82,19 +75,11 @@ private:
     FramePtrVec frames_turn_curr_; // current turn frames
     FramePtrVec frames_unconstrained_; // unconstrained frames between 'turn_prev' and 'turn_curr'.
 
-
 // All frames stacked.
 private:
-    FramePtrVec frames_all_turn_; // 
-
+    FramePtr    frame_prev_; // previous frame 
+    FramePtrVec frames_all_turn_; 
     FramePtrVec frames_all_;
-
-    FramePtr frame_prev_;
-
-
-private:
-    std::vector<_BA_PoseSE3> dT01_frames_;
-
 
 
 // Variables to elegantly terminate TX & RX threads
@@ -102,6 +87,12 @@ private:
     std::shared_future<void> terminate_future_;
     std::promise<void>       terminate_promise_;
 
+// Thread data
+private:
+    std::thread                              thread_;
+    std::shared_ptr<std::mutex>              mut_;
+    std::shared_ptr<std::condition_variable> cond_var_;
+    std::shared_ptr<bool>                    flag_do_ASR_;
 
 
 
@@ -135,6 +126,9 @@ public:
     /// @brief Insert new frame. In this function, scale is estimated via kinematics if this frame has sufficient rotation motion.
     /// @param frame New frame (might be a keyframe)
     void insertNewFrame(const FramePtr& frame);
+
+// Public get methods.
+public:
     const FramePtrVec& getAllTurnRegions() const;
     const FramePtrVec& getLastTurnRegion() const;
 
@@ -142,14 +136,7 @@ public:
 private:
     float calcSteeringAngle(const Rot3& R);
     float calcScale(float psi, const Pos3& u01, float L);
-
-// 이것도 class 안에서 구동 되도록 바꿀 것.
-// 매 keyframe이 생성 될 때 마다 해당 keyframe을 ScaleEstimator로 전달한다. (복사 & 원본 포인터 가지고 있기)
-// 
-private:
     bool detectTurnRegions(const FramePtr& frame);
-    
-
 
 };
 
