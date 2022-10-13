@@ -26,14 +26,17 @@
 
 #include "util/timer.h"
 
-
 // SQP
 #include "core/scale_estimator/scale_constraint.h"
+#include "core/ba_solver/sparse_bundle_adjustment_scale_sqp.h"
 
 class AbsoluteScaleRecovery
 {
 private:
     std::shared_ptr<Camera> cam_;
+
+private:
+    std::shared_ptr<SparseBundleAdjustmentScaleSQPSolver> sqp_solver_;
 
 public:
     AbsoluteScaleRecovery(const std::shared_ptr<Camera>& cam);

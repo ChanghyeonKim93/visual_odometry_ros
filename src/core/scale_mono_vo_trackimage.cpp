@@ -349,10 +349,13 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 				std::cout <<"======== est   dt01: " << dt01.transpose() <<std::endl;
 
 			}
-			else flag_do_5point = true; // Failed to converge. Re-estimate motion with 5-point algorithm.
+			else 
+				flag_do_5point = true; // Failed to converge. Re-estimate motion with 5-point algorithm.
+			
 			timer::toc(1);
 		}
-		else flag_do_5point = true; // Not enough points. Estimate motion with 5-point algorithm.
+		else 
+			flag_do_5point = true; // Not enough points. Estimate motion with 5-point algorithm.
 
 		if(flag_do_5point) { // do 5 point algorihtm (scale is of the previous frame)
 			std::cout << "\n\n\n!!!!!!!!!!!!!!!!!!!!!! -- WARNING ! DO 5-points algorithm -- !!!!!!!!!!!!!!!!!!!!! \n\n\n\n";

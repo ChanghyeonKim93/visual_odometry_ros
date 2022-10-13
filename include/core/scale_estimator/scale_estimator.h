@@ -38,6 +38,7 @@
 
 // Absolute Scale Recovery
 #include "core/scale_estimator/scale_constraint.h"
+#include "core/scale_estimator/absolute_scale_recovery.h"
 
 /// @brief ScaleEstimator class. This class runs on another thread.
 class ScaleEstimator

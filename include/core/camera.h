@@ -2,6 +2,7 @@
 #define _CAMERA_H_
 
 #include <iostream>
+#include <memory>
 #include <vector>
 #include <Eigen/Dense>
 
@@ -11,7 +12,6 @@
 
 #include "core/image_processing.h"
 #include "core/type_defines.h"
-
 
 /// @brief Camera class.
 class Camera 

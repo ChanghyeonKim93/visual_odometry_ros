@@ -57,6 +57,7 @@ set(SRC ${SRC}
   src/core/motion_estimator.cpp
 
   src/core/ba_solver/sparse_bundle_adjustment.cpp
+  src/core/ba_solver/sparse_bundle_adjustment_scale_sqp.cpp
 
   src/core/scale_estimator/scale_estimator.cpp
   src/core/scale_estimator/scale_forward_propagation.cpp

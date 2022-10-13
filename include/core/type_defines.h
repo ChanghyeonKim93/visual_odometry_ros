@@ -21,6 +21,7 @@
 
 class Frame;
 class Landmark;
+class Camera;
 
 typedef float                     Illumi;
 typedef cv::Point2f               Pixel;
@@ -28,6 +29,8 @@ typedef Eigen::Vector3f           Point;
 typedef bool                      Mask;
 typedef std::shared_ptr<Frame>    FramePtr;
 typedef std::shared_ptr<Landmark> LandmarkPtr;
+typedef std::shared_ptr<Camera>   CameraPtr;
+
 
 typedef std::vector<bool>         BoolVec;
 typedef std::vector<int>          IntVec;
