@@ -305,14 +305,16 @@ public:
         
         int len_residual  = 2*n_obs_;
         int len_parameter = 6*N_opt_ + 3*M_;
-        // printf("| Bundle Adjustment Statistics:\n");
-        // printf("|  -        # of total images: %d images \n", N_);
-        // printf("|  -           -  opt. images: %d images \n", N_opt_);
-        // printf("|  -           -  fix  images: %d images \n", N_fix_);
-        // printf("|  -        # of opti. points: %d landmarks \n", M_);
-        // printf("|  -        # of observations: %d \n", n_obs_);
-        // printf("|  -            Jacobian size: %d rows x %d cols\n", len_residual, len_parameter);
-        // printf("|  -            Residual size: %d rows\n\n", len_residual);
+
+
+        printf("| Bundle Adjustment Statistics:\n");
+        printf("|  -        # of total images: %d images \n", N_);
+        printf("|  -           -  opt. images: %d images \n", N_opt_);
+        printf("|  -           -  fix  images: %d images \n", N_fix_);
+        printf("|  -        # of opti. points: %d landmarks \n", M_);
+        printf("|  -        # of observations: %d \n", n_obs_);
+        printf("|  -            Jacobian size: %d rows x %d cols\n", len_residual, len_parameter);
+        printf("|  -            Residual size: %d rows\n\n", len_residual);
     };
 };
 

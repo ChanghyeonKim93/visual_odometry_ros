@@ -32,10 +32,10 @@ void AbsoluteScaleRecovery::runASR(
     float THRES_HUBER = 0.5f; // huber threshold
 
     // The number of frames
-    int Nt = frames_t0.size() + frames_t1.size() - 1;
+    int K  = frames_t0.size() + frames_t1.size() - 1;
     int N  = frames_t0.size() + frames_t1.size() + frames_u.size();
     
-    std::cerr << "In 'runASR()', N: " << N << ", Nt: "<< Nt << std::endl;
+    std::cerr << "In 'runASR()', N: " << N << ", K: "<< K << std::endl;
     std::cerr << " (The first frame of 'frame_t0' is fixed to prevent gauge freedom.)" << std::endl;
 
     // Generate frames-scales constraints 
@@ -52,7 +52,6 @@ void AbsoluteScaleRecovery::runASR(
     FramePtrVec frames_all;
     std::vector<int> idx_fix;
     std::vector<int> idx_opt;
-
     for(int i = 0; i < frames_t0.size(); ++i) frames_all.push_back(frames_t0.at(i));
     for(int i = 0; i < frames_u.size(); ++i) frames_all.push_back(frames_u.at(i));
     for(int i = 0; i < frames_t1.size(); ++i) frames_all.push_back(frames_t1.at(i));
