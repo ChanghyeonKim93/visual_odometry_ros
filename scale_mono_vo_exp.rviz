@@ -200,7 +200,7 @@ Visualization Manager:
       Queue Size: 1
       Selectable: true
       Size (Pixels): 1
-      Size (m): 0.4000000059604645
+      Size (m): 0.20000000298023224
       Style: Spheres
       Topic: /scale_mono_vo/map_points
       Unreliable: false
@@ -287,7 +287,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 84.82945251464844
+      Distance: 122.71788787841797
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -295,17 +295,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -8.320032119750977
-        Y: 21.31643295288086
-        Z: 111.0408706665039
+        X: 11.180268287658691
+        Y: 31.807405471801758
+        Z: 25.383255004882812
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: -0.13979680836200714
+      Pitch: -0.029796801507472992
       Target Frame: <Fixed Frame>
-      Yaw: 4.698594093322754
+      Yaw: 4.713594436645508
     Saved: ~
 Window Geometry:
   Displays:

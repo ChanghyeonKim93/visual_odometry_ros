@@ -18,6 +18,8 @@
 
 #include "core/ba_solver/ba_types.h"
 #include "core/ba_solver/landmark_ba.h"
+#include "core/ba_solver/sparse_ba_parameters.h"
+#include "core/scale_estimator/scale_constraint.h"
 
 struct LandmarkBA;
 class SparseBAParameters;
@@ -40,6 +42,10 @@ class SparseBundleAdjustmentScaleSQPSolver;
     - Update parameters
             delta_theta = [x;y;z];
 
+    - Solutions
+    z = [ D*(A - B*Cinv*Bt)^-1*Dt]^-1*[ D*(A - B*Cinv*Bt)^-1*(a - B*Cinv*b) - c ]
+    x = (A - B*Cinv*Bt)^-1 * (a - B*Cinv*b - Dt*z)
+    y = Cinv*( b - Cinv*Bt*x )
 */
 
 class SparseBundleAdjustmentScaleSQPSolver
@@ -53,24 +59,60 @@ private:
 - Hessian  
     H = [ A_ ,  B_,  Dt_
           Bt_,  C_,  0 
-          D_ ,  0 ,  0  ]; \in R^{ (3*N_opt + 3*M + N_t) x (3*N_opt + 3*M + N_t) }
-*/
-    BlockDiagMat33 A_; // N_opt (3x3) block diagonal part for poses (translation only)
-    BlockFullMat33 B_; // N_opt x M (3x3) block part (side)
-    BlockFullMat33 Bt_; // M x N_opt (3x3) block part (side, transposed)
-    BlockDiagMat33 C_; // M (3x3) block diagonal part for landmarks' 3D points
-    BlockFullMat13 D_; // Nt x N_opt (1x3) block part
-    BlockFullMat31 Dt_; // N_opt x Nt (3x1) block part
+          D_ ,  0 ,  0  ]; \in R^{ (3*N_opt + 3*M + K) x (3*N_opt + 3*M + K) }
 
-/*
 - RHS = [ a_
           b_
-          c_]; \in R^{ (3*N_opt + 3*M + N_t) x 1 }
+          c_]; \in R^{ (3*N_opt + 3*M + K) x 1 }
 */
-    BlockVec3 a_; // N_opt x 1 (3x1) (the number of optimization poses == N-1)
-    BlockVec3 b_; // M x 1     (3x1) (the number of landmarks)
-    BlockVec1 c_; // Nt x 1    (1x1) (the number of constrained poses (turning frames))
+    BlockDiagMat33 A_;  // N_opt (3x3) block diagonal part for poses (translation only)
+    BlockFullMat33 B_;  // N_opt x M (3x3) block part (side)
+    BlockFullMat33 Bt_; // M x N_opt (3x3) block part (side, transposed)
+    BlockDiagMat33 C_;  // M (3x3) block diagonal part for landmarks' 3D points
+    BlockFullMat13 D_;  // K x N_opt (1x3) block part
+    BlockFullMat31 Dt_; // N_opt x K (3x1) block part
 
+    BlockVec3 a_; // N_opt x 1 (3x1) (the number of optimization poses == N-1)
+    BlockVec3 b_; //     M x 1 (3x1) (the number of landmarks)
+    BlockVec1 c_; //     K x 1 (1x1) (the number of constrained poses (turning frames))
+
+    BlockVec3 x_; // N_opt (3x1) translation
+    BlockVec3 y_; //     M (3x1) landmarks
+    BlockVec1 z_; //     K (1x1) Lagrange multiplier
+
+    BlockVec3 params_trans_;    // N_opt (3x1) 3D translation of the frame. (t_wj)
+    BlockVec3 params_points_;   //     M (3x1) 3D points (Xi)
+    BlockVec1 params_lagrange_; //     K (1x1) Lagrange multiplier (lambda_k)
+
+    // Storages
+    BlockDiagMat33 Cinv_;    // M (3x3) block diag
+    BlockVec3      Cinvb_;   // M x 1 (3x1) block vector
+    BlockFullMat33 CinvBt_;  // M x N_opt (3x3) block full mat.
+    BlockVec3      CinvBtx_; // M x 1 (3x1) block vector
+    BlockFullMat33 BCinv_;   // N_opt x M (3x3) block full mat.
+    BlockVec3      BCinvb_;  // N_opt x 1 (3x1) block vector
+    BlockFullMat33 BCinvBt_; // N_opt x N_opt (3x3) block full mat.
+
+    BlockFullMat33 Am_BCinvBt_;         // N_opt x N_opt (3x3) block full mat.
+    BlockFullMat33 inv_Am_BCinvBt_;     // N_opt x N_opt (3x3) block full mat.
+    BlockVec3      am_BCinvb_;          // N_opt x 1 (3x1) block vector
+    BlockVec3      am_BCinvbm_Dtz_;     // N_opt x 1 (3x1) block vector
+
+    BlockFullMat11 D_inv_Am_BCinvBt_Dt_; // K fx K (1x1) full mat.
+
+    
+
+
+    // Input variable
+    std::shared_ptr<SparseBAParameters> ba_params_;
+    std::shared_ptr<ScaleConstraints>   scale_const_;
+
+private:
+    int N_;     // # of total poses including fixed poses
+    int N_opt_; // # of poses to be optimized
+    int M_;     // # of landmarks to be optimized
+    int K_;     // # of equality constraints
+    int n_obs_; // # of total observations ( == length of residual vector / 2)
 
 private:
     // Optimization parameters
@@ -81,17 +123,31 @@ public:
     /// @brief Constructor for BundleAdjustmentSolver ( trans (3-DoF), 3D points (3-DoF) ). Sparse solver with 3x3 block diagonals, 3x3 block diagonals, 3x3 blocks.
     SparseBundleAdjustmentScaleSQPSolver();
 
-    void setBAParameters();
+    /// @brief Set BA parameters and Constraints
+    /// @param ba_params ba paramseters (poses, landmarks)
+    /// @param scale_const (scale constraints)
+    void setBAParametersAndConstraints(const std::shared_ptr<SparseBAParameters>& ba_params, const std::shared_ptr<ScaleConstraints>& scale_const);
+
+    /// @brief Set scale constraints
+    /// @param scale_const scale constraint object
+    void setScaleConstraints(const std::shared_ptr<ScaleConstraints>& scale_const);
+
     void setHuberThreshold();
     void setCamera();
     
-    
+// Solve and reset.
+public:    
+    /// @brief Solve the BA for fixed number of iterations
+    /// @param MAX_ITER Maximum iterations
+    /// @return true when success, false when failed.
     bool solveForFiniteIterations(int MAX_ITER);
-
+    
+    /// @brief Reset the BA solver.
     void reset();
 
+// Set the problem size
 private:
-    void setProblemSize(int N, int Nt, int M, int n_obs);
+    void makeStorageSizeToFit();  
 
 private:
     void setParameterVectorFromPosesPoints();

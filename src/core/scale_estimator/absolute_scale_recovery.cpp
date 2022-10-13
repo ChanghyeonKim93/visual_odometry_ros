@@ -35,7 +35,7 @@ void AbsoluteScaleRecovery::runASR(
     int Nt = frames_t0.size() + frames_t1.size() - 1;
     int N  = frames_t0.size() + frames_t1.size() + frames_u.size();
     
-    std::cerr << "In runASR, N: " << N << ", Nt: "<< Nt << std::endl;
+    std::cerr << "In 'runASR()', N: " << N << ", Nt: "<< Nt << std::endl;
     std::cerr << " (The first frame of 'frame_t0' is fixed to prevent gauge freedom.)" << std::endl;
 
     // Generate frames-scales constraints 
@@ -46,17 +46,35 @@ void AbsoluteScaleRecovery::runASR(
     for(const FramePtr& f : frames_t) scales_t.push_back(f->getScale());
 
     if( scales_t.size() != frames_t.size() )
-        throw std::runtime_error("scales_t.size() != frames_t.size()");
+        throw std::runtime_error("In 'runASR()', scales_t.size() != frames_t.size()");
+
+    // Generate all frames and fix / non-fix index
+    FramePtrVec frames_all;
+    std::vector<int> idx_fix;
+    std::vector<int> idx_opt;
+
+    for(int i = 0; i < frames_t0.size(); ++i) frames_all.push_back(frames_t0.at(i));
+    for(int i = 0; i < frames_u.size(); ++i) frames_all.push_back(frames_u.at(i));
+    for(int i = 0; i < frames_t1.size(); ++i) frames_all.push_back(frames_t1.at(i));
+    
+    idx_fix.push_back(0);
+    for(int i = 1; i < N; ++i) idx_opt.push_back(i);
+
+    std::cerr << " N : "<< N <<", frames_all.size(): " << frames_all.size() << ", idx_fix.size() + idx_opt.size() : " << idx_fix.size() + idx_opt.size() << std::endl;
+
+    if( N != frames_all.size() || N != (idx_fix.size() + idx_opt.size()) )
+        throw std::runtime_error("In 'runASR()', N != frames_all.size() || N != (idx_fix.size() + idx_opt.size()).");
+
 
     // Make SQP constraint parameter (Sequential Quadratic Programming)
     std::shared_ptr<ScaleConstraints> scale_constraints;
     scale_constraints = std::make_shared<ScaleConstraints>();
-    scale_constraints->setScaleConstraints(frames_t, scales_t);
+    scale_constraints->setConstraints(frames_t, scales_t);
 
     // Make Sparse SQP parameters
-    // std::shared_ptr<SparseBAParameters> ba_params;
-    // ba_params = std::make_shared<SparseBAParameters>();
-    // ba_params->setPosesAndPoints(frames, idx_fix, idx_opt);
+    std::shared_ptr<SparseBAParameters> ba_params;
+    ba_params = std::make_shared<SparseBAParameters>();
+    ba_params->setPosesAndPoints(frames_all, idx_fix, idx_opt);
 
     timer::tic();
     double dt_prepare = timer::toc(0);
