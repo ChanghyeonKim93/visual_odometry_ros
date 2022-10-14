@@ -76,12 +76,18 @@ void AbsoluteScaleRecovery::runASR(
     ba_params->setPosesAndPoints(frames_all, idx_fix, idx_opt);
 
     timer::tic();
+    sqp_solver_->reset();
+    sqp_solver_->setCamera(cam_);
+    sqp_solver_->setBAParametersAndConstraints(ba_params, scale_constraints);
+    sqp_solver_->setHuberThreshold(THRES_HUBER);
     double dt_prepare = timer::toc(0);
 
     timer::tic();
+    sqp_solver_->solveForFiniteIterations(MAX_ITER);
     double dt_solve = timer::toc(0);
 
     timer::tic();
+    sqp_solver_->reset();
     double dt_reset = timer::toc(0);
 
     // Time analysis

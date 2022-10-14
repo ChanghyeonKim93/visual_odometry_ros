@@ -26,10 +26,11 @@
 
 #include "util/timer.h"
 
-// SQP
+// SQP with eq. constraints solver
 #include "core/scale_estimator/scale_constraint.h"
 #include "core/ba_solver/sparse_bundle_adjustment_scale_sqp.h"
 
+/// @brief Absolute Scale Recovery Class (ASR)
 class AbsoluteScaleRecovery
 {
 private:
@@ -39,10 +40,18 @@ private:
     std::shared_ptr<SparseBundleAdjustmentScaleSQPSolver> sqp_solver_;
 
 public:
+    /// @brief ASR constructor (with camera pointer)
+    /// @param cam 
     AbsoluteScaleRecovery(const std::shared_ptr<Camera>& cam);
+    
+    /// @brief ASR destructor
     ~AbsoluteScaleRecovery();
 
 public:
+    /// @brief Run Absolute Scale Recovery
+    /// @param frames_t0 turning frames (previous)
+    /// @param frames_u unconstrained frames between two turning regions
+    /// @param frames_t1 turning frames (current)
     void runASR(
         const FramePtrVec& frames_t0, 
         const FramePtrVec& frames_u, 

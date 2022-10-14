@@ -80,7 +80,9 @@ private:
     BlockVec3 y_; //     M (3x1) landmarks
     BlockVec1 z_; //     K (1x1) Lagrange multiplier
 
-    BlockVec3 params_trans_;    // N_opt (3x1) 3D translation of the frame. (t_wj)
+    BlockDiagMat33 fixparams_rot_;   // N_opt (3x3) rotation (fixed!). (R_jw)
+    
+    BlockVec3 params_trans_;    // N_opt (3x1) 3D translation of the frame. (t_jw)
     BlockVec3 params_points_;   //     M (3x1) 3D points (Xi)
     BlockVec1 params_lagrange_; //     K (1x1) Lagrange multiplier (lambda_k)
 
@@ -128,12 +130,8 @@ public:
     /// @param scale_const (scale constraints)
     void setBAParametersAndConstraints(const std::shared_ptr<SparseBAParameters>& ba_params, const std::shared_ptr<ScaleConstraints>& scale_const);
 
-    /// @brief Set scale constraints
-    /// @param scale_const scale constraint object
-    void setScaleConstraints(const std::shared_ptr<ScaleConstraints>& scale_const);
-
-    void setHuberThreshold();
-    void setCamera();
+    void setHuberThreshold(float thres_huber);
+    void setCamera(const std::shared_ptr<Camera>& cam);
     
 // Solve and reset.
 public:    
@@ -150,8 +148,8 @@ private:
     void makeStorageSizeToFit();  
 
 private:
+    void zeroizeStorageMatrices();
     void setParameterVectorFromPosesPoints();
     void getPosesPointsFromParameterVector();
-    void zeroizeStorageMatrices();
 };
 #endif
