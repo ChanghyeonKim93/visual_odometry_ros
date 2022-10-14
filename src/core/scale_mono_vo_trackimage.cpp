@@ -270,8 +270,8 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 		
 		// 깊이를 가진 점 갯수를 세어보고, 30개 이상이면 local bundle을 수행한다.
 		uint32_t cnt_depth_ok = 0;
-		PixelVec pts1_depth_ok; 
-		PointVec Xp_depth_ok; 
+		PixelVec pts1_depth_ok;
+		PointVec Xp_depth_ok;
 		pts1_depth_ok.reserve(lmtrack_scaleok.pts0.size());
 		Xp_depth_ok.reserve(lmtrack_scaleok.pts0.size());
 
@@ -314,7 +314,8 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 		Rot3 dR01; Pos3 dt01; PoseSE3 dT01;
 
 		bool flag_do_5point = false;
-		if(cnt_depth_ok > 10){
+		if(cnt_depth_ok > 10)
+		{
 			// Do Local BA
 			std::cout << " DO pose-only Bundle Adjustment... with [" << cnt_depth_ok <<"] points.\n";
 

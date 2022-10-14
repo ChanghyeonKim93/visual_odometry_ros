@@ -170,7 +170,7 @@ bool Frame::isTurningFrame() const {
     return is_turning_frame_;
 };
 
-void Frame::makeThisNormalFrame()
+void Frame::cancelThisTurningFrame()
 {
     is_turning_frame_ = false;
     frame_previous_turning_ = nullptr;

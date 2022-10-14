@@ -118,7 +118,7 @@ public:
     const float&    getScale() const;
 
     bool isTurningFrame() const;
-    void makeThisNormalFrame();
+    void cancelThisTurningFrame();
 
 
 // For stereo frame

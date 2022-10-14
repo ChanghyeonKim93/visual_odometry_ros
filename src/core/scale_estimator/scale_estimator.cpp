@@ -188,7 +188,6 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame)
             {
                 // New Turning Region is detected.
                 // Sufficient frames, do Absolute Scale Recovery (ASR)
-
                 std::cout << " ======================                                =====================\n";
                 std::cout << " ======================                                =====================\n";
                 std::cout << " ====================== A NEW TURN REGION IS DETECTED! =====================\n";
@@ -210,14 +209,14 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame)
 
                     // Scale vs. translation norm.
                     float trans_norm = tpc.norm();
-                    float scale_raw = f->getScaleRaw();
+                    float scale_raw  = f->getScaleRaw();
                     trans_norm_t1.push_back(trans_norm);
                     ratios_t1.push_back(scale_raw/trans_norm);
                 }
 
                 // Get median ratio
                 float norm_scaler = 0.0;
-                std::sort(ratios_t1.begin(),ratios_t1.end());
+                std::sort(ratios_t1.begin(), ratios_t1.end());
                 norm_scaler = ratios_t1[(int)(ratios_t1.size()*0.5)];
 
                 std::cout << "    - norm_scaler : " << norm_scaler << std::endl;
@@ -230,9 +229,8 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame)
                     f->setScale(scale_refined);
                 }
 
-
                 // Do Absolute Scale Recovery (ASR)
-                std::cout << "    - # frames- Ft0, Fu, Ft1: " 
+                std::cout << "    - # frames- Ft0, Fu, Ft1: "
                     << frames_turn_prev_.size() <<", "
                     << frames_unconstrained_.size() << ", "
                     << frames_turn_curr_.size() << std::endl;
@@ -246,17 +244,16 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame)
                 for(auto& f : frames_unconstrained_)
                     std::cout << f->getID() << " ";
                 std::cout << std::endl;
-
                 
                 std::cout << "    - TURN curr: ";
                 for(auto& f : frames_turn_curr_)
                     std::cout << f->getID() << " ";
-                std::cout << std::endl;        
-
+                std::cout << std::endl;
 
                 // If there is a previous turning frames, do ASR
                 if( frames_turn_prev_.size() > 0)
                 {
+                    // Run the Absolute Scale Recovery (ASR) Module.
                     asr_module_->runASR(
                         frames_turn_prev_,
                         frames_unconstrained_,
@@ -265,18 +262,26 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame)
                                 
                 // Update previous turning region & empty the unconstrained region
                 frames_unconstrained_.resize(0);
-                frames_turn_prev_ = frames_turn_curr_;
+                frames_turn_prev_.resize(frames_turn_curr_.size());
+                std::copy(frames_turn_curr_.begin(), frames_turn_curr_.end(), frames_turn_prev_.begin());
+                
                 frames_turn_curr_.resize(0);
+                cnt_turn_ = 0;
             }
             else
-            { 
+            {
                 // Not Turning Region.
                 // Insufficient frames. The stacked frames are not of turning region.
                 // Make them to unconstrained frames.
-                for(auto f : frames_turn_curr_) 
+                for(auto f : frames_turn_curr_)
+                {
+                    f->cancelThisTurningFrame();
                     frames_unconstrained_.push_back(f);
+                }
+               
+                frames_turn_curr_.resize(0);
+                cnt_turn_ = 0;
             }
-            cnt_turn_ = 0;
         }
         else
         {

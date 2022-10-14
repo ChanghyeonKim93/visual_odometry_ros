@@ -242,6 +242,26 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
                 Rij << fxinvz*r11-fx_xinvz2*r31, fxinvz*r12-fx_xinvz2*r32, fxinvz*r13-fx_xinvz2*r33, 
                        fyinvz*r21-fy_yinvz2*r31, fyinvz*r22-fy_yinvz2*r32, fyinvz*r23-fy_yinvz2*r33; // Related to dr/dXi
 
+                // 2) residual calculation
+                _BA_Pixel ptw;
+                ptw(0) = fx*xinvz + cx;
+                ptw(1) = fy*yinvz + cy;
+                _BA_Vec2 rij;
+                rij = ptw - pij;
+
+                // 3) HUBER weight calculation (Manhattan distance)
+                _BA_numeric absrxry = abs(rij(0))+abs(rij(1));
+                r_prev[cnt] = absrxry;
+                // std::cout << cnt << "-th point: " << absrxry << " [px]\n";
+
+                _BA_numeric weight = 1.0;
+                bool flag_weight = false;
+                if(absrxry > THRES_HUBER_){
+                    weight = (THRES_HUBER_/absrxry);
+                    flag_weight = true;
+                }
+
+                // 4) Add (or fill) data (JtWJ & mJtWr & err).
             }
         }
     }
@@ -312,10 +332,11 @@ void SparseBundleAdjustmentScaleSQPSolver::reset()
 
 void SparseBundleAdjustmentScaleSQPSolver::setParameterVectorFromPosesPoints(){
     // 1) Pose part
-    for(_BA_Index j_opt = 0; j_opt < N_opt_; ++j_opt){
-        const _BA_PoseSE3& Tjw = ba_params_->getOptPose(j_opt);
-        const _BA_Rot3& R_jw = Tjw.block<3,3>(0,0);
-        const _BA_Pos3& t_jw = Tjw.block<3,1>(0,3);
+    for(_BA_Index j_opt = 0; j_opt < N_opt_; ++j_opt)
+    {
+        const _BA_PoseSE3& T_jw = ba_params_->getOptPose(j_opt);
+        const _BA_Rot3&    R_jw = T_jw.block<3,3>(0,0);
+        const _BA_Pos3&    t_jw = T_jw.block<3,1>(0,3);
         fixparams_rot_[j_opt] = R_jw;
         params_trans_[j_opt]  = t_jw;
         // std::cout << "Pose:\n" << Tjw << std::endl;
@@ -323,7 +344,7 @@ void SparseBundleAdjustmentScaleSQPSolver::setParameterVectorFromPosesPoints(){
     }
 
     // 2) Point part
-    for(_BA_Index i = 0; i < M_; ++i) 
+    for(_BA_Index i = 0; i < M_; ++i)
         params_points_[i] = ba_params_->getOptPoint(i);
 };
 
