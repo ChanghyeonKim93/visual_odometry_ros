@@ -28,7 +28,7 @@ void AbsoluteScaleRecovery::runASR(
     std::cerr << "== Run Absolute Scale Recovery ...\n";
 
     // Optimization parameters
-    int   MAX_ITER    = 10; // Maximum allowable iterations
+    int   MAX_ITER    = 1; // Maximum allowable iterations
     float THRES_HUBER = 0.5f; // huber threshold
 
     // The number of frames
@@ -53,7 +53,7 @@ void AbsoluteScaleRecovery::runASR(
     std::vector<int> idx_fix;
     std::vector<int> idx_opt;
     for(int i = 0; i < frames_t0.size(); ++i) frames_all.push_back(frames_t0.at(i));
-    for(int i = 0; i < frames_u.size(); ++i) frames_all.push_back(frames_u.at(i));
+    for(int i = 0; i <  frames_u.size(); ++i) frames_all.push_back(frames_u.at(i));
     for(int i = 0; i < frames_t1.size(); ++i) frames_all.push_back(frames_t1.at(i));
     
     idx_fix.push_back(0);

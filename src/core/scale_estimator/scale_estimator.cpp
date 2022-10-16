@@ -113,10 +113,7 @@ void ScaleEstimator::insertNewFrame(const FramePtr& frame)
     // else
     // {
     //     // This is not a turning frame.
-    // }
-
-    // Change the previous frame.
-    frame_prev_ = frame;
+    // 
 };
 
 
@@ -148,13 +145,13 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame)
     std::cout << frame->getID() << "-th steering angle: " << psi_pc*R2D << " [deg]\n";
     
     // 현재 구한 steering angle이 문턱값보다 높으면, turning frame이다.
-    if( abs(psi_pc) > this->THRES_PSI_)
+    if( abs(psi_pc) > this->THRES_PSI_ )
     {
         // This is a turning frame.
         // Calculate scale raw
         float scale_raw = this->calcScale(psi_pc, tpc, this->L_);
 
-        frame->makeThisTurningFrame(frame_prev_);
+        frame->makeThisTurningFrame(frame_prev_); // 이전 프레임을 함께 넣어줘야한다. 이전 프레임도 키프레임일텐데 ? 
         frame->setSteeringAngle(psi_pc);        
         frame->setScaleRaw(scale_raw);
         // frame->setScale(); // It can be calculated.
@@ -167,13 +164,13 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame)
     else 
     {
         /* 문턱값보다 낮으면 두 가지 경우 : 
-            1) cnt_turn > 0
-                if) cnt_turn >= THRES_CNT_TURN_
+            1) cnt_turn > 0 (누적된 턴이 있다)
+                if) cnt_turn >= THRES_CNT_TURN_ (충분하니 터닝영역으로)
                     --> DO ASR
                     --> prev = curr
                     --> unconstrained.resize(0)
                     --> frames_turn_curr.resize(0)
-                else)
+                else) (불충분하니 모두 unconstrained로 보낸다.)
                     --> frames_turn_curr 을 unconstrained로 보낸다.
                     --> frames_turn_curr.resize(0)
                 
@@ -182,7 +179,7 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame)
             2) 그냥 직진이다.
                 --> 현재 프레임을 unconstrained 로 보낸다.
         */
-        if(cnt_turn_ > 0)
+        if(cnt_turn_ > 0) // 만약 누적된 턴이 있다면, 두가지 ? 
         {
             if(cnt_turn_ >= THRES_CNT_TURN_)
             {
@@ -288,6 +285,8 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame)
             frames_unconstrained_.push_back(frame);
         }
     }
+
+    frame_prev_ = frame;
 
     return flag_turn_detected;
 };
@@ -446,13 +445,13 @@ float ScaleEstimator::calcSteeringAngle(const Rot3& R)
     Vec3 v; // rotation vector direction.
     v << R(2,1)-R(1,2), R(0,2)-R(2,0), R(1,0)-R(0,1);
     v = v/v.norm();
-    std::cout << "v: " << v.transpose() << std::endl;
+    // std::cout << "v: " << v.transpose() << std::endl;
 
     Vec3 j_vec(0,1,0);
     float vjdot = v.dot(j_vec);
-    std::cout << "vjdot: " << vjdot << std::endl;
+    // std::cout << "vjdot: " << vjdot << std::endl;
 
-    std::cout <<"psi : " << psi*R2D << " [deg], psi_p: " << psi*(vjdot)*R2D << " [deg]\n";
+    // std::cout <<"psi : " << psi*R2D << " [deg], psi_p: " << psi*(vjdot)*R2D << " [deg]\n";
 
     if(std::isnan(psi))
         throw std::runtime_error("MotionEstimator-'calcSteeringAngle', std::isnan(psi) == true");    
@@ -461,7 +460,7 @@ float ScaleEstimator::calcSteeringAngle(const Rot3& R)
         psi = -psi;
 
     psi = psi*(vjdot);
-    std::cout << "psi: " << psi*R2D << " [deg]\n";
+    // std::cout << "psi: " << psi*R2D << " [deg]\n";
 
     return psi;
 };

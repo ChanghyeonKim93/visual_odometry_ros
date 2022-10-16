@@ -65,28 +65,59 @@ private:
           b_
           c_]; \in R^{ (3*N_opt + 3*M + K) x 1 }
 */
+
+/*
+    < Governed by 'i' >
+    C_  [ i ] = Sum(Rij.'*Rij)
+    b_  [ i ] = Sum(Rij.'*rij) + additional
+    
+    for(int i = 0; i < M_; ++i)
+        Cinv_b_[i] = Cinv_[i]*b_[i];  // FILL STORAGE (10)
+
+
+    < Governed by 'j' >
+    A_  [ j ] = sum(Qij.'*Qij)
+    a_  [ j ] = sum(Qij.'*rij) + additional
+
+
+    < Governed by 'i, j' >
+    B_  [ j, i ]
+    Bt_ [ i, j ]
+
+
+    < Governed by 'k, j' >
+    D_  [ k, j ] 
+    Dt_ [ j, k ]
+
+
+    
+
+*/  
+
+// Base storages
     BlockDiagMat33 A_;  // N_opt (3x3) block diagonal part for poses (translation only)
     BlockFullMat33 B_;  // N_opt x M (3x3) block part (side)
     BlockFullMat33 Bt_; // M x N_opt (3x3) block part (side, transposed)
     BlockDiagMat33 C_;  // M (3x3) block diagonal part for landmarks' 3D points
-    BlockFullMat13 D_;  // K x N_opt (1x3) block part
     BlockFullMat31 Dt_; // N_opt x K (3x1) block part
+    BlockFullMat13 D_;  // K x N_opt (1x3) block part
 
     BlockVec3 a_; // N_opt x 1 (3x1) (the number of optimization poses == N-1)
     BlockVec3 b_; //     M x 1 (3x1) (the number of landmarks)
     BlockVec1 c_; //     K x 1 (1x1) (the number of constrained poses (turning frames))
 
+// Update step
     BlockVec3 x_; // N_opt (3x1) translation
     BlockVec3 y_; //     M (3x1) landmarks
     BlockVec1 z_; //     K (1x1) Lagrange multiplier
 
     BlockDiagMat33 fixparams_rot_;   // N_opt (3x3) rotation (fixed!). (R_jw)
-    
+
     BlockVec3 params_trans_;    // N_opt (3x1) 3D translation of the frame. (t_jw)
     BlockVec3 params_points_;   //     M (3x1) 3D points (Xi)
     BlockVec1 params_lagrange_; //     K (1x1) Lagrange multiplier (lambda_k)
 
-    // Storages
+// Derivated Storages
     BlockDiagMat33 Cinv_;    // M (3x3) block diag
     BlockVec3      Cinvb_;   // M x 1 (3x1) block vector
     BlockFullMat33 CinvBt_;  // M x N_opt (3x3) block full mat.

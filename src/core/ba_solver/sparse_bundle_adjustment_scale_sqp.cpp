@@ -2,26 +2,36 @@
 
 SparseBundleAdjustmentScaleSQPSolver::SparseBundleAdjustmentScaleSQPSolver()
 {
-
+    std::cerr << "SparseBundleAdjustmentScaleSQPSolver is constructed.\n";
 };
 
+void SparseBundleAdjustmentScaleSQPSolver::setHuberThreshold(float thres_huber) 
+{ 
+    THRES_HUBER_ = thres_huber; 
+};
+
+void SparseBundleAdjustmentScaleSQPSolver::setCamera(const std::shared_ptr<Camera>& cam) 
+{ 
+    cam_ = cam; 
+};
+    
 void SparseBundleAdjustmentScaleSQPSolver::setBAParametersAndConstraints(const std::shared_ptr<SparseBAParameters>& ba_params, const std::shared_ptr<ScaleConstraints>& scale_const)
 {
-    // BA parameters
-    ba_params_ = ba_params;
+    // Get BA parameters
+    ba_params_   = ba_params;
+
+    // Get Constraints
+    scale_const_ = scale_const;
     
+    // Get BA parameter sizes & constraint sizes
     N_     = ba_params_->getNumOfAllFrames(); // Fixed frame == 0-th frame.
     N_opt_ = ba_params_->getNumOfOptimizeFrames(); // Opt. frames == all frames except for 0-th frame. Thus, N_opt == N - 1
     M_     = ba_params_->getNumOfOptimizeLandmarks(); // M
     n_obs_ = ba_params_->getNumOfObservations(); // OK
 
+    K_     = scale_const_->getNumOfConstraint(); // # of constraints
 
-    // Constraints
-    scale_const_ = scale_const;
-
-    K_     = scale_const_->getNumOfConstraint();
-
-    // Make storage fit!
+    // Make storage fit to BA param sizes and constraints sizes.
     this->makeStorageSizeToFit();
 };
 
@@ -152,9 +162,6 @@ void SparseBundleAdjustmentScaleSQPSolver::zeroizeStorageMatrices()
     // std::cout << "zeroize done\n";
 };    
 
-void SparseBundleAdjustmentScaleSQPSolver::setHuberThreshold(float thres_huber) { THRES_HUBER_ = thres_huber; };
-void SparseBundleAdjustmentScaleSQPSolver::setCamera(const std::shared_ptr<Camera>& cam) { cam_ = cam; };
-    
 bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER)
 {
 
@@ -194,26 +201,32 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
 
                 // 0) check whether it is optimizable frame
                 // three states: 1) non-opt (the first frame), 2) opt, 3) opt & constraint
-                bool is_optimizable_frame = false;
                 _BA_Index j  = -1; // optimization index
-                if(ba_params_->isOptFrame(kf)){
-                    is_optimizable_frame = true;
+                bool is_optimizable_frame = ba_params_->isOptFrame(kf);
+                if(is_optimizable_frame){
                     j = ba_params_->getOptPoseIndex(kf);
                 }
 
-                bool is_constrained_frame = false;
-                _BA_Index jm = -1; // j_minor
-                _BA_Index k  = -1; // constraint index
-                if(scale_const_->isConstrainedFrame(kf)){
-                    is_constrained_frame = true;
-                    k = scale_const_->getConstIndexByMajorFrame(kf); // 해당 키프레임이 몇번 constraint와 관련이 있는가?
-                    // 관련이 있다면, major frame인가 prev. frame인가를 판단해야함.
-                    // Twj - Tw(j-1) 이 모두 관련있기 때문이다.
-                    jm = scale_const_->isConstrainedFrame(kf);
-                    // jm = 
-                }
+                // _BA_Index k_major = -1; // constraint (major) index
+                // _BA_Index k_minor = -1; // constraint (minor) index
+                // bool is_constrained_major_frame = scale_const_->isMajorFrame(kf);
+                // bool is_constrained_minor_frame = scale_const_->isMinorFrame(kf);
+                // if(is_constrained_major_frame){
+                //     k_major = scale_const_->getConstrainIndexByMajorFrame(kf); // 해당 키프레임이 major frame인 constraint index를 찾는다.
+                // }
                 
-                // std::cout << "i,j,k: " << i << ", " << j << ", " << k << std::endl;
+                // if(is_constrained_minor_frame){
+                //     k_minor = scale_const_->getConstrainIndexByMinorFrame(kf); // 해당 키프레임이 minor frame인 constraint index를 찾는다.
+                // }
+                
+                // std::cout << "i,j,k1,k0          : " << i << ", " << jj << ", " << k_major <<", " << k_minor << std::endl;
+                // std::cout << "opt / major / minor: " 
+                // << (is_optimizable_frame ? "O":"X") <<", "
+                // << (k_major > -1 ? "O":"X") <<", "
+                // << (k_minor > -1 ? "O":"X") << "\n";
+
+                // optimizable 이어야 trans jacobian을 계산한다.
+                // 그렇지 않다면, point에 대한 jacobian만 계산한다.
 
                 // Get current camera parameters
                 const _BA_numeric& fx = cam_->fx(), fy = cam_->fy();
@@ -226,7 +239,6 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
 
                 _BA_Point Xij = R_jw*Xi + t_jw;
 
-                // 1) Qij and Rij calculation
                 const _BA_numeric& xj = Xij(0), yj = Xij(1), zj = Xij(2);
                 _BA_numeric invz = 1.0/zj; _BA_numeric invz2 = invz*invz;
 
@@ -235,36 +247,155 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
                 _BA_numeric fx_xinvz2   = fxinvz*xinvz; _BA_numeric fy_yinvz2   = fyinvz*yinvz;
                 _BA_numeric xinvz_yinvz = xinvz*yinvz;
 
-                _BA_Mat23 Rij;
-                const _BA_numeric& r11 = R_jw(0,0), r12 = R_jw(0,1), r13 = R_jw(0,2);
-                const _BA_numeric& r21 = R_jw(1,0), r22 = R_jw(1,1), r23 = R_jw(1,2);
-                const _BA_numeric& r31 = R_jw(2,0), r32 = R_jw(2,1), r33 = R_jw(2,2);
-                Rij << fxinvz*r11-fx_xinvz2*r31, fxinvz*r12-fx_xinvz2*r32, fxinvz*r13-fx_xinvz2*r33, 
-                       fyinvz*r21-fy_yinvz2*r31, fyinvz*r22-fy_yinvz2*r32, fyinvz*r23-fy_yinvz2*r33; // Related to dr/dXi
-
-                // 2) residual calculation
+                // 1) residual calculation
                 _BA_Pixel ptw;
                 ptw(0) = fx*xinvz + cx;
                 ptw(1) = fy*yinvz + cy;
                 _BA_Vec2 rij;
                 rij = ptw - pij;
 
-                // 3) HUBER weight calculation (Manhattan distance)
+                // 2) HUBER weight calculation (Manhattan distance)
                 _BA_numeric absrxry = abs(rij(0))+abs(rij(1));
                 r_prev[cnt] = absrxry;
-                // std::cout << cnt << "-th point: " << absrxry << " [px]\n";
 
                 _BA_numeric weight = 1.0;
                 bool flag_weight = false;
                 if(absrxry > THRES_HUBER_){
                     weight = (THRES_HUBER_/absrxry);
                     flag_weight = true;
+                }                
+                // std::cout << cnt << "-th point: " << absrxry << " [px]\n";
+
+                /*
+                    Rij = d{\pi{p_i,xi_jw}}/d{Xi}   = dp/dw * dw/dXi
+                    Qij = d{\pi(p_i,xi_jw)}/d{tjw}  = dp/dw * dw/dtjw
+                */
+
+                // 3) Rij calculation (Jacobian w.r.t. Xi)
+                // d{p_ij}/d{X_i} = dp/dw  \in R^{2x3}
+                _BA_Mat23 Rij;
+                const _BA_numeric& r11 = R_jw(0,0), r12 = R_jw(0,1), r13 = R_jw(0,2),
+                                   r21 = R_jw(1,0), r22 = R_jw(1,1), r23 = R_jw(1,2),
+                                   r31 = R_jw(2,0), r32 = R_jw(2,1), r33 = R_jw(2,2);
+                Rij << fxinvz*r11-fx_xinvz2*r31, fxinvz*r12-fx_xinvz2*r32, fxinvz*r13-fx_xinvz2*r33, 
+                       fyinvz*r21-fy_yinvz2*r31, fyinvz*r22-fy_yinvz2*r32, fyinvz*r23-fy_yinvz2*r33; // Related to dr/dXi
+
+                _BA_Mat33 Rij_t_Rij = Rij.transpose()*Rij; // fixed pose
+                _BA_Vec3  Rij_t_rij = Rij.transpose()*rij; // fixed pose
+                if(flag_weight){
+                    Rij_t_Rij *= weight;
+                    Rij_t_rij *= weight;
                 }
 
-                // 4) Add (or fill) data (JtWJ & mJtWr & err).
+                C_[i].noalias() += Rij_t_Rij; // FILL STORAGE (3)
+                b_[i].noalias() -= Rij_t_rij; // FILL STORAGE (5)      
+                // 4) Qij calculation (Jacobian w.r.t. pose (trans))
+
+
+                // 5) Add (or fill) data (JtWJ & mJtWr & err).
+                // d{p_ij}/d{t_jw} = dp/dw * R_jw  \in R^{2x3}
+                if(is_optimizable_frame) { // Optimizable keyframe.
+                    _BA_Mat23 Qij;
+                    Qij << fxinvz,0,-fx_xinvz2,
+                           0,fyinvz,-fy_yinvz2;
+                           
+                    _BA_Mat33 Qij_t_Qij = Qij.transpose()*Qij; // fixed pose, opt. pose
+                    _BA_Mat33 Qij_t_Rij = Qij.transpose()*Rij; // fixed pose, opt. pose
+                    _BA_Vec3 Qij_t_rij  = Qij.transpose()*rij; // fixed pose, opt. pose
+                    if(flag_weight){
+                        Qij_t_Qij *= weight;
+                        Qij_t_Rij *= weight;
+                        Qij_t_rij *= weight;
+                    }
+
+                    A_[j].noalias() += Qij_t_Qij; // FILL STORAGE (1)
+                    B_[j][i]         = Qij_t_Rij; // FILL STORAGE (2)
+                    Bt_[i][j]        = Qij_t_Rij.transpose().eval(); // FILL STORAGE (2-1)
+                    a_[j].noalias() -= Qij_t_rij; // FILL STORAGE (4)
+
+                    if(std::isnan(Qij_t_Qij.norm()) 
+                    || std::isnan(Qij_t_Rij.norm()) 
+                    || std::isnan(Qij_t_rij.norm()) )
+                    {
+                        std::cerr << i << "-th point, " << j << "-th related frame is nan!\n";
+                        std::cerr << "kf ptr   : " << kf << std::endl;
+                        std::cerr << "Tjw data : " << T_jw.data() << std::endl;
+                        std::cerr << "kf index : " << kf->getID() << std::endl;
+                        std::cerr << "Pose:\n" << T_jw <<"\n";
+                        std::cerr << "Point: " << Xi.transpose()  << std::endl;
+                        std::cerr << "Point: " << Xij.transpose() << std::endl;
+                        std::cerr << "Pixel: " << pij << std::endl;
+                        throw std::runtime_error("In LBA, pose becomes nan!");
+                    }
+                } 
+
+                _BA_numeric err_tmp = weight*rij.transpose()*rij;
+                err += err_tmp;
+
+                ++cnt;
+            } // END jj of i-th point
+    
+
+        } // END i-th point
+
+
+        for(int k = 0; k < K_; ++k)
+        {
+            const RelatedFramePair& fp = scale_const_->getRelatedFramePairByConstraintIndex(k);
+            const FramePtr& f_major = fp.getMajor();
+            const FramePtr& f_minor = fp.getMinor();
+
+            _BA_Scale s_k = scale_const_->getConstraintValueByMajorFrame(f_major);
+
+            _BA_Index j1  = -1; // optimization index
+            _BA_Index j0  = -1; // optimization index
+            bool is_major_optimizable = ba_params_->isOptFrame(f_major);
+            if(is_major_optimizable){
+                j1 = ba_params_->getOptPoseIndex(f_major);
             }
-        }
-    }
+            bool is_minor_optimizable = ba_params_->isOptFrame(f_minor);
+            if(is_minor_optimizable){
+                j0 = ba_params_->getOptPoseIndex(f_minor);
+            }
+
+            std::cout << k << "-th const. has frames: " 
+                << j1 <<"(" << f_major->getID() << ")" << "(" << (is_major_optimizable ? "O" : "X") << "), "
+                << j0 <<"(" << f_minor->getID() << ")" << "(" << (is_minor_optimizable ? "O" : "X") << ")"
+                << std::endl;
+
+            // 1) for major frame
+            const _BA_PoseSE3& T_jw   = ba_params_->getPose(f_major);
+            const _BA_Rot3&    R_jw   = T_jw.block<3,3>(0,0);
+            _BA_Pos3 t_wj   = -R_jw.transpose()*T_jw.block<3,1>(0,3);
+            
+            // 2) for minor frame
+            const _BA_PoseSE3& T_jm1w = ba_params_->getPose(f_minor);
+            const _BA_Rot3&    R_jm1w = T_jm1w.block<3,3>(0,0);
+            _BA_Pos3 t_wjm1 = -T_jm1w.block<3,3>(0,0).transpose()*T_jm1w.block<3,1>(0,3);
+
+            const _BA_Pos3& dt_k = t_wj - t_wjm1;
+
+            _BA_Mat31 dt_kj   = -2*R_jw*dt_k;
+            _BA_Mat31 dt_kjm1 =  2*R_jm1w*dt_k;
+
+            if(is_major_optimizable)
+            {
+                D_[k][j1].noalias() = dt_kj.transpose();
+                Dt_[j1][k].noalias() = dt_kj;
+            }
+
+            if(is_minor_optimizable)
+            {
+                D_[k][j0].noalias() = dt_kjm1.transpose();
+                Dt_[j0][k].noalias() = dt_kjm1;
+            }
+
+            std::cout << dt_k.transpose() << std::endl;
+                        
+        } // END k-th constraint
+
+
+    } // END iter-th iteration
 
 
     std::cout << "End of optimization.\n";

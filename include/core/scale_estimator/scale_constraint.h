@@ -78,19 +78,24 @@ private: // scaling factor for numerical stability
     _BA_numeric inv_scaler_;
 
 private: // all frames constrained
-    std::set<FramePtr> frameset_; // constraint를 가지는 프레임들
+    std::set<FramePtr> fmajorset_; // constraint를 가지는 프레임들 (major frames)
+    std::set<FramePtr> fminorset_; // constraint를 가지는 프레임들 (minor frames)
 
 
 private: 
-    std::map<FramePtr, _BA_Scale> frame_to_scale_map_;
-    std::map<FramePtr, _BA_Index> frame_to_index_map_;
+    std::map<FramePtr, _BA_Scale> fmajor_to_scale_map_;
+
+    std::map<FramePtr, _BA_Index> fmajor_to_index_map_;
+    std::map<FramePtr, _BA_Index> fminor_to_index_map_;
+
     std::vector<RelatedFramePair> index_to_framepair_map_;
+
     std::map<FramePtr, FramePtr> fmajor_to_fminor_map_;
     std::map<FramePtr, FramePtr> fminor_to_fmajor_map_;
 
 
-    // std::map<FramePtr, _BA_Scale> scalemap_; // scalemap all, frame을 넣으면 scale이 나온다.    
-    // std::map<FramePtr, _BA_Index> indexmap_const_; // constraint index map (몇 번째 constraint인가)
+
+
 
 
 
@@ -121,26 +126,40 @@ public:
         // The number of all input frames 
         this->Nt_ = frames.size();
 
-        for(int j = 0; j < this->Nt_; ++j)
+        for(int k = 0; k < this->Nt_; ++k) // k: index of constraint
         {
-            const FramePtr& f_major = frames.at(j);
+            // k-th constraint
+            // major frame of k-th constraint = f_major
+            // minor frame of k-th constraint = f_minor
+            const FramePtr& f_major = frames.at(k);
             const FramePtr& f_minor = f_major->getPreviousTurningFrame();
 
-            frameset_.insert(f_major);
-            frame_to_scale_map_.insert({f_major, scales[j]*inv_scaler_});
-            frame_to_index_map_.insert({f_major, j});
+            fmajorset_.insert(f_major); // Major frameset
+            fminorset_.insert(f_minor); // Minor frameset
+
+            fmajor_to_scale_map_.insert({f_major, scales[k]*inv_scaler_}); // major frame to scale
+            
+            fmajor_to_index_map_.insert({f_major, k}); // frame to major index (k-th const has f_major as a major frame) 
+            fminor_to_index_map_.insert({f_minor, k}); // frame to minor index (k-th const has f_minor as a minor frame)
+
             index_to_framepair_map_.emplace_back(f_major, f_minor);
             fmajor_to_fminor_map_.insert({f_major, f_minor});
             fminor_to_fmajor_map_.insert({f_minor, f_major});
         }
 
         // Check ! 
-        std::cout << "          frameset_.size():"               << frameset_.size() << std::endl;
-        std::cout << "          frame_to_scale_map_.size():"     << frame_to_scale_map_.size() << std::endl;
-        std::cout << "          frame_to_index_map_.size():"     << frame_to_index_map_.size() << std::endl;
+        std::cout << "                       fmajorset_.size():" << fmajorset_.size() << std::endl;
+        std::cout << "                       fminorset_.size():" << fminorset_.size() << std::endl;
+       
+        std::cout << "             fmajor_to_scale_map_.size():" << fmajor_to_scale_map_.size() << std::endl;
+      
+        std::cout << "             fmajor_to_index_map_.size():" << fmajor_to_index_map_.size() << std::endl;
+        std::cout << "             fminor_to_index_map_.size():" << fminor_to_index_map_.size() << std::endl;
+       
         std::cout << "          index_to_framepair_map_.size():" << index_to_framepair_map_.size() << std::endl;
-        std::cout << "          fmajor_to_fminor_map_.size():"   << fmajor_to_fminor_map_.size() << std::endl;
-        std::cout << "          fminor_to_fmajor_map_.size():"   << fminor_to_fmajor_map_.size() << std::endl;
+       
+        std::cout << "            fmajor_to_fminor_map_.size():" << fmajor_to_fminor_map_.size() << std::endl;
+        std::cout << "            fminor_to_fmajor_map_.size():" << fminor_to_fmajor_map_.size() << std::endl;
 
         printf("| Scale Constraints Statistics:\n");
         printf("|  -   # of constraint images: %d images \n", Nt_);
@@ -153,7 +172,8 @@ public:
     
 // Get methods (variables)
 public:
-    const std::set<FramePtr>& getAllConstraintFrameset() { return frameset_; };
+    const std::set<FramePtr>& getAllMajorFrames() { return fmajorset_; };
+    const std::set<FramePtr>& getAllMinorFrames() { return fminorset_; };
     // const std::map<FramePtr,_BA_Scale>& getScalemap() { return frame_to_scale_map_; };
     // const _BA_Scale& getScale(const FramePtr& frame) 
     // {
@@ -167,31 +187,39 @@ public:
     //     return indexmap_opt_.at(frame);
     // };
 
-    inline _BA_Scale getConstValueByMajorFrame(const FramePtr& f) const 
+    inline _BA_Scale getConstraintValueByMajorFrame(const FramePtr& f_major) const 
     { 
-        if(frame_to_scale_map_.find(f) == frame_to_scale_map_.end())
-            throw std::runtime_error("frame_to_scale_map_.find(f) == frame_to_scale_map_.end()");
-        return frame_to_scale_map_.at(f);
+        if(fmajor_to_scale_map_.find(f_major) == fmajor_to_scale_map_.end())
+            throw std::runtime_error("fmajor_to_scale_map_.find(f) == fmajor_to_scale_map_.end()");
+        return fmajor_to_scale_map_.at(f_major);
     };
 
-    inline _BA_Index getConstIndexByMajorFrame(const FramePtr& f) const
+    inline _BA_Index getConstrainIndexByMajorFrame(const FramePtr& f_major) const
     {
-        if(frame_to_index_map_.find(f) == frame_to_index_map_.end())
-            throw std::runtime_error("frame_to_index_map_.find(f) == frame_to_index_map_.end()");
-        return frame_to_index_map_.at(f);
+        if(fmajor_to_index_map_.find(f_major) == fmajor_to_index_map_.end())
+            throw std::runtime_error("fmajor_to_index_map_.find(f) == fmajor_to_index_map_.end()");
+        return fmajor_to_index_map_.at(f_major);
     };
 
-    inline const RelatedFramePair& getRelatedFramePairByConstIndex(_BA_Index k) const 
+    inline _BA_Index getConstrainIndexByMinorFrame(const FramePtr& f_minor) const
+    {
+        if(fminor_to_index_map_.find(f_minor) == fminor_to_index_map_.end())
+            throw std::runtime_error("fminor_to_index_map_.find(f) == fminor_to_index_map_.end()");
+    
+        return fminor_to_index_map_.at(f_minor);
+    };
+
+    inline const RelatedFramePair& getRelatedFramePairByConstraintIndex(_BA_Index k) const 
     {
         if(k >= Nt_ || k < 0)
-            throw std::runtime_error("In 'getRelatedFramePairByConstIndex()', k >= Nt_ || k < 0 ");
+            throw std::runtime_error("In 'getRelatedFramePairByConstraintIndex()', k >= Nt_ || k < 0 ");
         return index_to_framepair_map_.at(k);
     };
 
     inline const FramePtr& getMajorByMinor(const FramePtr& f_major) const 
     {
-        if(frame_to_index_map_.find(f_major) == frame_to_index_map_.end())
-            throw std::runtime_error("In 'getMajorByMinor()', frame_to_index_map_.find(f_major) == frame_to_index_map_.end()");
+        if(fmajor_to_fminor_map_.find(f_major) == fmajor_to_fminor_map_.end())
+            throw std::runtime_error("In 'getMajorByMinor()', fmajor_to_fminor_map_.find(f_major) == fmajor_to_fminor_map_.end()");
         return fmajor_to_fminor_map_.at(f_major);
     };
 
@@ -204,7 +232,9 @@ public:
     
 // Find methods
 public:
-    bool isConstrainedFrame(const FramePtr& f) {return (frameset_.find(f) != frameset_.end() ); };
+    // bool isConstrainedFrame(const FramePtr& f) {return (fmajorset_.find(f) != fmajorset_.end() ); };
+    bool isMajorFrame(const FramePtr& f) {return (fmajorset_.find(f) != fmajorset_.end() ); };
+    bool isMinorFrame(const FramePtr& f) {return (fminorset_.find(f) != fminorset_.end() ); };
 
 };
 
