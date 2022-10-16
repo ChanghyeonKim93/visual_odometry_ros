@@ -117,6 +117,34 @@ void ScaleEstimator::insertNewFrame(const FramePtr& frame)
 };
 
 
+
+/*
+    frame, frame_prev_
+
+    if(frame_prev_ == nullptr){
+        frame_prev_ = frame;
+        flag_turn_detected = false;
+        return flag_turn_detected;
+    }
+
+    if(psi > thres_psi)
+    {
+        if(cnt_turn >= thres_turn)
+        {
+            
+        }
+        else // 부족 --> 전부 unconstrained로 
+        {
+
+        }
+    }
+    else // Straight
+    {
+        frame_unconst.push_back(frame);
+    }
+
+    frame_prev_ = frame;
+*/
 bool ScaleEstimator::detectTurnRegions(const FramePtr& frame)
 {
     bool flag_turn_detected = false;
@@ -171,6 +199,7 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame)
                     --> unconstrained.resize(0)
                     --> frames_turn_curr.resize(0)
                 else) (불충분하니 모두 unconstrained로 보낸다.)
+                    --> frames_turn_curr.push_back(frame);
                     --> frames_turn_curr 을 unconstrained로 보낸다.
                     --> frames_turn_curr.resize(0)
                 
@@ -270,6 +299,7 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame)
                 // Not Turning Region.
                 // Insufficient frames. The stacked frames are not of turning region.
                 // Make them to unconstrained frames.
+                frames_turn_curr_.push_back(frame);
                 for(auto f : frames_turn_curr_)
                 {
                     f->cancelThisTurningFrame();
