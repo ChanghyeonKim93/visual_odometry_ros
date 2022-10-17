@@ -499,7 +499,8 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
             lm->setBundled();
         }
 
-        if(flag_large_update) throw std::runtime_error("large update!");
+        // if(flag_large_update)
+            //  throw std::runtime_error("large update!");
     }
     else{
         std::vector<int> cnt_seen(N_+1,0);

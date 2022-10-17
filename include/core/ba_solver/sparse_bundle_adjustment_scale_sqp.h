@@ -125,23 +125,20 @@ private:
     BlockVec1 params_lagrange_;      //     K (1x1) Lagrange multiplier (lambda_k)
 
 // Derivated Storages
-    BlockDiagMat33 Cinv_;    // M (3x3) block diag
-    BlockVec3      Cinvb_;   // M x 1 (3x1) block vector
-    BlockFullMat33 CinvBt_;  // M x N_opt (3x3) block full mat.
-    BlockVec3      CinvBtx_; // M x 1 (3x1) block vector
+    BlockDiagMat33 Cinv_;   // N_opt  (3x3) block diag mat.
+    BlockVec3      Cinvb_;  // N_opt  (3x1) block vector
     BlockFullMat33 BCinv_;   // N_opt x M (3x3) block full mat.
     BlockVec3      BCinvb_;  // N_opt x 1 (3x1) block vector
     BlockFullMat33 BCinvBt_; // N_opt x N_opt (3x3) block full mat.
 
-    BlockFullMat33 Am_BCinvBt_;         // N_opt x N_opt (3x3) block full mat.
-    BlockFullMat33 inv_Am_BCinvBt_;     // N_opt x N_opt (3x3) block full mat.
-    BlockVec3      am_BCinvb_;          // N_opt x 1 (3x1) block vector
-    BlockVec3      am_BCinvbm_Dtz_;     // N_opt x 1 (3x1) block vector
+    BlockFullMat33 Ap_; // N_opt x N_opt (3x3), == A - B*Cinv*Bt
+    BlockVec3      ap_; // N_opt x 1 (3x1) == a - B*Cinv*b
 
-    BlockFullMat11 D_inv_Am_BCinvBt_Dt_; // K fx K (1x1) full mat.
-
+    BlockVec3      Apinv_ap_; // N_opt x 1 (3x1) == (A - B*Cinv*Bt)^-1 * (a - B*Cinv*b)
+    BlockFullMat31 Apinv_Dt_; // N_opt x K (3x1) == (A - B*Cinv*Bt)^-1 * Dt
     
-
+    BlockVec1      D_Apinv_ap_; // K x 1 (1x1)
+    BlockFullMat11 D_Apinv_Dt_; // K x K (1x1)
 
     // Input variable
     std::shared_ptr<SparseBAParameters> ba_params_;

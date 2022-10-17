@@ -21,7 +21,7 @@ ScaleEstimator::ScaleEstimator(
     flag_do_ASR_ = flag_do_ASR;
 
     // Detecting turn region variables
-    THRES_CNT_TURN_ = 15;
+    THRES_CNT_TURN_ = 10;
     THRES_PSI_      = 2.0*M_PI/180.0;
 
 
