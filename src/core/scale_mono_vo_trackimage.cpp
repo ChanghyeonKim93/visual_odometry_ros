@@ -17,6 +17,7 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp)
 	// Generate statistics
 	AlgorithmStatistics::LandmarkStatistics  statcurr_landmark;
 	AlgorithmStatistics::FrameStatistics     statcurr_frame;
+	AlgorithmStatistics::KeyframeStatistics  statcurr_keyframe;
 	AlgorithmStatistics::ExecutionStatistics statcurr_execution;
 			
 	// 현재 이미지에 대한 새로운 Frame 생성
@@ -437,8 +438,9 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 	bool flag_add_new_keyframe = keyframes_->checkUpdateRule(frame_curr);
 	if( flag_add_new_keyframe )
 	{
-
+		
 		// Add new keyframe
+		this->saveKeyframe(frame_curr);
 		keyframes_->addNewKeyframe(frame_curr);
 
 		// Add this frame to the scale estimator
@@ -535,11 +537,36 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 				}
 			}
 		}
-		std::cout << " Recon done. : " << cnt_recon << "\n";
 
 		// Do local bundle adjustment for keyframes.
 		motion_estimator_->localBundleAdjustmentSparseSolver(keyframes_, cam_);
+
+#ifdef RECORD_KEYFRAME_STAT
+PointVec X_tmp;
+const LandmarkPtrVec& lmvec_tmp = frame_curr->getRelatedLandmarkPtr();
+for(int i = 0; i < lmvec_tmp.size(); ++i)
+{
+	X_tmp.push_back(lmvec_tmp[i]->get3DPoint());
+}
+statcurr_keyframe.Twc = frame_curr->getPose();
+statcurr_keyframe.mappoints = X_tmp;
+stat_.stats_keyframe.push_back(statcurr_keyframe);
+
+for(int j = 0; j < stat_.stats_keyframe.size(); ++j){
+	stat_.stats_keyframe[j].Twc = all_keyframes_[j]->getPose();
+
+	const LandmarkPtrVec& lmvec_tmp = all_keyframes_[j]->getRelatedLandmarkPtr();
+	stat_.stats_keyframe[j].mappoints.resize(lmvec_tmp.size());
+	for(int i = 0; i < lmvec_tmp.size(); ++i) {
+		stat_.stats_keyframe[j].mappoints[i] = lmvec_tmp[i]->get3DPoint();
 	}
+}
+#endif
+
+	} // KEYFRAME addition done.
+
+
+
 	
 	// Replace the 'frame_prev_' with 'frame_curr'
 	this->frame_prev_ = frame_curr;
@@ -560,8 +587,12 @@ statcurr_frame.mappoints = X_world_recon;
 
 	// Update statistics
 	stat_.stats_landmark.push_back(statcurr_landmark);
-	stat_.stats_frame.resize(0);
+	// stat_.stats_frame.resize(0);
 	stat_.stats_frame.push_back(statcurr_frame);
+	
+	for(int j = 0; j < this->all_frames_.size(); ++j){
+		stat_.stats_frame[j].Twc = all_frames_[j]->getPose();
+	}
 	stat_.stats_execution.push_back(statcurr_execution);
 	std::cout << "Statistics Updated. size: " << stat_.stats_landmark.size() << "\n";
 

@@ -170,17 +170,18 @@ void MonoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
 
     pub_statistics_.publish(msg_statistics);
 
+
+
     // Pose publish
     nav_msgs::Odometry msg_pose;
     msg_pose.header.stamp = ros::Time::now();
     msg_pose.header.frame_id = "map";
 
     PoseSE3 Twc = stat.stats_frame.back().Twc;
+    Eigen::Vector4f q = geometry::r2q_f(Twc.block<3,3>(0,0));
     msg_pose.pose.pose.position.x = Twc(0,3);
     msg_pose.pose.pose.position.y = Twc(1,3);
     msg_pose.pose.pose.position.z = Twc(2,3);
-    
-    Eigen::Vector4f q = geometry::r2q_f(Twc.block<3,3>(0,0));
     msg_pose.pose.pose.orientation.w = q(0);
     msg_pose.pose.pose.orientation.x = q(1);
     msg_pose.pose.pose.orientation.y = q(2);
@@ -189,15 +190,25 @@ void MonoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
     pub_pose_.publish(msg_pose);
 
 
-    // Publish estimated path
+    // Publish path
+    msg_trajectory_.header.frame_id = "map";
+    msg_trajectory_.header.stamp = ros::Time::now();
+
     geometry_msgs::PoseStamped p;
     p.header.frame_id = "map";
     p.header.stamp = ros::Time::now();
     p.pose = msg_pose.pose.pose;
-
-    msg_trajectory_.header.frame_id = "map";
-    msg_trajectory_.header.stamp = ros::Time::now();
     msg_trajectory_.poses.push_back(p);
+
+    msg_trajectory_.poses.resize(stat.stats_keyframe.size());
+    for(int j = 0; j < msg_trajectory_.poses.size(); ++j)
+    {
+        PoseSE3 Twc = stat.stats_keyframe[j].Twc;
+        msg_pose.pose.pose.position.x = Twc(0,3);
+        msg_pose.pose.pose.position.y = Twc(1,3);
+        msg_pose.pose.pose.position.z = Twc(2,3);
+        msg_trajectory_.poses[j].pose = msg_pose.pose.pose;
+    }
 
     pub_trajectory_.publish(msg_trajectory_);
 
@@ -205,8 +216,10 @@ void MonoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
     // Publish mappoints
     sensor_msgs::PointCloud2 msg_mappoint;
     mappoints_.resize(0);
-    for(auto x : stat.stats_frame.back().mappoints){
-        mappoints_.push_back(x);
+    for(int j = 0; j < stat.stats_keyframe.size(); ++j){
+        for(auto x : stat.stats_keyframe[j].mappoints){
+            mappoints_.push_back(x);
+        }
     }
     convertPointVecToPointCloud2(mappoints_,msg_mappoint, "map");
     pub_map_points_.publish(msg_mappoint);

@@ -3,6 +3,7 @@
 
 #define RECORD_LANDMARK_STAT  // Recording the statistics
 #define RECORD_FRAME_STAT     // Recording the statistics
+#define RECORD_KEYFRAME_STAT  // Recording the statistics
 #define RECORD_EXECUTION_STAT // Recording the statistics
 
 #include <iostream>
@@ -164,6 +165,18 @@ public:
 			};
 
 		};
+		
+		struct KeyframeStatistics {
+			float   steering_angle; // steering angle from prev to curr
+			PoseSE3 Twc;
+			PointVec mappoints;
+
+			KeyframeStatistics() : steering_angle(0.0f) { 
+				Twc   = PoseSE3::Identity();
+				mappoints.reserve(500);
+			};
+
+		};
 
 		struct ExecutionStatistics{
 			float time_track; // execution time per frame
@@ -187,12 +200,14 @@ public:
 
 		std::vector<LandmarkStatistics>  stats_landmark;
 		std::vector<FrameStatistics>     stats_frame;
+		std::vector<KeyframeStatistics>     stats_keyframe;
 		std::vector<ExecutionStatistics> stats_execution;
 		TurnRegionStatistics stat_turn;
 
 		AlgorithmStatistics() {
 			stats_landmark.reserve(5000);
 			stats_frame.reserve(5000);
+			stats_keyframe.reserve(5000);
 			stats_execution.reserve(5000);
 		};
 	};
@@ -223,6 +238,7 @@ private:
 private:
 	LandmarkPtrVec all_landmarks_;
 	FramePtrVec    all_frames_;
+	FramePtrVec    all_keyframes_;
 	
 // debug image.
 private:
@@ -247,6 +263,8 @@ private:
 	void saveLandmarks(const LandmarkPtrVec& lms, bool verbose = false);
 	void saveFrame(const FramePtr& frame, bool verbose = false);
 	void saveFrames(const FramePtrVec& frames, bool verbose = false);
+	
+	void saveKeyframe(const FramePtr& frame, bool verbose = false);
 
 private:
 	float calcLandmarksMeanAge(const LandmarkPtrVec& lms);

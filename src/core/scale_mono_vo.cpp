@@ -275,6 +275,14 @@ void ScaleMonoVO::saveFrame(const FramePtr& frame, bool verbose){
 		std::cout << "# of all accumulated frames   : " << all_frames_.size() << std::endl;
 };
 
+void ScaleMonoVO::saveKeyframe(const FramePtr& frame, bool verbose)
+{
+	all_keyframes_.push_back(frame);
+	
+	if(verbose)
+		std::cout << "# of all accumulated keyframes   : " << all_keyframes_.size() << std::endl;	
+};
+
 float ScaleMonoVO::calcLandmarksMeanAge(const LandmarkPtrVec& lms){
 	float mean_age = 0.0f;
 	float n_lms = lms.size();
