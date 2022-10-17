@@ -293,6 +293,9 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame)
                 
                 frames_turn_curr_.resize(0);
                 cnt_turn_ = 0;
+
+                // The current frame becomes a unconstrained frame.
+                frames_unconstrained_.push_back(frame);
             }
             else
             {
@@ -322,116 +325,6 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame)
     return flag_turn_detected;
 };
 
-
-// bool ScaleEstimator::detectTurnRegions(
-//     const std::shared_ptr<Keyframes>& keyframes, const FramePtr& frame)
-// {
-//     // 새로운 turning region이 감지되었는지 판단.
-//     bool flag_turn_detected = false;
-
-//     // Calculate steering angle from the last keyframe.
-//     const PoseSE3& Twk = keyframes->getList().back()->getPose();
-//     const PoseSE3& Twc = frame->getPose();
-//     PoseSE3 Tkc = Twk.inverse()*Twc; 
-        
-//     const Rot3& Rkc = Tkc.block<3,3>(0,0);
-//     const Pos3& tkc = Tkc.block<3,1>(0,3);
-
-//     float psi_kc = this->calcSteeringAngleFromRotationMat(Rkc);
-    
-//     frame->setSteeringAngle(psi_kc);
-//     frame->setPoseDiffFromLastKeyframe(Tkc);
-
-//     std::cout << frame->getID() << "-th steering angle: " << psi_kc*R2D << " [deg]\n";
-        
-//     if( abs(psi_kc) > this->THRES_PSI_ )
-//     { 
-//         // Current psi is over the threshold
-//         frames_turn_curr_.push_back(frame); // Stack the 
-//         ++cnt_turn_;
-//     }
-//     else
-//     { 
-//         // End of array of turn regions
-//         if(cnt_turn_ >= THRES_CNT_TURN_)
-//         {
-//             // Sufficient frames, 
-//             // Do Absolute Scale Recovery
-//             frames_turn_prev_; // Ft0
-//             frames_turn_curr_; // Ft1
-//             frames_unconstrained_; // Fu
-
-//             std::cout << " TURN REGION IS DETECTED!\n";
-
-//             // Calculate scale of the Turn regions.
-//             float L = this->L_;
-//             float mean_scale = 0.0f;
-//             std::vector<float> scales_t1;
-//             std::vector<float> ratios;
-//             for(auto f : frames_turn_curr_)
-//             {
-//                 Pos3 t01 = f->getPoseDiffFromLastKeyframe().block<3,1>(0,3);
-//                 float s = calcScaleByKinematics(f->getSteeringAngle(), t01, L);
-                
-//                 float ratio = s/t01.norm();
-
-//                 scales_t1.push_back(s);
-//                 // PoseSE3 dT10_est;
-//                 // dT10_est << dRj, uj*scale_est,0,0,0,1;
-//                 // frame_curr->setPose(Twjm1*dT10_est.inverse());
-//                 // frame_curr->setPoseDiff10(dT10_est);
-//                 std::cout << " ------------------- " 
-//                 << f->getID() << "-th image scale : " << s 
-//                 << ", est: " << t01.norm() << " ratio: " << ratio 
-//                 << ", angle: " << f->getSteeringAngle()*R2D << " [deg]" << std::endl;
-                
-//                 ratios.push_back(ratio);
-//             }
-
-//             std::sort(ratios.begin(), ratios.end());
-//             std::cout <<" ratios: ";
-//             for(auto r : ratios){
-//                 std::cout << r <<" ";
-//             }
-//             std::cout << std::endl;
-//             std::cout <<"ratio median: " << ratios[(int)((float)ratios.size()*0.5f)-1] << std::endl;
-
-//             std::sort(scales_t1.begin(), scales_t1.end());
-//             int idx_median = (int)((float)scales_t1.size()*0.5f)-1;
-            
-//             float scale_turn_median = scales_t1[idx_median];
-//             float scale_turn_mean = (scales_t1[idx_median-1]+scales_t1[idx_median]+scales_t1[idx_median+1])*0.33333f;
-//             std::cout << "turning scale median : " << scale_turn_median << std::endl;
-//             std::cout << "turning scale mean : " << scale_turn_mean << std::endl;
-//             for(auto f : frames_turn_curr_){
-//                 f->setScale(scale_turn_mean);
-//                 f->makeThisTurningFrame();
-//             }
-
-//             flag_turn_detected = true;
-
-
-//             // Update turn regions
-//             frames_turn_prev_ = frames_turn_curr_;
-//             std::cout << "TURN regions:\n";
-//             for(int i = 0; i < frames_turn_prev_.size(); ++i){
-//                 std::cout << frames_turn_prev_[i]->getID() << " " ;
-//                 frames_all_turn_.push_back(frames_turn_prev_[i]);
-//             }
-//             std::cout << "\n";
-//         }
-//         else 
-//         { 
-//             // insufficient frames. The stacked frames are not of the turning region.
-//             for(auto f : frames_turn_curr_)
-//                 frames_unconstrained_.push_back(f);
-//         }
-//         frames_turn_curr_.resize(0);
-//         cnt_turn_ = 0;
-//     }
-
-//     return flag_turn_detected;
-// };
 
 float ScaleEstimator::calcScale(float psi, const Pos3& t01, float L){
     

@@ -20,6 +20,7 @@
 #include "core/ba_solver/landmark_ba.h"
 #include "core/ba_solver/sparse_ba_parameters.h"
 #include "core/scale_estimator/scale_constraint.h"
+#include "core/ba_solver/connectivity_map.h"
 
 struct LandmarkBA;
 class SparseBAParameters;
@@ -89,33 +90,39 @@ private:
     D_  [ k, j ] 
     Dt_ [ j, k ]
 
-
-    
-
 */  
 
-// Base storages
-    BlockDiagMat33 A_;  // N_opt (3x3) block diagonal part for poses (translation only)
-    BlockFullMat33 B_;  // N_opt x M (3x3) block part (side)
-    BlockFullMat33 Bt_; // M x N_opt (3x3) block part (side, transposed)
-    BlockDiagMat33 C_;  // M (3x3) block diagonal part for landmarks' 3D points
-    BlockFullMat31 Dt_; // N_opt x K (3x1) block part
-    BlockFullMat13 D_;  // K x N_opt (1x3) block part
+/*
+    Connectivity map
 
-    BlockVec3 a_; // N_opt x 1 (3x1) (the number of optimization poses == N-1)
-    BlockVec3 b_; //     M x 1 (3x1) (the number of landmarks)
-    BlockVec1 c_; //     K x 1 (1x1) (the number of constrained poses (turning frames))
+    i <-> j
+    j <-> k
+    
+*/
+
+// Base storages
+    BlockDiagMat33 A_;  // j    N_opt (3x3) block diagonal part for poses (translation only)
+    BlockFullMat33 B_;  // j,i  N_opt x M (3x3) block part (side)
+    BlockFullMat33 Bt_; // i,j  M x N_opt (3x3) block part (side, transposed)
+    BlockDiagMat33 C_;  // i    M (3x3) block diagonal part for landmarks' 3D points
+    BlockFullMat31 Dt_; // i,k  N_opt x K (3x1) block part
+    BlockFullMat13 D_;  // k,i  K x N_opt (1x3) block part
+
+    BlockVec3 a_; // j N_opt x 1 (3x1) (the number of optimization poses == N-1)
+    BlockVec3 b_; // i     M x 1 (3x1) (the number of landmarks)
+    BlockVec1 c_; // k     K x 1 (1x1) (the number of constrained poses (turning frames))
 
 // Update step
     BlockVec3 x_; // N_opt (3x1) translation
     BlockVec3 y_; //     M (3x1) landmarks
     BlockVec1 z_; //     K (1x1) Lagrange multiplier
 
+// parameters to be considered.
     BlockDiagMat33 fixparams_rot_;   // N_opt (3x3) rotation (fixed!). (R_jw)
 
-    BlockVec3 params_trans_;    // N_opt (3x1) 3D translation of the frame. (t_jw)
-    BlockVec3 params_points_;   //     M (3x1) 3D points (Xi)
-    BlockVec1 params_lagrange_; //     K (1x1) Lagrange multiplier (lambda_k)
+    BlockVec3 params_trans_;         // N_opt (3x1) 3D translation of the frame. (t_jw)
+    BlockVec3 params_points_;        //     M (3x1) 3D points (Xi)
+    BlockVec1 params_lagrange_;      //     K (1x1) Lagrange multiplier (lambda_k)
 
 // Derivated Storages
     BlockDiagMat33 Cinv_;    // M (3x3) block diag
@@ -139,6 +146,10 @@ private:
     // Input variable
     std::shared_ptr<SparseBAParameters> ba_params_;
     std::shared_ptr<ScaleConstraints>   scale_const_;
+    
+    // Connectivity map
+    // ij, ji (i는 여러 j와 연관되어있다. )
+    // kj, jk
 
 private:
     int N_;     // # of total poses including fixed poses
@@ -181,6 +192,7 @@ private:
 private:
     void zeroizeStorageMatrices();
     void setParameterVectorFromPosesPoints();
+    void initializeLagrangeMultipliers();
     void getPosesPointsFromParameterVector();
 };
 #endif
