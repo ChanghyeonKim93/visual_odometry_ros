@@ -28,7 +28,7 @@ void AbsoluteScaleRecovery::runASR(
     std::cerr << "== Run Absolute Scale Recovery ...\n";
 
     // Optimization parameters
-    int   MAX_ITER    = 3; // Maximum allowable iterations
+    int   MAX_ITER    = 5; // Maximum allowable iterations
     float THRES_HUBER = 0.3f; // huber threshold
 
     // The number of frames

@@ -215,14 +215,14 @@ void MonoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
 
     // Publish mappoints
     sensor_msgs::PointCloud2 msg_mappoint;
-    mappoints_.resize(0);
-    for(int j = 0; j < stat.stats_keyframe.size(); ++j){
-        for(auto x : stat.stats_keyframe[j].mappoints){
-            mappoints_.push_back(x);
-        }
-    }
-    convertPointVecToPointCloud2(mappoints_,msg_mappoint, "map");
-    pub_map_points_.publish(msg_mappoint);
+    // mappoints_.resize(0);
+    // for(int j = 0; j < stat.stats_keyframe.size(); ++j){
+    //     for(auto x : stat.stats_keyframe[j].mappoints){
+    //         mappoints_.push_back(x);
+    //     }
+    // }
+    // convertPointVecToPointCloud2(mappoints_,msg_mappoint, "map");
+    // pub_map_points_.publish(msg_mappoint);
     
 
     // Turn region display

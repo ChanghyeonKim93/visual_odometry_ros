@@ -310,7 +310,7 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
         } // END i-th point
         // From now, A, B, Bt, C, b are fully filled, and a is partially filled.
 
-        std::cout << "From now, A, B, Bt, C, b are fully filled, and a is partially filled.\n";
+        // std::cout << "From now, A, B, Bt, C, b are fully filled, and a is partially filled.\n";
 
         // Manipulate constraints (D, Dt, a, c should be filled.)
         for(int k = 0; k < K_; ++k)
@@ -372,7 +372,7 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
             c_[k] = -g_k;
 
         } // END k-th constraint
-        std::cout << "END k-th constraint\n";
+        // std::cout << "END k-th constraint\n";
         
         // Solve sequentially.
         // 1) Damping 'A_' diagonal
@@ -382,7 +382,7 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
             A_[j](1,1) += lambda*A_[j](1,1);
             A_[j](2,2) += lambda*A_[j](2,2);
         }
-        std::cout << "A damping done\n";
+        // std::cout << "A damping done\n";
 
         // 2) Damping 'C_' diagonal, and Calculate 'Cinv_' & 'Cinvb_'
         for(int i = 0; i < M_; ++i)
@@ -396,7 +396,7 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
             Cinv_[i]  = C_[i].ldlt().solve(_BA_Mat33::Identity()); // inverse by ldlt
             Cinvb_[i] = Cinv_[i]*b_[i];  // FILL STORAGE (10)
         } 
-        std::cout << "C damping Cinv Cinvb done\n";
+        // std::cout << "C damping Cinv Cinvb done\n";
 
         // 3) Calculate 'BCinv_', 'BCinvb_',' BCinvBt_'
         for(int i = 0; i < M_; ++i)
@@ -432,7 +432,7 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
         for(_BA_Index j = 0; j < N_opt_; ++j)
             for(_BA_Index u = j; u < N_opt_; ++u)
                 BCinvBt_[u][j] = BCinvBt_[j][u].transpose().eval();
-        std::cout << "BCinvBt done\n";
+        // std::cout << "BCinvBt done\n";
             
         // 4) Calculate 'Ap_' and 'ap_'
         for(_BA_Index j = 0; j < N_opt_; ++j){
@@ -442,7 +442,7 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
                 else       Ap_[j][u] =       - BCinvBt_[j][u];
             }
         }
-        std::cout << "ap Ap done\n";
+        // std::cout << "ap Ap done\n";
 
         // 5) Solve 'Apinv_ap_' and 'Apinv_Dt_'
         // solve 'Apinv_ap_'
@@ -459,7 +459,7 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
         _BA_MatX Apinv_ap_mat = Ap_mat.ldlt().solve(ap_mat);
         for(_BA_Index j = 0; j < N_opt_; ++j)
             Apinv_ap_[j] = Apinv_ap_mat.block<3,1>(3*j,0);
-        std::cout << "Apinv_ap_ done\n";
+        // std::cout << "Apinv_ap_ done\n";
 
         // solve 'Apinv_Dt_'
         _BA_MatX Dt_mat(3*N_opt_,K_);
@@ -476,7 +476,7 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
             for(_BA_Index k = 0; k < K_; ++k)
                Apinv_Dt_[j][k] = Apinv_Dt_mat.block<3,1>(idx0,k);
         }
-        std::cout << "Apinv_Dt_ done\n";
+        // std::cout << "Apinv_Dt_ done\n";
 
         // 6) Solve 'D_Apinv_ap_' and 'D_Apinv_Dt_'
         for(int k = 0; k < K_; ++k )
@@ -487,7 +487,7 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
             for(int kk = 0; kk < K_; ++kk)
                 for(int j = 0; j < N_opt_; ++j)
                     D_Apinv_Dt_[k][kk] += D_[k][j]*Apinv_Dt_[j][kk];
-        std::cout << "'D_Apinv_ap_' and 'D_Apinv_Dt_' done\n";
+        // std::cout << "'D_Apinv_ap_' and 'D_Apinv_Dt_' done\n";
 
         // 7) Solve the final problem by Schur Complement (solving order: z, x, y)
         // 7-1) Calculate z
@@ -517,29 +517,25 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
             y_[i] = Cinv_[i] * (b_[i] - Btx_tmp);
         }
 
-        std::cout << "Pose update:\n";
-        for(int j = 0; j < N_opt_; ++j)
-            std::cout << x_[j].transpose() << std::endl;
+        // std::cout << "Pose update:\n";
+        // for(int j = 0; j < N_opt_; ++j)
+        //     std::cout << x_[j].transpose() << std::endl;
         // std::cout << "Lagrangian update:\n";
         // for(int k = 0; k < K_; ++k)
         //     std::cout << z_[k] << std::endl;
-        std::cout << "Constraint value:\n";
-        for(int k = 0; k < K_; ++k)
-            std::cout << c_[k] << std::endl;
+        // std::cout << "Constraint value:\n";
+        // for(int k = 0; k < K_; ++k)
+        //     std::cout << c_[k] << std::endl;
 
         // Update step
-        for(_BA_Index j = 0; j < N_opt_; ++j){
-            // std::cout << j_opt <<"-th xi update : " 
-                // << params_poses_[j_opt].transpose() << " + " << x_[j_opt].transpose() << " --> " ;
+        for(_BA_Index j = 0; j < N_opt_; ++j)
             params_trans_[j].noalias() += x_[j];
-            // std::cout << params_poses_[j_opt].transpose() << std::endl;
-        }
+
         for(_BA_Index i = 0; i < M_; ++i)
             params_points_[i].noalias() += y_[i];
 
         for(_BA_Index k = 0; k < K_; ++k)
             params_lagrange_[k] += z_[k];
-            
 
         this->getPosesPointsFromParameterVector();
 
