@@ -191,5 +191,16 @@ private:
     void setParameterVectorFromPosesPoints();
     void initializeLagrangeMultipliers();
     void getPosesPointsFromParameterVector();
+
+private:
+    inline void calc_Rij_t_Rij(const _BA_Mat23& Rij,
+        _BA_Mat33& Rij_t_Rij);
+    inline void calc_Rij_t_Rij_weight(const _BA_numeric weight, const _BA_Mat23& Rij,
+        _BA_Mat33& Rij_t_Rij);
+
+    inline void calc_Qij_t_Qij(const _BA_Mat23& Qij, 
+        _BA_Mat33& Qij_t_Qij);
+    inline void calc_Qij_t_Qij_weight(const _BA_numeric weight, const _BA_Mat23& Qij, 
+        _BA_Mat33& Qij_t_Qij);
 };
 #endif

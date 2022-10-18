@@ -697,7 +697,8 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
 
     Eigen::Matrix<float,6,6> JtWJ;
     Eigen::Matrix<float,6,1> mJtWr;
-    for(uint32_t iter = 0; iter < MAX_ITER; ++iter){
+    for(uint32_t iter = 0; iter < MAX_ITER; ++iter)
+    {
         mJtWr.setZero();
         JtWJ.setZero();
 
@@ -708,7 +709,8 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
         float inv_npts = 1.0f/(float)n_pts;
         int cnt_invalid = 0;
         // Warp and project point & calculate error...
-        for(int i = 0; i < n_pts; ++i) {
+        for(int i = 0; i < n_pts; ++i) 
+        {
             const Pixel& pt = pts1[i];
             Point Xw = R10*X[i] + t10;
 
@@ -745,6 +747,7 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
 
             // JtWJ, JtWr for x
             Eigen::Matrix<float,6,1> Jt;
+            Eigen::Matrix<float,6,6> JtJ_tmp; JtJ_tmp.setZero();
             
             Jt(0) = fx*iz;
             Jt(1) = 0.0f;
@@ -753,14 +756,14 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
             Jt(4) = fx*(1.0f+xiz*xiz);
             Jt(5) = -fx*yiz;
 
-
             if(flag_weight) 
             {
                 float w_rx = weight*rx;
                 float err  = w_rx*rx;
 
-                // JtWJ.noalias() += weight*(Jt*Jt.transpose());
-                JtWJ.noalias()  += this->calcJtWJ_x(weight, Jt);
+                // JtWJ.noalias() += weight *(Jt*Jt.transpose());
+                this->calcJtWJ_x(weight, Jt, JtJ_tmp);
+                JtWJ.noalias()  += JtJ_tmp;
                 mJtWr.noalias() -= (w_rx)*Jt;
                 err_curr += err;
             }
@@ -768,7 +771,8 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
             {
                 float err = rx*rx;
                 // JtWJ.noalias() += Jt*Jt.transpose();
-                JtWJ.noalias()  += this->calcJtJ_x(Jt);
+                this->calcJtJ_x(Jt, JtJ_tmp);
+                JtWJ.noalias()  += JtJ_tmp;
                 mJtWr.noalias() -= rx*Jt;
                 err_curr += err;
             }
@@ -781,12 +785,13 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
             Jt(4) = fyyiz*xiz;
             Jt(5) = fy*xiz;
 
-             if(flag_weight) 
-             {
+            if(flag_weight) 
+            {
                 float w_ry = weight*ry;
                 float err  = w_ry*ry;
                 // JtWJ.noalias()  += weight*(Jt*Jt.transpose());
-                JtWJ.noalias()  += this->calcJtWJ_y(weight, Jt);
+                this->calcJtWJ_y(weight, Jt, JtJ_tmp);
+                JtWJ.noalias()  += JtJ_tmp;
                 mJtWr.noalias() -= w_ry*Jt;
                 err_curr += err;
             }
@@ -794,7 +799,8 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
             {
                 float err = ry*ry;
                 // JtWJ.noalias()  += Jt*Jt.transpose();
-                JtWJ.noalias()  += this->calcJtJ_y(Jt);
+                this->calcJtJ_y(Jt, JtJ_tmp);
+                JtWJ.noalias()  += JtJ_tmp;
                 mJtWr.noalias() -= ry*Jt;
                 err_curr += err;
             }
@@ -983,9 +989,8 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
 };
 
 
-inline Eigen::Matrix<float,6,6>& MotionEstimator::calcJtJ_x(const Eigen::Matrix<float,6,1>& Jt)
+inline void MotionEstimator::calcJtJ_x(const Eigen::Matrix<float,6,1>& Jt, Eigen::Matrix<float,6,6>& JtJ_tmp)
 {
-    Eigen::Matrix<float,6,6> JtJ_tmp;
     JtJ_tmp.setZero();
     
     // Product 
@@ -1041,12 +1046,12 @@ inline Eigen::Matrix<float,6,6>& MotionEstimator::calcJtJ_x(const Eigen::Matrix<
 
 };
 
-inline Eigen::Matrix<float,6,6>& MotionEstimator::calcJtWJ_x(const float weight, const Eigen::Matrix<float,6,1>& Jt)
+inline void MotionEstimator::calcJtWJ_x(const float weight, const Eigen::Matrix<float,6,1>& Jt, Eigen::Matrix<float,6,6>& JtJ_tmp)
 { 
-    Eigen::Matrix<float,6,6> JtJ_tmp;
+    JtJ_tmp.setZero();
+
     Eigen::Matrix<float,6,1> wJt;
     wJt.setZero();
-    JtJ_tmp.setZero();
 
     // Product the weight
     wJt << weight*Jt(0), weight*Jt(1), weight*Jt(2), weight*Jt(3), weight*Jt(4), weight*Jt(5);
@@ -1105,9 +1110,8 @@ inline Eigen::Matrix<float,6,6>& MotionEstimator::calcJtWJ_x(const float weight,
 
 
 
-inline Eigen::Matrix<float,6,6>& MotionEstimator::calcJtJ_y(const Eigen::Matrix<float,6,1>& Jt)
+inline void MotionEstimator::calcJtJ_y(const Eigen::Matrix<float,6,1>& Jt, Eigen::Matrix<float,6,6>& JtJ_tmp)
 {
-    Eigen::Matrix<float,6,6> JtJ_tmp;
     JtJ_tmp.setZero();
 
     // Product 
@@ -1163,12 +1167,12 @@ inline Eigen::Matrix<float,6,6>& MotionEstimator::calcJtJ_y(const Eigen::Matrix<
 
 };
 
-inline Eigen::Matrix<float,6,6>& MotionEstimator::calcJtWJ_y(const float weight, const Eigen::Matrix<float,6,1>& Jt)
+inline void MotionEstimator::calcJtWJ_y(const float weight, const Eigen::Matrix<float,6,1>& Jt, Eigen::Matrix<float,6,6>& JtJ_tmp)
 {
-    Eigen::Matrix<float,6,6> JtJ_tmp;
+    JtJ_tmp.setZero();
+
     Eigen::Matrix<float,6,1> wJt;
     wJt.setZero();
-    JtJ_tmp.setZero();
 
     // Product the weight
     wJt << weight*Jt(0), weight*Jt(1), weight*Jt(2), weight*Jt(3), weight*Jt(4), weight*Jt(5);

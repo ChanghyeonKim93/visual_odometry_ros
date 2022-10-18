@@ -265,11 +265,18 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
                 Rij << fxinvz*r11-fx_xinvz2*r31, fxinvz*r12-fx_xinvz2*r32, fxinvz*r13-fx_xinvz2*r33, 
                        fyinvz*r21-fy_yinvz2*r31, fyinvz*r22-fy_yinvz2*r32, fyinvz*r23-fy_yinvz2*r33; // Related to dr/dXi
 
-                _BA_Mat33 Rij_t_Rij = Rij.transpose()*Rij; // fixed pose
-                _BA_Vec3  Rij_t_rij = Rij.transpose()*rij; // fixed pose
+                _BA_Mat33 Rij_t_Rij; // fixed pose
+                _BA_Vec3  Rij_t_rij; // fixed pose
                 if(flag_weight){
-                    Rij_t_Rij *= weight;
-                    Rij_t_rij *= weight;
+                    // Rij_t_Rij = weight * (Rij.transpose()*Rij);
+                    this->calc_Rij_t_Rij_weight(weight, Rij, Rij_t_Rij);
+                    Rij_t_rij = weight * (Rij.transpose()*rij);
+                }
+                else
+                {
+                    // Rij_t_Rij = Rij.transpose()*Rij;
+                    this->calc_Rij_t_Rij(Rij, Rij_t_Rij);
+                    Rij_t_rij = Rij.transpose()*rij;
                 }
 
                 C_[i].noalias() +=  Rij_t_Rij; // FILL STORAGE (3)
@@ -282,13 +289,21 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
                     Qij << fxinvz,0,-fx_xinvz2,
                            0,fyinvz,-fy_yinvz2;
                            
-                    _BA_Mat33 Qij_t_Qij = Qij.transpose()*Qij; // fixed pose, opt. pose
-                    _BA_Mat33 Qij_t_Rij = Qij.transpose()*Rij; // fixed pose, opt. pose
-                    _BA_Vec3  Qij_t_rij = Qij.transpose()*rij; // fixed pose, opt. pose
+                    _BA_Mat33 Qij_t_Qij; // fixed pose, opt. pose
+                    _BA_Mat33 Qij_t_Rij; // fixed pose, opt. pose
+                    _BA_Vec3  Qij_t_rij; // fixed pose, opt. pose
                     if(flag_weight){
-                        Qij_t_Qij *= weight;
-                        Qij_t_Rij *= weight;
-                        Qij_t_rij *= weight;
+                        // Qij_t_Qij = weight * (Qij.transpose()*Qij );
+                        this->calc_Qij_t_Qij_weight(weight, Qij, Qij_t_Qij);
+                        Qij_t_Rij = weight * (Qij.transpose()*Rij );
+                        Qij_t_rij = weight * (Qij.transpose()*rij );
+                    }
+                    else
+                    {
+                        // Qij_t_Qij = Qij.transpose()*Qij; // fixed pose, opt. pose
+                        this->calc_Qij_t_Qij(Qij, Qij_t_Qij);
+                        Qij_t_Rij = Qij.transpose()*Rij; // fixed pose, opt. pose
+                        Qij_t_rij = Qij.transpose()*rij; // fixed pose, opt. pose                        
                     }
 
                     A_[j].noalias() +=  Qij_t_Qij; // FILL STORAGE (1)
@@ -347,10 +362,10 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
             const _BA_Rot3&    R_0w = T_0w.block<3,3>(0,0);
             _BA_Pos3 t_w0   = -R_0w.transpose()*T_0w.block<3,1>(0,3);
 
-            const _BA_Pos3& dt_k = t_w1 - t_w0;
+            _BA_Pos3 dt_k = t_w1 - t_w0;
 
-            _BA_Mat31 dt_k1 = -2*R_1w*dt_k;
-            _BA_Mat31 dt_k0 =  2*R_0w*dt_k;
+            _BA_Pos3 dt_k1 = -2*R_1w*dt_k;
+            _BA_Pos3 dt_k0 =  2*R_0w*dt_k;
 
             if(is_major_optimizable) {
                 D_[k][j1]  = dt_k1.transpose();
@@ -448,31 +463,32 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
         // solve 'Apinv_ap_'
         _BA_MatX Ap_mat(3*N_opt_,3*N_opt_);
         _BA_MatX ap_mat(3*N_opt_,1);
-        for(_BA_Index j = 0; j < N_opt_; ++j){
-            int idx0 = 3*j;
+        int idx0 = 0;
+        for(_BA_Index j = 0; j < N_opt_; ++j, idx0 += 3){
             ap_mat.block(idx0,0,3,1) = ap_[j];
-            for(_BA_Index u = 0; u < N_opt_; ++u){
-                int idx1 = 3*u;
+            int idx1 = 0;
+            for(_BA_Index u = 0; u < N_opt_; ++u, idx1 += 3){
                 Ap_mat.block(idx0,idx1,3,3) = Ap_[j][u];
             }
         }
         _BA_MatX Apinv_ap_mat = Ap_mat.ldlt().solve(ap_mat);
-        for(_BA_Index j = 0; j < N_opt_; ++j)
-            Apinv_ap_[j] = Apinv_ap_mat.block<3,1>(3*j,0);
+        idx0 = 0;
+        for(_BA_Index j = 0; j < N_opt_; ++j, idx0 += 3)
+            Apinv_ap_[j] = Apinv_ap_mat.block<3,1>(idx0,0);
         // std::cout << "Apinv_ap_ done\n";
 
         // solve 'Apinv_Dt_'
         _BA_MatX Dt_mat(3*N_opt_,K_);
-        for(_BA_Index j = 0; j < N_opt_; ++j){
-            int idx0 = 3*j;
+        idx0 = 0;
+        for(_BA_Index j = 0; j < N_opt_; ++j, idx0 += 3){
             for(_BA_Index k = 0; k < K_; ++k){
-                int idx1 = k;
+                const int& idx1 = k;
                 Dt_mat.block(idx0,idx1,3,1) = Dt_[j][k];
             }
         }
         _BA_MatX Apinv_Dt_mat = Ap_mat.ldlt().solve(Dt_mat);
-        for(_BA_Index j = 0; j < N_opt_; ++j){
-            int idx0 = 3*j;
+        idx0 = 0;
+        for(_BA_Index j = 0; j < N_opt_; ++j, idx0 += 3){
             for(_BA_Index k = 0; k < K_; ++k)
                Apinv_Dt_[j][k] = Apinv_Dt_mat.block<3,1>(idx0,k);
         }
@@ -504,8 +520,9 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
         
         // 7-2) Calculate x
         _BA_MatX x_mat = Ap_mat.ldlt().solve(ap_mat-Dt_mat*z_mat);
-        for(int j = 0; j < N_opt_; ++j)
-            x_[j] = x_mat.block(3*j,0,3,1);
+        idx0 = 0;
+        for(int j = 0; j < N_opt_; ++j, idx0 += 3)
+            x_[j] = x_mat.block(idx0,0,3,1);
 
         // 7-3) Calculate y
         for(int i = 0; i < M_; ++i)
@@ -869,4 +886,132 @@ void SparseBundleAdjustmentScaleSQPSolver::getPosesPointsFromParameterVector(){
     // point part
     for(_BA_Index i = 0; i < M_; ++i)
         ba_params_->updateOptPoint(i, params_points_[i]);
+};
+
+
+
+
+
+
+
+
+// For fast calculations for symmetric matrices
+inline void SparseBundleAdjustmentScaleSQPSolver::calc_Rij_t_Rij(const _BA_Mat23& Rij, 
+    _BA_Mat33& Rij_t_Rij)
+{
+    Rij_t_Rij.setZero();
+
+    // Calculate upper triangle
+    const _BA_Mat23& a = Rij;
+    Rij_t_Rij(0,0) = (a(0,0)*a(0,0) + a(1,0)*a(1,0));
+    Rij_t_Rij(0,1) = (a(0,0)*a(0,1) + a(1,0)*a(1,1));
+    Rij_t_Rij(0,2) = (a(0,0)*a(0,2) + a(1,0)*a(1,2));
+    
+    Rij_t_Rij(1,1) = (a(0,1)*a(0,1) + a(1,1)*a(1,1));
+    Rij_t_Rij(1,2) = (a(0,1)*a(0,2) + a(1,1)*a(1,2));
+    
+    Rij_t_Rij(2,2) = (a(0,2)*a(0,2) + a(1,2)*a(1,2));
+
+    // Substitute symmetric elements
+    Rij_t_Rij(1,0) = Rij_t_Rij(0,1);
+    Rij_t_Rij(2,0) = Rij_t_Rij(0,2);
+
+    Rij_t_Rij(2,1) = Rij_t_Rij(1,2);
+
+};
+inline void SparseBundleAdjustmentScaleSQPSolver::calc_Rij_t_Rij_weight(const _BA_numeric weight, const _BA_Mat23& Rij,
+    _BA_Mat33& Rij_t_Rij)
+{
+    Rij_t_Rij.setZero();
+
+    // Calculate upper triangle
+    const _BA_Mat23& a = Rij;
+    Rij_t_Rij(0,0) = weight*(a(0,0)*a(0,0) + a(1,0)*a(1,0));
+    Rij_t_Rij(0,1) = weight*(a(0,0)*a(0,1) + a(1,0)*a(1,1));
+    Rij_t_Rij(0,2) = weight*(a(0,0)*a(0,2) + a(1,0)*a(1,2));
+    
+    Rij_t_Rij(1,1) = weight*(a(0,1)*a(0,1) + a(1,1)*a(1,1));
+    Rij_t_Rij(1,2) = weight*(a(0,1)*a(0,2) + a(1,1)*a(1,2));
+    
+    Rij_t_Rij(2,2) = weight*(a(0,2)*a(0,2) + a(1,2)*a(1,2));
+
+    // Substitute symmetric elements
+    Rij_t_Rij(1,0) = Rij_t_Rij(0,1);
+    Rij_t_Rij(2,0) = Rij_t_Rij(0,2);
+
+    Rij_t_Rij(2,1) = Rij_t_Rij(1,2);
+};
+
+
+
+inline void SparseBundleAdjustmentScaleSQPSolver::calc_Qij_t_Qij(const _BA_Mat23& Qij,
+    _BA_Mat33& Qij_t_Qij)
+{
+    Qij_t_Qij.setZero();
+
+    // a(0,1) = 0;
+    // a(1,0) = 0;
+
+    // Calculate upper triangle
+    const _BA_Mat23& a = Qij;
+    Qij_t_Qij(0,0) = (a(0,0)*a(0,0)                );
+    Qij_t_Qij(0,1) = (a(0,0)*a(0,1)                );
+    Qij_t_Qij(0,2) = (a(0,0)*a(0,2)                );
+    
+    Qij_t_Qij(1,1) = (                a(1,1)*a(1,1));
+    Qij_t_Qij(1,2) = (                a(1,1)*a(1,2));
+    
+    Qij_t_Qij(2,2) = (a(0,2)*a(0,2) + a(1,2)*a(1,2));
+
+    // Qij_t_Qij(0,0) = (a(0,0)*a(0,0) + a(1,0)*a(1,0));
+    // Qij_t_Qij(0,1) = (a(0,0)*a(0,1) + a(1,0)*a(1,1));
+    // Qij_t_Qij(0,2) = (a(0,0)*a(0,2) + a(1,0)*a(1,2));
+
+    // Qij_t_Qij(1,1) = (a(0,1)*a(0,1) + a(1,1)*a(1,1));
+    // Qij_t_Qij(1,2) = (a(0,1)*a(0,2) + a(1,1)*a(1,2));
+    
+    // Qij_t_Qij(2,2) = (a(0,2)*a(0,2) + a(1,2)*a(1,2));    
+
+    // Substitute symmetric elements
+    // Qij_t_Qij(1,0) = Qij_t_Qij(0,1);
+    Qij_t_Qij(2,0) = Qij_t_Qij(0,2);
+        
+    Qij_t_Qij(2,1) = Qij_t_Qij(1,2);
+};
+inline void SparseBundleAdjustmentScaleSQPSolver::calc_Qij_t_Qij_weight(const _BA_numeric weight, const _BA_Mat23& Qij,
+    _BA_Mat33& Qij_t_Qij)
+{
+    Qij_t_Qij.setZero();
+
+    // a(0,1) = 0;
+    // a(1,0) = 0;
+
+    // Calculate upper triangle
+    const _BA_Mat23& a = Qij;
+    const _BA_Mat23 wa = weight*Qij;
+
+    Qij_t_Qij(0,0) = (wa(0,0)*a(0,0)                 );
+    // Qij_t_Qij(0,1) = (0);
+    Qij_t_Qij(0,2) = (wa(0,0)*a(0,2)                 );
+    
+    Qij_t_Qij(1,1) = (                 wa(1,1)*a(1,1));
+    Qij_t_Qij(1,2) = (                 wa(1,1)*a(1,2));
+    
+    Qij_t_Qij(2,2) = (wa(0,2)*a(0,2) + wa(1,2)*a(1,2));
+
+    // Qij_t_Qij(0,0) = weight*(a(0,0)*a(0,0) + a(1,0)*a(1,0));
+    // Qij_t_Qij(0,1) = weight*(a(0,0)*a(0,1) + a(1,0)*a(1,1));
+    // Qij_t_Qij(0,2) = weight*(a(0,0)*a(0,2) + a(1,0)*a(1,2));
+    
+    // Qij_t_Qij(1,1) = weight*(a(0,1)*a(0,1) + a(1,1)*a(1,1));
+    // Qij_t_Qij(1,2) = weight*(a(0,1)*a(0,2) + a(1,1)*a(1,2));
+    
+    // Qij_t_Qij(2,2) = weight*(a(0,2)*a(0,2) + a(1,2)*a(1,2));
+    
+
+    // Substitute symmetric elements
+    // Qij_t_Qij(1,0) = Qij_t_Qij(0,1);
+    Qij_t_Qij(2,0) = Qij_t_Qij(0,2);
+        
+    Qij_t_Qij(2,1) = Qij_t_Qij(1,2);
 };

@@ -131,12 +131,15 @@ private:
 
 // For fast calculations for symmetric matrices
 private:
-    inline const _BA_Mat33& calc_Rij_t_Rij(const _BA_Mat23& Rij);
-    inline const _BA_Vec3&  calc_Rij_t_rij(const _BA_Mat23& Rij, const _BA_Vec2& rij);
+    inline void calc_Rij_t_Rij(const _BA_Mat23& Rij,
+        _BA_Mat33& Rij_t_Rij);
+    inline void calc_Rij_t_Rij_weight(const _BA_numeric weight, const _BA_Mat23& Rij,
+        _BA_Mat33& Rij_t_Rij);
 
-    inline const _BA_Mat66& calc_Qij_t_Qij(const _BA_Mat26& Qij);
-    inline const _BA_Mat63& calc_Qij_t_Rij(const _BA_Mat26& Qij, const _BA_Mat23& Rij);
-    inline const _BA_Vec6&  calc_Qij_t_rij(const _BA_Mat26& Qij, const _BA_Vec2& rij);
+    inline void calc_Qij_t_Qij(const _BA_Mat26& Qij, 
+        _BA_Mat66& Qij_t_Qij);
+    inline void calc_Qij_t_Qij_weight(const _BA_numeric weight, const _BA_Mat26& Qij, 
+        _BA_Mat66& Qij_t_Qij);
 
 
 };

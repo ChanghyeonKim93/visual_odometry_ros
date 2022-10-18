@@ -93,10 +93,10 @@ private:
 
 
 private:
-    inline Eigen::Matrix<float,6,6>& calcJtJ_x(const Eigen::Matrix<float,6,1>& Jt);
-    inline Eigen::Matrix<float,6,6>& calcJtJ_y(const Eigen::Matrix<float,6,1>& Jt);
-    inline Eigen::Matrix<float,6,6>& calcJtWJ_x(const float weight, const Eigen::Matrix<float,6,1>& Jt);
-    inline Eigen::Matrix<float,6,6>& calcJtWJ_y(const float weight, const Eigen::Matrix<float,6,1>& Jt);
+    inline void calcJtJ_x(const Eigen::Matrix<float,6,1>& Jt, Eigen::Matrix<float,6,6>& JtJ_tmp);
+    inline void calcJtJ_y(const Eigen::Matrix<float,6,1>& Jt, Eigen::Matrix<float,6,6>& JtJ_tmp);
+    inline void calcJtWJ_x(const float weight, const Eigen::Matrix<float,6,1>& Jt, Eigen::Matrix<float,6,6>& JtJ_tmp);
+    inline void calcJtWJ_y(const float weight, const Eigen::Matrix<float,6,1>& Jt, Eigen::Matrix<float,6,6>& JtJ_tmp);
 };
 
 #endif
