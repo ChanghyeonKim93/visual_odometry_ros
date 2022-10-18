@@ -719,8 +719,8 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
             float fyyiz = fy*yiz;
 
             Pixel pt_warp;
-            pt_warp.x = fxxiz+cx;
-            pt_warp.y = fyyiz+cy;
+            pt_warp.x = fxxiz + cx;
+            pt_warp.y = fyyiz + cy;
 
             float rx = pt_warp.x - pt.x;
             float ry = pt_warp.y - pt.y;
@@ -740,68 +740,75 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
                 mask_inlier[i] = false;
                 ++cnt_invalid;
             }
-            else 
+            else
                 mask_inlier[i] = true;
 
             // JtWJ, JtWr for x
             Eigen::Matrix<float,6,1> Jt;
-            Jt(0,0) = fx*iz;
-            Jt(1,0) = 0.0f;
-            Jt(2,0) = -fxxiz*iz;
-            Jt(3,0) = -fxxiz*yiz;
-            Jt(4,0) = fx*(1.0f+xiz*xiz);
-            Jt(5,0) = -fx*yiz;
+            
+            Jt(0) = fx*iz;
+            Jt(1) = 0.0f;
+            Jt(2) = -fxxiz*iz;
+            Jt(3) = -fxxiz*yiz;
+            Jt(4) = fx*(1.0f+xiz*xiz);
+            Jt(5) = -fx*yiz;
+
 
             if(flag_weight) 
             {
                 float w_rx = weight*rx;
-                float err = w_rx*rx;
-                JtWJ.noalias() += weight*(Jt*Jt.transpose());
+                float err  = w_rx*rx;
+
+                // JtWJ.noalias() += weight*(Jt*Jt.transpose());
+                JtWJ.noalias()  += this->calcJtWJ_x(weight, Jt);
                 mJtWr.noalias() -= (w_rx)*Jt;
                 err_curr += err;
             }
             else 
             {
                 float err = rx*rx;
-                JtWJ.noalias() += Jt*Jt.transpose();
+                // JtWJ.noalias() += Jt*Jt.transpose();
+                JtWJ.noalias()  += this->calcJtJ_x(Jt);
                 mJtWr.noalias() -= rx*Jt;
                 err_curr += err;
             }
 
             // JtWJ, JtWr for y
-            Jt(0,0) = 0.0f;
-            Jt(1,0) = fy*iz;
-            Jt(2,0) =-fyyiz*iz;
-            Jt(3,0) =-fy*(1.0f+yiz*yiz);
-            Jt(4,0) = fyyiz*xiz;
-            Jt(5,0) = fy*xiz;
+            Jt(0) = 0.0f;
+            Jt(1) = fy*iz;
+            Jt(2) =-fyyiz*iz;
+            Jt(3) =-fy*(1.0f+yiz*yiz);
+            Jt(4) = fyyiz*xiz;
+            Jt(5) = fy*xiz;
 
              if(flag_weight) 
              {
                 float w_ry = weight*ry;
-                float err = w_ry*ry;
-                JtWJ.noalias()  += weight*(Jt*Jt.transpose());
+                float err  = w_ry*ry;
+                // JtWJ.noalias()  += weight*(Jt*Jt.transpose());
+                JtWJ.noalias()  += this->calcJtWJ_y(weight, Jt);
                 mJtWr.noalias() -= w_ry*Jt;
                 err_curr += err;
             }
             else 
             {
                 float err = ry*ry;
-                JtWJ.noalias()  += Jt*Jt.transpose();
+                // JtWJ.noalias()  += Jt*Jt.transpose();
+                JtWJ.noalias()  += this->calcJtJ_y(Jt);
                 mJtWr.noalias() -= ry*Jt;
                 err_curr += err;
             }
         } // END FOR
 
         err_curr *= (inv_npts*0.5f);
-        float delta_err = abs(err_curr-err_prev);
+        float delta_err = abs(err_curr - err_prev);
 
         // Solve H^-1*Jtr;
         for(int i = 0; i < 6; ++i)
-             JtWJ(i,i) *= (1.0f+lambda); // lambda 
+            JtWJ(i,i) *= (1.0f + lambda); // lambda 
 
         PoseSE3Tangent delta_xi = JtWJ.ldlt().solve(mJtWr);
-        delta_xi *= step_size; 
+        delta_xi *= step_size;
 
         // Update matrix
         PoseSE3 dT;
@@ -830,190 +837,6 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
         t01_true = T01_update.block<3,1>(0,3);
     }
     else is_success = false;  // if nan, do not update.
-
-    return is_success;
-};
-
-bool MotionEstimator::calcPoseOnlyBundleAdjustment(const LandmarkPtrVec& lms, const PixelVec& pts1, const std::shared_ptr<Camera>& cam,
-    Rot3& Rwc_true, Pos3& twc_true, MaskVec& mask_inlier)
-{
-    // X is represented in the world frame.
-    if(lms.size() != pts1.size()) 
-        throw std::runtime_error("In 'calcPoseOnlyBundleAdjustment()': lms.size() != pts1.size().");
-    
-    bool is_success = true;
-
-    int n_pts = lms.size();
-    mask_inlier.resize(n_pts, true);
-    
-    int MAX_ITER = 250;
-    float THRES_HUBER = 1.5f; // pixels
-    float THRES_DELTA_XI = 1e-7;
-
-    float lambda = 0.01f;
-    float step_size = 1.0f;
-    float THRES_REPROJ_ERROR = 4.0; // pixels
-    float THRES_REPROJ_ERROR_INLIER = 3.0; // pixels
-    
-    float fx = cam->fx();
-    float fy = cam->fy();
-    float cx = cam->cx();
-    float cy = cam->cy();
-    float fxinv = cam->fxinv();
-    float fyinv = cam->fyinv();
-
-    PoseSE3 Tcw_init;
-    PoseSE3 Twc_init;
-    Twc_init << Rwc_true, twc_true, 0,0,0,1;
-    Tcw_init = Tcw_init.inverse();
-
-    PoseSE3Tangent xi10; // se3
-    geometry::SE3Log_f(Tcw_init, xi10);
-    
-    for(uint32_t iter = 0; iter < MAX_ITER; ++iter)
-    {
-        PoseSE3 Tcw;
-        geometry::se3Exp_f(xi10,Tcw);
-
-        Rot3 Rcw = Tcw.block<3,3>(0,0);
-        Pos3 tcw = Tcw.block<3,1>(0,3);
-
-        Eigen::Matrix<float,6,6> JtWJ;
-        Eigen::Matrix<float,6,1> mJtWr;
-        JtWJ.setZero();
-        mJtWr.setZero();
-
-        float err_prev = 1e15f;
-        float err_curr = 0.0f;
-        float inv_npts = 1.0f/(float)n_pts;
-
-        // Warp and project point & calculate error...
-        for(int i = 0; i < n_pts; ++i) 
-        {
-            const Pixel& pt = pts1[i];
-            Point Xprev = Rcw*lms[i]->get3DPoint() + tcw;
-
-            float iz    = 1.0f/Xprev(2);
-            float xiz   = Xprev(0)*iz;
-            float yiz   = Xprev(1)*iz;
-            float fxxiz = fx*xiz;
-            float fyyiz = fy*yiz;
-
-            Pixel pt_warp;
-            pt_warp.x = fxxiz + cx;
-            pt_warp.y = fyyiz + cy;
-
-            float rx = pt_warp.x - pt.x;
-            float ry = pt_warp.y - pt.y;
-            
-            // Huber weight calculation by the Manhattan distance
-            float weight     = 1.0f;
-            bool flag_weight = false;
-
-            float absrxry = abs(rx)+abs(ry);
-            if(absrxry >= THRES_HUBER)
-            {
-                weight = THRES_HUBER/absrxry; 
-                flag_weight = true;
-            } 
-
-            if(iter > 2)
-            {
-                if(absrxry >= THRES_REPROJ_ERROR_INLIER)
-                    mask_inlier[i] = false;
-                else 
-                    mask_inlier[i] = true;
-            }
-
-            // JtWJ, JtWr for x
-            Eigen::Matrix<float,6,1> Jt;
-            Jt(0,0) = fx*iz;
-            Jt(1,0) = 0.0f;
-            Jt(2,0) = -fxxiz*iz;
-            Jt(3,0) = -fxxiz*yiz;
-            Jt(4,0) = fx*(1.0f+xiz*xiz);
-            Jt(5,0) = -fx*yiz;
-
-            if(flag_weight) 
-            {
-                float w_rx = weight*rx;
-                float err = w_rx*rx;
-                if(err <= THRES_REPROJ_ERROR)
-                {
-                    mJtWr.noalias() -= (w_rx)*Jt;
-                    JtWJ.noalias() += weight*(Jt*Jt.transpose());
-                    err_curr += err;
-                }
-            }
-            else 
-            {
-                float err = rx*rx;
-                if(err <= THRES_REPROJ_ERROR)
-                {
-                    JtWJ.noalias() += Jt*Jt.transpose();
-                    mJtWr.noalias() -= rx*Jt;
-                    err_curr += rx*rx;
-                }
-            }
-
-            // JtWJ, JtWr for y
-            Jt(0,0) = 0.0f;
-            Jt(1,0) = fy*iz;
-            Jt(2,0) =-fyyiz*iz;
-            Jt(3,0) =-fy*(1.0f+yiz*yiz);
-            Jt(4,0) = fyyiz*xiz;
-            Jt(5,0) = fy*xiz;
-
-            if(flag_weight) 
-            {
-                float w_ry = weight*ry;
-                float err = w_ry*ry;
-                if(err <= THRES_REPROJ_ERROR)
-                {
-                    JtWJ.noalias() += weight*(Jt*Jt.transpose());
-                    mJtWr.noalias() -= (w_ry)*Jt;
-                    err_curr += err;
-                }
-            }
-            else 
-            {
-                float err = ry*ry;
-                if(err <= THRES_REPROJ_ERROR)
-                {
-                    JtWJ.noalias() += Jt*Jt.transpose();
-                    mJtWr.noalias() -= ry*Jt;
-                    err_curr += err;
-                }
-            }
-        } // END FOR
-
-        // Solve H^-1*Jtr;
-        for(int i = 0; i < 6; ++i) 
-            JtWJ(i,i) += lambda*JtWJ(i,i); // lambda 
-
-        PoseSE3Tangent delta_xi = JtWJ.ldlt().solve(mJtWr);
-        delta_xi *= step_size; 
-        xi10 += delta_xi;
-        std::cout << "reproj. err. (avg): " << err_curr*inv_npts*0.5f << ", step: " << delta_xi.transpose() << std::endl;
-        if(delta_xi.norm() < THRES_DELTA_XI)
-        {
-            std::cout << "pose estimation stops at : " << iter <<"\n";
-            break;
-        }
-    }
-
-    if(!std::isnan(xi10.norm()))
-    {
-        PoseSE3 T01_update;
-        geometry::se3Exp_f(-xi10, T01_update);
-        Rwc_true = T01_update.block<3,3>(0,0);
-        twc_true = T01_update.block<3,1>(0,3);
-
-        std::cout <<"BA result:\n";
-        std::cout << "R01_ba:\n" << Rwc_true <<"\n";
-        std::cout << "t01_ba:\n" << twc_true <<"\n";
-    }
-    else is_success = false;
 
     return is_success;
 };
@@ -1083,7 +906,7 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     float THRES_PARALLAX    = 0.7*D2R; // landmark의 최소 parallax
 
     // Optimization paraameters
-    int   MAX_ITER          = 6;
+    int   MAX_ITER          = 5;
 
     float lam               = 1e-3;  // for Levenberg-Marquardt algorithm
     float MAX_LAM           = 1.0f;  // for Levenberg-Marquardt algorithm
@@ -1104,8 +927,8 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     float THRES_DELTA_THETA = 1e-7;
     float THRES_ERROR       = 1e-7;
 
-    int NUM_MINIMUM_REQUIRED_KEYFRAMES = 2; // 최소 keyframe 갯수.
-    int NUM_FIX_KEYFRAMES_IN_WINDOW    = 1; // optimization에서 제외 할 keyframe 갯수. 과거 순.
+    int NUM_MINIMUM_REQUIRED_KEYFRAMES = 3; // 최소 keyframe 갯수.
+    int NUM_FIX_KEYFRAMES_IN_WINDOW    = 2; // optimization에서 제외 할 keyframe 갯수. 과거 순.
 
     // Check whether there are enough keyframes
     if(kfs_window->getCurrentNumOfKeyframes() < NUM_MINIMUM_REQUIRED_KEYFRAMES)
@@ -1157,4 +980,247 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     std::cout << "== LBA time to reset: "   << dt_reset   << " [ms]\n\n";
 
     return true;
+};
+
+
+inline Eigen::Matrix<float,6,6>& MotionEstimator::calcJtJ_x(const Eigen::Matrix<float,6,1>& Jt)
+{
+    Eigen::Matrix<float,6,6> JtJ_tmp;
+    JtJ_tmp.setZero();
+    
+    // Product 
+    // Original : 36 mult
+    // Reduced  : 15 mult + 10 insert
+    JtJ_tmp(0,0) = Jt(0)*Jt(0);
+    // JtJ_tmp(0,1) = Jt(0)*Jt(1);
+    JtJ_tmp(0,2) = Jt(0)*Jt(2);
+    JtJ_tmp(0,3) = Jt(0)*Jt(3);
+    JtJ_tmp(0,4) = Jt(0)*Jt(4);
+    JtJ_tmp(0,5) = Jt(0)*Jt(5);
+    
+    // JtJ_tmp(1,1) = Jt(1)*Jt(1);
+    // JtJ_tmp(1,2) = Jt(1)*Jt(2);
+    // JtJ_tmp(1,3) = Jt(1)*Jt(3);
+    // JtJ_tmp(1,4) = Jt(1)*Jt(4);
+    // JtJ_tmp(1,5) = Jt(1)*Jt(5);
+
+    JtJ_tmp(2,2) = Jt(2)*Jt(2);
+    JtJ_tmp(2,3) = Jt(2)*Jt(3);
+    JtJ_tmp(2,4) = Jt(2)*Jt(4);
+    JtJ_tmp(2,5) = Jt(2)*Jt(5);
+
+    JtJ_tmp(3,3) = Jt(3)*Jt(3);
+    JtJ_tmp(3,4) = Jt(3)*Jt(4);
+    JtJ_tmp(3,5) = Jt(3)*Jt(5);
+
+    JtJ_tmp(4,4) = Jt(4)*Jt(4);
+    JtJ_tmp(4,5) = Jt(4)*Jt(5);
+    
+    JtJ_tmp(5,5) = Jt(5)*Jt(5);
+
+    // Filling symmetric elements
+    // JtJ_tmp(1,0) = JtJ_tmp(0,1);
+    JtJ_tmp(2,0) = JtJ_tmp(0,2);
+    JtJ_tmp(3,0) = JtJ_tmp(0,3);
+    JtJ_tmp(4,0) = JtJ_tmp(0,4);
+    JtJ_tmp(5,0) = JtJ_tmp(0,5);
+
+    // JtJ_tmp(2,1) = JtJ_tmp(1,2);
+    // JtJ_tmp(3,1) = JtJ_tmp(1,3);
+    // JtJ_tmp(4,1) = JtJ_tmp(1,4);
+    // JtJ_tmp(5,1) = JtJ_tmp(1,5);
+
+    JtJ_tmp(3,2) = JtJ_tmp(2,3);
+    JtJ_tmp(4,2) = JtJ_tmp(2,4);
+    JtJ_tmp(5,2) = JtJ_tmp(2,5);
+
+    JtJ_tmp(4,3) = JtJ_tmp(3,4);
+    JtJ_tmp(5,3) = JtJ_tmp(3,5);
+
+    JtJ_tmp(5,4) = JtJ_tmp(4,5);
+
+};
+
+inline Eigen::Matrix<float,6,6>& MotionEstimator::calcJtWJ_x(const float weight, const Eigen::Matrix<float,6,1>& Jt)
+{ 
+    Eigen::Matrix<float,6,6> JtJ_tmp;
+    Eigen::Matrix<float,6,1> wJt;
+    wJt.setZero();
+    JtJ_tmp.setZero();
+
+    // Product the weight
+    wJt << weight*Jt(0), weight*Jt(1), weight*Jt(2), weight*Jt(3), weight*Jt(4), weight*Jt(5);
+    
+    // Product 
+    // Original : 36 + 36 mult
+    // Reduced  : 6 + 15 mult + 10 insert
+    JtJ_tmp(0,0) = wJt(0)*Jt(0);
+    // JtJ_tmp(0,1) = weight*Jt(0)*Jt(1);
+    JtJ_tmp(0,2) = wJt(0)*Jt(2);
+    JtJ_tmp(0,3) = wJt(0)*Jt(3);
+    JtJ_tmp(0,4) = wJt(0)*Jt(4);
+    JtJ_tmp(0,5) = wJt(0)*Jt(5);
+    
+    // JtJ_tmp(1,1) = weight*Jt(1)*Jt(1);
+    // JtJ_tmp(1,2) = weight*Jt(1)*Jt(2);
+    // JtJ_tmp(1,3) = weight*Jt(1)*Jt(3);
+    // JtJ_tmp(1,4) = weight*Jt(1)*Jt(4);
+    // JtJ_tmp(1,5) = weight*Jt(1)*Jt(5);
+
+    JtJ_tmp(2,2) = wJt(2)*Jt(2);
+    JtJ_tmp(2,3) = wJt(2)*Jt(3);
+    JtJ_tmp(2,4) = wJt(2)*Jt(4);
+    JtJ_tmp(2,5) = wJt(2)*Jt(5);
+
+    JtJ_tmp(3,3) = wJt(3)*Jt(3);
+    JtJ_tmp(3,4) = wJt(3)*Jt(4);
+    JtJ_tmp(3,5) = wJt(3)*Jt(5);
+
+    JtJ_tmp(4,4) = wJt(4)*Jt(4);
+    JtJ_tmp(4,5) = wJt(4)*Jt(5);
+    
+    JtJ_tmp(5,5) = wJt(5)*Jt(5);
+
+    // Filling symmetric elements
+    // JtJ_tmp(1,0) = JtJ_tmp(0,1);
+    JtJ_tmp(2,0) = JtJ_tmp(0,2);
+    JtJ_tmp(3,0) = JtJ_tmp(0,3);
+    JtJ_tmp(4,0) = JtJ_tmp(0,4);
+    JtJ_tmp(5,0) = JtJ_tmp(0,5);
+
+    // JtJ_tmp(2,1) = JtJ_tmp(1,2);
+    // JtJ_tmp(3,1) = JtJ_tmp(1,3);
+    // JtJ_tmp(4,1) = JtJ_tmp(1,4);
+    // JtJ_tmp(5,1) = JtJ_tmp(1,5);
+
+    JtJ_tmp(3,2) = JtJ_tmp(2,3);
+    JtJ_tmp(4,2) = JtJ_tmp(2,4);
+    JtJ_tmp(5,2) = JtJ_tmp(2,5);
+
+    JtJ_tmp(4,3) = JtJ_tmp(3,4);
+    JtJ_tmp(5,3) = JtJ_tmp(3,5);
+
+    JtJ_tmp(5,4) = JtJ_tmp(4,5);
+};
+
+
+
+inline Eigen::Matrix<float,6,6>& MotionEstimator::calcJtJ_y(const Eigen::Matrix<float,6,1>& Jt)
+{
+    Eigen::Matrix<float,6,6> JtJ_tmp;
+    JtJ_tmp.setZero();
+
+    // Product 
+    // Original : 36 + 36 mult
+    // Reduced  : 6 + 15 mult + 10 insert
+    // JtJ_tmp(0,0) = Jt(0)*Jt(0);
+    // JtJ_tmp(0,1) = Jt(0)*Jt(1);
+    // JtJ_tmp(0,2) = Jt(0)*Jt(2);
+    // JtJ_tmp(0,3) = Jt(0)*Jt(3);
+    // JtJ_tmp(0,4) = Jt(0)*Jt(4);
+    // JtJ_tmp(0,5) = Jt(0)*Jt(5);
+    
+    JtJ_tmp(1,1) = Jt(1)*Jt(1);
+    JtJ_tmp(1,2) = Jt(1)*Jt(2);
+    JtJ_tmp(1,3) = Jt(1)*Jt(3);
+    JtJ_tmp(1,4) = Jt(1)*Jt(4);
+    JtJ_tmp(1,5) = Jt(1)*Jt(5);
+
+    JtJ_tmp(2,2) = Jt(2)*Jt(2);
+    JtJ_tmp(2,3) = Jt(2)*Jt(3);
+    JtJ_tmp(2,4) = Jt(2)*Jt(4);
+    JtJ_tmp(2,5) = Jt(2)*Jt(5);
+
+    JtJ_tmp(3,3) = Jt(3)*Jt(3);
+    JtJ_tmp(3,4) = Jt(3)*Jt(4);
+    JtJ_tmp(3,5) = Jt(3)*Jt(5);
+
+    JtJ_tmp(4,4) = Jt(4)*Jt(4);
+    JtJ_tmp(4,5) = Jt(4)*Jt(5);
+    
+    JtJ_tmp(5,5) = Jt(5)*Jt(5);
+
+    // Filling symmetric elements
+    // JtJ_tmp(1,0) = JtJ_tmp(0,1);
+    // JtJ_tmp(2,0) = JtJ_tmp(0,2);
+    // JtJ_tmp(3,0) = JtJ_tmp(0,3);
+    // JtJ_tmp(4,0) = JtJ_tmp(0,4);
+    // JtJ_tmp(5,0) = JtJ_tmp(0,5);
+
+    JtJ_tmp(2,1) = JtJ_tmp(1,2);
+    JtJ_tmp(3,1) = JtJ_tmp(1,3);
+    JtJ_tmp(4,1) = JtJ_tmp(1,4);
+    JtJ_tmp(5,1) = JtJ_tmp(1,5);
+
+    JtJ_tmp(3,2) = JtJ_tmp(2,3);
+    JtJ_tmp(4,2) = JtJ_tmp(2,4);
+    JtJ_tmp(5,2) = JtJ_tmp(2,5);
+
+    JtJ_tmp(4,3) = JtJ_tmp(3,4);
+    JtJ_tmp(5,3) = JtJ_tmp(3,5);
+
+    JtJ_tmp(5,4) = JtJ_tmp(4,5);
+
+};
+
+inline Eigen::Matrix<float,6,6>& MotionEstimator::calcJtWJ_y(const float weight, const Eigen::Matrix<float,6,1>& Jt)
+{
+    Eigen::Matrix<float,6,6> JtJ_tmp;
+    Eigen::Matrix<float,6,1> wJt;
+    wJt.setZero();
+    JtJ_tmp.setZero();
+
+    // Product the weight
+    wJt << weight*Jt(0), weight*Jt(1), weight*Jt(2), weight*Jt(3), weight*Jt(4), weight*Jt(5);
+    
+    // Product 
+    // Original : 36 + 36 mult
+    // Reduced  : 6 + 15 mult + 10 insert
+    // JtJ_tmp(0,0) = wJt(0)*Jt(0);
+    // JtJ_tmp(0,1) = wJt(0)*Jt(1);
+    // JtJ_tmp(0,2) = wJt(0)*Jt(2);
+    // JtJ_tmp(0,3) = wJt(0)*Jt(3);
+    // JtJ_tmp(0,4) = wJt(0)*Jt(4);
+    // JtJ_tmp(0,5) = wJt(0)*Jt(5);
+    
+    JtJ_tmp(1,1) = wJt(1)*Jt(1);
+    JtJ_tmp(1,2) = wJt(1)*Jt(2);
+    JtJ_tmp(1,3) = wJt(1)*Jt(3);
+    JtJ_tmp(1,4) = wJt(1)*Jt(4);
+    JtJ_tmp(1,5) = wJt(1)*Jt(5);
+
+    JtJ_tmp(2,2) = wJt(2)*Jt(2);
+    JtJ_tmp(2,3) = wJt(2)*Jt(3);
+    JtJ_tmp(2,4) = wJt(2)*Jt(4);
+    JtJ_tmp(2,5) = wJt(2)*Jt(5);
+
+    JtJ_tmp(3,3) = wJt(3)*Jt(3);
+    JtJ_tmp(3,4) = wJt(3)*Jt(4);
+    JtJ_tmp(3,5) = wJt(3)*Jt(5);
+
+    JtJ_tmp(4,4) = wJt(4)*Jt(4);
+    JtJ_tmp(4,5) = wJt(4)*Jt(5);
+    
+    JtJ_tmp(5,5) = wJt(5)*Jt(5);
+
+    // Filling symmetric elements
+    // JtJ_tmp(1,0) = JtJ_tmp(0,1);
+    // JtJ_tmp(2,0) = JtJ_tmp(0,2);
+    // JtJ_tmp(3,0) = JtJ_tmp(0,3);
+    // JtJ_tmp(4,0) = JtJ_tmp(0,4);
+    // JtJ_tmp(5,0) = JtJ_tmp(0,5);
+
+    JtJ_tmp(2,1) = JtJ_tmp(1,2);
+    JtJ_tmp(3,1) = JtJ_tmp(1,3);
+    JtJ_tmp(4,1) = JtJ_tmp(1,4);
+    JtJ_tmp(5,1) = JtJ_tmp(1,5);
+
+    JtJ_tmp(3,2) = JtJ_tmp(2,3);
+    JtJ_tmp(4,2) = JtJ_tmp(2,4);
+    JtJ_tmp(5,2) = JtJ_tmp(2,5);
+
+    JtJ_tmp(4,3) = JtJ_tmp(3,4);
+    JtJ_tmp(5,3) = JtJ_tmp(3,5);
+
+    JtJ_tmp(5,4) = JtJ_tmp(4,5);
 };

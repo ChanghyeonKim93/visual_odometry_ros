@@ -65,7 +65,7 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp)
 
 			frame_curr->setPose(PoseSE3::Identity());
 			PoseSE3 T_init = PoseSE3::Identity();
-			T_init.block<3,1>(0,3) << 0,0,-0.1; // get initial scale.
+			T_init.block<3,1>(0,3) << 0,0,-1; // get initial scale.
 			frame_curr->setPoseDiff10(T_init);
 			
 			this->saveLandmarks(lmtrack_curr.lms); // save all newly detected landmarks
@@ -542,25 +542,25 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 		motion_estimator_->localBundleAdjustmentSparseSolver(keyframes_, cam_);
 
 #ifdef RECORD_KEYFRAME_STAT
-PointVec X_tmp;
-const LandmarkPtrVec& lmvec_tmp = frame_curr->getRelatedLandmarkPtr();
-for(int i = 0; i < lmvec_tmp.size(); ++i)
-{
-	X_tmp.push_back(lmvec_tmp[i]->get3DPoint());
-}
-statcurr_keyframe.Twc = frame_curr->getPose();
-statcurr_keyframe.mappoints = X_tmp;
-stat_.stats_keyframe.push_back(statcurr_keyframe);
+// PointVec X_tmp;
+// const LandmarkPtrVec& lmvec_tmp = frame_curr->getRelatedLandmarkPtr();
+// for(int i = 0; i < lmvec_tmp.size(); ++i)
+// {
+// 	X_tmp.push_back(lmvec_tmp[i]->get3DPoint());
+// }
+// statcurr_keyframe.Twc = frame_curr->getPose();
+// statcurr_keyframe.mappoints = X_tmp;
+// stat_.stats_keyframe.push_back(statcurr_keyframe);
 
-for(int j = 0; j < stat_.stats_keyframe.size(); ++j){
-	stat_.stats_keyframe[j].Twc = all_keyframes_[j]->getPose();
+// for(int j = 0; j < stat_.stats_keyframe.size(); ++j){
+// 	stat_.stats_keyframe[j].Twc = all_keyframes_[j]->getPose();
 
-	// const LandmarkPtrVec& lmvec_tmp = all_keyframes_[j]->getRelatedLandmarkPtr();
-	// stat_.stats_keyframe[j].mappoints.resize(lmvec_tmp.size());
-	// for(int i = 0; i < lmvec_tmp.size(); ++i) {
-	// 	stat_.stats_keyframe[j].mappoints[i] = lmvec_tmp[i]->get3DPoint();
-	// }
-}
+// 	const LandmarkPtrVec& lmvec_tmp = all_keyframes_[j]->getRelatedLandmarkPtr();
+// 	stat_.stats_keyframe[j].mappoints.resize(lmvec_tmp.size());
+// 	for(int i = 0; i < lmvec_tmp.size(); ++i) {
+// 		stat_.stats_keyframe[j].mappoints[i] = lmvec_tmp[i]->get3DPoint();
+// 	}
+// }
 #endif
 
 	} // KEYFRAME addition done.

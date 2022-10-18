@@ -32,7 +32,8 @@
 #include <sstream>
 
 
-class MotionEstimator{
+class MotionEstimator 
+{
 private:
     float thres_1p_;
     float thres_5p_;
@@ -52,9 +53,6 @@ public:
         MaskVec& maskvec_inlier);
 
     bool calcPoseOnlyBundleAdjustment(const PointVec& X, const PixelVec& pts1, const std::shared_ptr<Camera>& cam, const int& thres_reproj_outlier,
-        Rot3& R01_true, Pos3& t01_true, MaskVec& mask_inlier);
-
-    bool calcPoseOnlyBundleAdjustment(const LandmarkPtrVec& lms, const PixelVec& pts1, const std::shared_ptr<Camera>& cam,
         Rot3& R01_true, Pos3& t01_true, MaskVec& mask_inlier);
 
     bool localBundleAdjustmentSparseSolver(const std::shared_ptr<Keyframes>& kfs, const std::shared_ptr<Camera>& cam);
@@ -93,6 +91,12 @@ private:
     inline void fillTriplet(SpTripletList& Tri, const int& idx_hori0, const int& idx_hori1, 
         const int& idx_vert0, const int& idx_vert1, const Eigen::MatrixXf& mat);
 
+
+private:
+    inline Eigen::Matrix<float,6,6>& calcJtJ_x(const Eigen::Matrix<float,6,1>& Jt);
+    inline Eigen::Matrix<float,6,6>& calcJtJ_y(const Eigen::Matrix<float,6,1>& Jt);
+    inline Eigen::Matrix<float,6,6>& calcJtWJ_x(const float weight, const Eigen::Matrix<float,6,1>& Jt);
+    inline Eigen::Matrix<float,6,6>& calcJtWJ_y(const float weight, const Eigen::Matrix<float,6,1>& Jt);
 };
 
 #endif

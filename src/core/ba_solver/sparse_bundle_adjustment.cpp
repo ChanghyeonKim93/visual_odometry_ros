@@ -219,11 +219,16 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
                 }
 
                 // 4) Add (or fill) data (JtWJ & mJtWr & err).  
-                _BA_Mat33 Rij_t_Rij = Rij.transpose()*Rij; // fixed pose
-                _BA_Vec3  Rij_t_rij = Rij.transpose()*rij; // fixed pose
+                _BA_Mat33 Rij_t_Rij;
+                _BA_Vec3  Rij_t_rij;
                 if(flag_weight){
-                    Rij_t_Rij *= weight;
-                    Rij_t_rij *= weight;
+                    Rij_t_Rij = weight * (Rij.transpose()*Rij);
+                    Rij_t_rij = weight * (Rij.transpose()*rij);
+                }
+                else
+                {
+                    Rij_t_Rij = Rij.transpose()*Rij; // fixed pose
+                    Rij_t_rij = Rij.transpose()*rij; // fixed pose                
                 }
 
                 C_[i].noalias() += Rij_t_Rij; // FILL STORAGE (3)
@@ -637,3 +642,34 @@ void SparseBundleAdjustmentSolver::zeroizeStorageMatrices(){
     }
     // std::cout << "zeroize done\n";
 };    
+
+
+inline const _BA_Mat33& SparseBundleAdjustmentSolver::calc_Rij_t_Rij(const _BA_Mat23& Rij)
+{
+    _BA_Mat33 Rij_t_Rij; Rij_t_Rij.setZero();
+
+    // Calculate upper triangle
+    const _BA_Mat23& a = Rij;
+    Rij_t_Rij(0,0) = (a(0,0)*a(0,0) + a(1,0)*a(1,0));
+    Rij_t_Rij(0,1) = (a(0,0)*a(0,1) + a(1,0)*a(1,1));
+    Rij_t_Rij(0,2) = (a(0,0)*a(0,2) + a(1,0)*a(1,2));
+    
+    Rij_t_Rij(1,1) = (a(0,1)*a(0,1) + a(1,1)*a(1,1));
+    Rij_t_Rij(1,2) = (a(0,1)*a(0,2) + a(1,1)*a(1,2));
+    
+    Rij_t_Rij(2,2) = (a(0,2)*a(0,2) + a(1,2)*a(1,2));
+
+    // Substitute symmetric elements
+    Rij_t_Rij(1,0) = Rij_t_Rij(0,1);
+    Rij_t_Rij(2,0) = Rij_t_Rij(0,2);
+
+    Rij_t_Rij(2,1) = Rij_t_Rij(1,2);
+
+    return;
+};
+
+// inline _BA_Vec3 SparseBundleAdjustmentSolver::calc_Rij_t_rij(const _BA_Mat23& Rij, const _BA_Vec2& rij)
+// {
+
+//     return;
+// };
