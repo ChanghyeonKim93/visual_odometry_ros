@@ -49,7 +49,7 @@ MonoNode::MonoNode(ros::NodeHandle& nh) : nh_(nh)
     Landmark::setPatch(half_win_sz);
 
     mappoints_.reserve(500000);
-    
+
     // spin .
     this->run();
 };
@@ -205,22 +205,22 @@ void MonoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
 
 
     // Publish mappoints
-    sensor_msgs::PointCloud2 msg_mappoint;
-    int cnt_total_pts = 0;
-    for(int j = 0; j < stat.stats_keyframe.size(); ++j)
-    {
-        cnt_total_pts += stat.stats_keyframe[j].mappoints.size();
-    }
-    mappoints_.resize(cnt_total_pts);
-    cnt_total_pts = 0;
-    for(int j = 0; j < stat.stats_keyframe.size(); ++j){
-        for(const auto& x : stat.stats_keyframe[j].mappoints){
-            mappoints_[cnt_total_pts] = x;
-            ++cnt_total_pts;
-        }
-    }
-    convertPointVecToPointCloud2(mappoints_,msg_mappoint, "map");
-    pub_map_points_.publish(msg_mappoint);
+    // sensor_msgs::PointCloud2 msg_mappoint;
+    // int cnt_total_pts = 0;
+    // for(int j = 0; j < stat.stats_keyframe.size(); ++j)
+    // {
+    //     cnt_total_pts += stat.stats_keyframe[j].mappoints.size();
+    // }
+    // mappoints_.resize(cnt_total_pts);
+    // cnt_total_pts = 0;
+    // for(int j = 0; j < stat.stats_keyframe.size(); ++j){
+    //     for(const auto& x : stat.stats_keyframe[j].mappoints){
+    //         mappoints_[cnt_total_pts] = x;
+    //         ++cnt_total_pts;
+    //     }
+    // }
+    // convertPointVecToPointCloud2(mappoints_,msg_mappoint, "map");
+    // pub_map_points_.publish(msg_mappoint);
     
     ros::Time t_stat_end = ros::Time::now();
 
