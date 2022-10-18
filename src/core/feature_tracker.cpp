@@ -296,7 +296,7 @@ void FeatureTracker::trackWithScale(
         throw std::runtime_error("pts_track.size() != pts0.size()");
     
     // Set parameters
-    int half_win_sz = 7;
+    int half_win_sz = 11;
     int win_len     = 2*half_win_sz+1; // win_sz : 15
     int n_elem      = win_len*win_len;
 
@@ -350,9 +350,9 @@ void FeatureTracker::trackWithScale(
         if(!mask_valid.at(i)) 
             continue;
 
-        const Pixel& pt0   = pts0.at(i);
-        const Pixel& pt1   = pts_track.at(i);
-        const float& scale = scale_est.at(i);
+        const Pixel& pt0   = pts0[i];
+        const Pixel& pt1   = pts_track[i];
+        const float& scale = scale_est[i];
 
         // Make scaled patch , Calculate patch points
         for(int j = 0; j < n_elem; ++j)
@@ -441,10 +441,10 @@ void FeatureTracker::trackWithScale(
             {   
                 if(mask_I0.at(j) && mask_I1.at(j))
                 {   
-                    const float& I0_tmp = I0_patt.at(j);
-                    const float& I1_tmp = I1_patt.at(j);
-                    const float& du0_tmp = du0_patt.at(j);
-                    const float& dv0_tmp = dv0_patt.at(j);
+                    const float& I0_tmp  = I0_patt[j];
+                    const float& I1_tmp  = I1_patt[j];
+                    const float& du0_tmp = du0_patt[j];
+                    const float& dv0_tmp = dv0_patt[j];
                     
                     if(std::isnan(I0_tmp)
                     || std::isnan(I1_tmp))
@@ -474,7 +474,7 @@ void FeatureTracker::trackWithScale(
             float dtu = (-iD_A22*b1 + iD_A12*b2);
             float dtv = ( iD_A12*b1 - iD_A11*b2);
 
-            if(std::isnan(dtu+dtv))
+            if(std::isnan(dtu + dtv))
                 throw std::runtime_error("dtu dtv nan");
             
             t.x += dtu;
@@ -632,7 +632,7 @@ void FeatureTracker::refineTrackWithScale(const cv::Mat& img1, const LandmarkPtr
 
             // warp patch points
             for(int j = 0; j < n_elem; ++j)
-                pts_warp.at(j) = pt_update + patt_s.at(j);
+                pts_warp[j] = pt_update + patt_s[j];
 
             // interpolate data
             image_processing::interpImageSameRatio(I1, pts_warp, 
@@ -645,11 +645,11 @@ void FeatureTracker::refineTrackWithScale(const cv::Mat& img1, const LandmarkPtr
             err_curr = 0;
             for(int j = 0; j < n_elem; ++j)
             {   
-                if(mask_I0.at(j) && mask_I1.at(j))
+                if(mask_I0[j] && mask_I1[j])
                 {   
-                    const float& du0 = du0_patt.at(j);
-                    const float& dv0 = dv0_patt.at(j);
-                    float r = I1_patt.at(j) - I0_patt.at(j);
+                    const float& du0 = du0_patt[j];
+                    const float& dv0 = dv0_patt[j];
+                    float r = I1_patt[j] - I0_patt[j];
 
                     b1       += du0*r;
                     b2       += dv0*r;
@@ -691,11 +691,11 @@ void FeatureTracker::refineTrackWithScale(const cv::Mat& img1, const LandmarkPtr
         {
             if(err_curr <= 30) 
             {
-                pts_track.at(i)  = pt1 + t;
-                mask_valid.at(i) = true;
+                pts_track[i]  = pt1 + t;
+                mask_valid[i] = true;
             }
             else
-                mask_valid.at(i) = false; // not update.
+                mask_valid[i] = false; // not update.
         }
     } // END i-th pixel
     std::cout << "RefineTrackWithScale ends.\n";

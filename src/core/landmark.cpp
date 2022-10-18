@@ -25,11 +25,12 @@ is_alive_(true), is_triangulated_(false), is_bundled_(false)
 };
 
 Landmark::Landmark(const Pixel& p, const FramePtr& frame, const std::shared_ptr<Camera>& cam)
-: id_(landmark_counter_++), age_(0), 
+:
+id_(landmark_counter_++), age_(0), 
 Xw_(0,0,0), x_front_(0,0,0), 
 is_alive_(true), is_triangulated_(false), is_bundled_(false)
 {
-    cam_ = cam;
+    this->cam_ = cam;
 
     // Reserve storages
     observations_.reserve(200);
@@ -40,9 +41,7 @@ is_alive_(true), is_triangulated_(false), is_bundled_(false)
     related_keyframes_.reserve(50);
     
     // normalized coordinate
-    x_front_(0)= ( p.x - cam_->cx() )*cam_->fxinv();
-    x_front_(1)= ( p.y - cam_->cy() )*cam_->fyinv();
-    x_front_(2)= 1.0f;
+    x_front_ = cam_->reprojectToNormalizedPoint(p);
 
     // Initialize parallax and opt flow.
     min_parallax_  = 1000.0f;
@@ -59,11 +58,14 @@ Landmark::~Landmark(){
 };
 
 void Landmark::set3DPoint(const Point& Xw) { 
-    Xw_ = Xw;  is_triangulated_ = true; 
+    this->Xw_        = Xw;  
+    is_triangulated_ = true; 
 };
+
 void Landmark::setBundled() { 
     is_bundled_ = true; 
 };
+
 void Landmark::addObservationAndRelatedFrame(const Pixel& p, const FramePtr& frame) 
 {
     // push observation.
@@ -71,6 +73,9 @@ void Landmark::addObservationAndRelatedFrame(const Pixel& p, const FramePtr& fra
     observations_.push_back(p);
     related_frames_.push_back(frame);
     
+    /* At the first image where this landmark is firstly observed,
+     we save the image patch around the pixel point.
+    */
     if(observations_.size() == 1)
     {
         // Set patch
@@ -97,12 +102,10 @@ void Landmark::addObservationAndRelatedFrame(const Pixel& p, const FramePtr& fra
         return;
     }
     
-    // Calculate parallax w.r.t. the oldest pixel
-    // const Pixel& p0 = observations_[observations_.size()-2];
+    // Calculate 'parallax' w.r.t. the oldest pixel
     const Pixel& p0 = observations_.front();
     const Pixel& p1 = observations_.back();
 
-    // const PoseSE3& T01 = related_frames_[observations_.size()-2]->getPose().inverse()*related_frames_.back()->getPose();
     PoseSE3 T01 = related_frames_.front()->getPoseInv()*related_frames_.back()->getPose();
 
     Point x0, x1;

@@ -2,10 +2,10 @@
 
 MotionEstimator::MotionEstimator()
 {
-    thres_1p_ = 10.0; // pixels
-    thres_5p_ = 1.5; // pixels
+    this->thres_1p_ = 10.0; // pixels
+    this->thres_5p_ = 1.5; // pixels
 
-    sparse_ba_solver_ = std::make_shared<SparseBundleAdjustmentSolver>();
+    this->sparse_ba_solver_ = std::make_shared<SparseBundleAdjustmentSolver>();
 };
 
 MotionEstimator::~MotionEstimator()
@@ -21,13 +21,11 @@ bool MotionEstimator::calcPose5PointsAlgorithm(
     if(pts0.size() != pts1.size()) 
     {
         throw std::runtime_error("calcPose5PointsAlgorithm(): pts0.size() != pts1.size()");
-        return false;
     }
 
     if(pts0.size() == 0) 
     {
         throw std::runtime_error("calcPose5PointsAlgorithm(): pts0.size() == pts1.size() == 0");
-        return false;
     }
 
     int n_pts = pts0.size();
@@ -75,7 +73,9 @@ bool MotionEstimator::calcPose5PointsAlgorithm(
         V.block(0, 2, 3, 1) = -V.block(0, 2, 3, 1);
 
     Eigen::Matrix3f W;
-    W << 0, -1, 0, 1, 0, 0, 0, 0, 1;
+    W << 0,-1, 0,
+         1, 0, 0,
+         0, 0, 1;
 
     // Four possibilities.
     std::vector<Rot3> R10_vec(4);
@@ -87,7 +87,7 @@ bool MotionEstimator::calcPose5PointsAlgorithm(
 
     t10_vec[0] = U.block<3,1>(0, 2);
     t10_vec[1] = -t10_vec[0];
-    t10_vec[2] = t10_vec[0];
+    t10_vec[2] =  t10_vec[0];
     t10_vec[3] = -t10_vec[0];
 
     // Solve two-fold ambiguity
@@ -659,12 +659,12 @@ void MotionEstimator::setThres5p(float thres_5p)
     thres_5p_ = thres_5p; // pixels
 };
 
-bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const PixelVec& pts1, const std::shared_ptr<Camera>& cam, const int& thres_reproj_outlier, 
+bool MotionEstimator::poseOnlyBundleAdjustment(const PointVec& X, const PixelVec& pts1, const std::shared_ptr<Camera>& cam, const int& thres_reproj_outlier, 
     Rot3& R01_true, Pos3& t01_true, MaskVec& mask_inlier)
 {
     // X is represented in the world frame.
     if(X.size() != pts1.size()) 
-        throw std::runtime_error("In 'calcPoseOnlyBundleAdjustment()': X.size() != pts1.size().");
+        throw std::runtime_error("In 'poseOnlyBundleAdjustment()': X.size() != pts1.size().");
     
     bool is_success = true;
 

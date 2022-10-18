@@ -61,21 +61,21 @@ void SparseBundleAdjustmentScaleSQPSolver::makeStorageSizeToFit()
     A_.resize(N_opt_); 
     
     B_.resize(N_opt_);
-    for(int j = 0; j < N_opt_; ++j) 
+    for(_BA_Index j = 0; j < N_opt_; ++j) 
         B_[j].resize(M_, _BA_Mat33::Zero());   // 6x3, N_opt X M blocks
     
     Bt_.resize(M_);    
-    for(int i = 0; i < M_; ++i) 
+    for(_BA_Index i = 0; i < M_; ++i) 
         Bt_[i].resize(N_opt_, _BA_Mat33::Zero());   // 3x6, N_opt X M blocks
     
     C_.resize(M_);
 
     D_.resize(K_);
-    for(int k = 0; k < K_; ++k)
+    for(_BA_Index k = 0; k < K_; ++k)
         D_[k].resize(N_opt_, _BA_Mat13::Zero());
 
     Dt_.resize(N_opt_);
-    for(int j = 0; j < N_opt_; ++j)
+    for(_BA_Index j = 0; j < N_opt_; ++j)
         Dt_[j].resize(K_, _BA_Mat31::Zero());
 
     a_.resize(N_opt_); // 3x1, N_opt blocks
@@ -99,17 +99,17 @@ void SparseBundleAdjustmentScaleSQPSolver::makeStorageSizeToFit()
     Cinvb_.resize(M_);
 
     BCinv_.resize(N_opt_);
-    for(int j = 0; j < N_opt_; ++j)
+    for(_BA_Index j = 0; j < N_opt_; ++j)
         BCinv_[j].resize(M_, _BA_Mat33::Zero());
 
     BCinvb_.resize(N_opt_); // 3x1, N_opt x 1 blocks
 
     BCinvBt_.resize(N_opt_); 
-    for(int j = 0; j < N_opt_; ++j) 
+    for(_BA_Index j = 0; j < N_opt_; ++j) 
         BCinvBt_[j].resize(N_opt_, _BA_Mat33::Zero());
 
     Ap_.resize(N_opt_);
-    for(int j = 0; j < N_opt_; ++j)
+    for(_BA_Index j = 0; j < N_opt_; ++j)
         Ap_[j].resize(N_opt_, _BA_Mat33::Zero());
 
     ap_.resize(N_opt_); // 3x1, N_opt x 1 blocks
@@ -117,13 +117,13 @@ void SparseBundleAdjustmentScaleSQPSolver::makeStorageSizeToFit()
     Apinv_ap_.resize(N_opt_); // 3x1, N_opt x 1 blocks
 
     Apinv_Dt_.resize(N_opt_);
-    for(int j = 0; j < N_opt_; ++j)
+    for(_BA_Index j = 0; j < N_opt_; ++j)
         Apinv_Dt_[j].resize(K_, _BA_Mat31::Zero());
 
     D_Apinv_ap_.resize(K_);
 
     D_Apinv_Dt_.resize(K_);
-    for(int k = 0; k < K_; ++k)
+    for(_BA_Index k = 0; k < K_; ++k)
         D_Apinv_Dt_[k].resize(K_, 0);
 };
 
@@ -196,15 +196,15 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
     // Initialize parameters
     std::vector<_BA_numeric> r_prev(n_obs_, 0.0f);
     _BA_numeric err_prev = 1e10f;
-    _BA_numeric lambda   = 0.0000001;
+    _BA_numeric lambda   = 0.00000001;
     std::cout << "start iteration\n";
-    for(int iter = 0; iter < MAX_ITER; ++iter)
+    for(_BA_Index iter = 0; iter < MAX_ITER; ++iter)
     {
         // Reset A, B, Bt, C, Cinv, a, b, x, y...
         this->zeroizeStorageMatrices();
 
         // Iteratively solve. (Levenberg-Marquardt algorithm)
-        int cnt = 0;
+        _BA_Index   cnt = 0;
         _BA_numeric err = 0.0f;
         
         // For i-th landmark
@@ -216,10 +216,10 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
             const _BA_PixelVec& pts  = lmba.pts_on_kfs;
 
             // For j-th landmark
-            for(int jj = 0; jj < kfs.size(); ++jj)
+            for(_BA_Index jj = 0; jj < kfs.size(); ++jj)
             {
-                const _BA_Pixel& pij = pts.at(jj);
-                const FramePtr&   kf = kfs.at(jj);
+                const _BA_Pixel& pij = pts[jj];
+                const FramePtr&   kf = kfs[jj];
 
                 // 0) check whether it is optimizable frame
                 _BA_Index j = -1; // optimization index
@@ -232,8 +232,8 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
 
                 // Get poses
                 const _BA_PoseSE3& T_jw = ba_params_->getPose(kf);
-                const _BA_Rot3& R_jw = T_jw.block<3,3>(0,0);
-                const _BA_Pos3& t_jw = T_jw.block<3,1>(0,3);
+                const _BA_Rot3&    R_jw = T_jw.block<3,3>(0,0);
+                const _BA_Pos3&    t_jw = T_jw.block<3,1>(0,3);
 
                 _BA_Point Xij = R_jw*Xi + t_jw;
 
@@ -279,17 +279,11 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
 
                 _BA_Mat33 Rij_t_Rij; // fixed pose
                 _BA_Vec3  Rij_t_rij; // fixed pose
-                if(flag_weight){
-                    // Rij_t_Rij = weight * (Rij.transpose()*Rij);
-                    this->calc_Rij_t_Rij_weight(weight, Rij, Rij_t_Rij);
-                    Rij_t_rij = weight * (Rij.transpose()*rij);
-                }
-                else
-                {
-                    // Rij_t_Rij = Rij.transpose()*Rij;
-                    this->calc_Rij_t_Rij(Rij, Rij_t_Rij);
-                    Rij_t_rij = Rij.transpose()*rij;
-                }
+                
+                // Rij_t_Rij = weight * (Rij.transpose()*Rij);
+                this->calc_Rij_t_Rij_weight(weight, Rij, Rij_t_Rij);
+                Rij_t_rij = weight * (Rij.transpose()*rij);
+               
 
                 C_[i].noalias() +=  Rij_t_Rij; // FILL STORAGE (3)
                 b_[i].noalias() += -Rij_t_rij; // FILL STORAGE (5)      
@@ -304,19 +298,12 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
                     _BA_Mat33 Qij_t_Qij; // fixed pose, opt. pose
                     _BA_Mat33 Qij_t_Rij; // fixed pose, opt. pose
                     _BA_Vec3  Qij_t_rij; // fixed pose, opt. pose
-                    if(flag_weight){
-                        // Qij_t_Qij = weight * (Qij.transpose()*Qij );
-                        this->calc_Qij_t_Qij_weight(weight, Qij, Qij_t_Qij);
-                        Qij_t_Rij = weight * (Qij.transpose()*Rij );
-                        Qij_t_rij = weight * (Qij.transpose()*rij );
-                    }
-                    else
-                    {
-                        // Qij_t_Qij = Qij.transpose()*Qij; // fixed pose, opt. pose
-                        this->calc_Qij_t_Qij(Qij, Qij_t_Qij);
-                        Qij_t_Rij = Qij.transpose()*Rij; // fixed pose, opt. pose
-                        Qij_t_rij = Qij.transpose()*rij; // fixed pose, opt. pose                        
-                    }
+                    
+                    // Qij_t_Qij = weight * (Qij.transpose()*Qij );
+                    this->calc_Qij_t_Qij_weight(weight, Qij, Qij_t_Qij);
+                    Qij_t_Rij = weight * (Qij.transpose()*Rij );
+                    Qij_t_rij = weight * (Qij.transpose()*rij );
+                    
 
                     A_[j].noalias() +=  Qij_t_Qij; // FILL STORAGE (1)
                     B_[j][i]         =  Qij_t_Rij; // FILL STORAGE (2)
@@ -329,7 +316,8 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
                     }
                 } // END is_optimizable_frame
 
-                _BA_numeric err_tmp = weight*rij.transpose()*rij;
+                _BA_numeric err_tmp = rij.transpose()*rij;
+                err_tmp *= weight;
                 err += err_tmp;
 
                 ++cnt;
@@ -340,7 +328,7 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
         // std::cout << "From now, A, B, Bt, C, b are fully filled, and a is partially filled.\n";
 
         // Manipulate constraints (D, Dt, a, c should be filled.)
-        for(int k = 0; k < K_; ++k)
+        for(_BA_Index k = 0; k < K_; ++k)
         {
             const RelatedFramePair& fp = scale_const_->getRelatedFramePairByConstraintIndex(k);
             const FramePtr& f_major = fp.getMajor();
@@ -412,7 +400,7 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
         // std::cout << "A damping done\n";
 
         // 2) Damping 'C_' diagonal, and Calculate 'Cinv_' & 'Cinvb_'
-        for(int i = 0; i < M_; ++i)
+        for(_BA_Index i = 0; i < M_; ++i)
         {
             // Damping
             C_[i](0,0) += lambda*C_[i](0,0);
@@ -426,10 +414,10 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
         // std::cout << "C damping Cinv Cinvb done\n";
 
         // 3) Calculate 'BCinv_', 'BCinvb_',' BCinvBt_'
-        for(int i = 0; i < M_; ++i)
+        for(_BA_Index i = 0; i < M_; ++i)
         {
             const FramePtrVec&  kfs  = ba_params_->getLandmarkBA(i).kfs_seen;
-            for(int jj = 0; jj < kfs.size(); ++jj) 
+            for(_BA_Index jj = 0; jj < kfs.size(); ++jj) 
             {
                 const FramePtr& kf = kfs[jj];
 
@@ -442,7 +430,7 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
                     BCinv_[j][i]  = B_[j][i]*Cinv_[i];
                     BCinvb_[j].noalias() += BCinv_[j][i]*b_[i];
 
-                    for(int kk = jj; kk < kfs.size(); ++kk){
+                    for(_BA_Index kk = jj; kk < kfs.size(); ++kk){
                         // For k-th keyframe
                         const FramePtr& kf2 = kfs[kk];
                         bool is_optimizable_keyframe_k = false;
@@ -475,10 +463,10 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
         // solve 'Apinv_ap_'
         _BA_MatX Ap_mat(3*N_opt_,3*N_opt_);
         _BA_MatX ap_mat(3*N_opt_,1);
-        int idx0 = 0;
+        _BA_Index idx0 = 0;
         for(_BA_Index j = 0; j < N_opt_; ++j, idx0 += 3){
             ap_mat.block(idx0,0,3,1) = ap_[j];
-            int idx1 = 0;
+            _BA_Index idx1 = 0;
             for(_BA_Index u = 0; u < N_opt_; ++u, idx1 += 3){
                 Ap_mat.block(idx0,idx1,3,3) = Ap_[j][u];
             }
@@ -494,7 +482,7 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
         idx0 = 0;
         for(_BA_Index j = 0; j < N_opt_; ++j, idx0 += 3){
             for(_BA_Index k = 0; k < K_; ++k){
-                const int& idx1 = k;
+                const _BA_Index& idx1 = k;
                 Dt_mat.block(idx0,idx1,3,1) = Dt_[j][k];
             }
         }
@@ -507,13 +495,13 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
         // std::cout << "Apinv_Dt_ done\n";
 
         // 6) Solve 'D_Apinv_ap_' and 'D_Apinv_Dt_'
-        for(int k = 0; k < K_; ++k )
-            for(int j = 0; j < N_opt_; ++j)
+        for(_BA_Index k = 0; k < K_; ++k )
+            for(_BA_Index j = 0; j < N_opt_; ++j)
                 D_Apinv_ap_[k] += D_[k][j]*Apinv_ap_[j];
 
-        for(int k = 0; k < K_; ++k )
-            for(int kk = 0; kk < K_; ++kk)
-                for(int j = 0; j < N_opt_; ++j)
+        for(_BA_Index k = 0; k < K_; ++k )
+            for(_BA_Index kk = 0; kk < K_; ++kk)
+                for(_BA_Index j = 0; j < N_opt_; ++j)
                     D_Apinv_Dt_[k][kk] += D_[k][j]*Apinv_Dt_[j][kk];
         // std::cout << "'D_Apinv_ap_' and 'D_Apinv_Dt_' done\n";
 
@@ -527,20 +515,20 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
                 D_Apinv_Dt_mat(k,kk) = D_Apinv_Dt_[k][kk];
         }
         _BA_MatX z_mat = D_Apinv_Dt_mat.ldlt().solve(D_Apinv_ap_m_c_mat);
-        for(int k = 0; k < K_; ++k)
+        for(_BA_Index k = 0; k < K_; ++k)
             z_[k] = z_mat(k);
         
         // 7-2) Calculate x
         _BA_MatX x_mat = Ap_mat.ldlt().solve(ap_mat-Dt_mat*z_mat);
         idx0 = 0;
-        for(int j = 0; j < N_opt_; ++j, idx0 += 3)
+        for(_BA_Index j = 0; j < N_opt_; ++j, idx0 += 3)
             x_[j] = x_mat.block(idx0,0,3,1);
 
         // 7-3) Calculate y
-        for(int i = 0; i < M_; ++i)
+        for(_BA_Index i = 0; i < M_; ++i)
         {
             _BA_Vec3 Btx_tmp; Btx_tmp.setZero();
-            for(int j = 0; j < N_opt_; ++j)
+            for(_BA_Index j = 0; j < N_opt_; ++j)
                 Btx_tmp += (Bt_[i][j]*x_[j]);
 
             y_[i] = Cinv_[i] * (b_[i] - Btx_tmp);
@@ -711,7 +699,7 @@ void SparseBundleAdjustmentScaleSQPSolver::initializeLagrangeMultipliers()
         const _BA_PixelVec& pts  = lmba.pts_on_kfs;
 
         // For j-th landmark
-        for(int jj = 0; jj < kfs.size(); ++jj)
+        for(_BA_Index jj = 0; jj < kfs.size(); ++jj)
         {
             const _BA_Pixel& pij = pts.at(jj);
             const FramePtr&   kf = kfs.at(jj);
@@ -795,7 +783,7 @@ void SparseBundleAdjustmentScaleSQPSolver::initializeLagrangeMultipliers()
     // From now, a, b are fully filled.
 
     // Manipulate constraints (D, Dt should be filled.)
-    for(int k = 0; k < K_; ++k)
+    for(_BA_Index k = 0; k < K_; ++k)
     {
         const RelatedFramePair& fp = scale_const_->getRelatedFramePairByConstraintIndex(k);
         const FramePtr& f_major = fp.getMajor();
@@ -848,18 +836,19 @@ void SparseBundleAdjustmentScaleSQPSolver::initializeLagrangeMultipliers()
     _BA_MatX D_mat(K_, 3*N_opt_);
     _BA_MatX a_mat(3*N_opt_, 1);
 
-    for(int k = 0; k < K_; ++k)
-    {
-        int idx0 = k;
-        for(int j = 0; j < N_opt_; ++j)
+    _BA_Index idx0 = 0;
+    for(_BA_Index k = 0; k < K_; ++k, ++idx0)
+    {   
+        _BA_Index idx1 = 0;
+        for(_BA_Index j = 0; j < N_opt_; ++j, idx1 += 3)
         {
-            int idx1 = 3*j;
             D_mat.block(idx0,idx1,1,3) = D_[k][j];
         }
     }
-    for(int j = 0; j < N_opt_; ++j)
+    
+    idx0 = 0;
+    for(_BA_Index j = 0; j < N_opt_; ++j, idx0 += 3)
     {
-        int idx0 = 3*j;
         a_mat.block(idx0,0, 3,1) = a_[j];
     }
     
@@ -870,11 +859,11 @@ void SparseBundleAdjustmentScaleSQPSolver::initializeLagrangeMultipliers()
     //     << lambda_mat.transpose() << std::endl;
 
     // Set params_lagrange_
-    for(int k = 0; k < K_; ++k)
+    for(_BA_Index k = 0; k < K_; ++k)
         params_lagrange_[k] = lambda_mat(k,0);
     
     std::cout << "params_lagrange:\n";
-    for(int k = 0; k < K_; ++k)
+    for(_BA_Index k = 0; k < K_; ++k)
         std::cout << params_lagrange_[k] << ",";
     
     std::cout << std::endl;

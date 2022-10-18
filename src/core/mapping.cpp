@@ -72,8 +72,8 @@ namespace Mapping{
 
         // M(0,0) = -fx; M(0,1) =   0; M(0,2) = u0-cx; M(0,3) = 0; 
         // M(1,0) =   0; M(1,1) = -fy; M(1,2) = v0-cy; M(1,3) = 0; 
-        M(0,2) = u0 - cx; 
-        M(1,2) = v0 - cy; 
+        M(0,2) = u0 - cx; M(1,2) = v0 - cy; 
+        
         M.block<1,4>(2,0) = u1*P10.block<1,4>(2,0) - P10.block<1,4>(0,0);
         M.block<1,4>(3,0) = v1*P10.block<1,4>(2,0) - P10.block<1,4>(1,0);
         
@@ -90,8 +90,9 @@ namespace Mapping{
     Eigen::Matrix3f skew(const Eigen::Vector3f& vec){
         Eigen::Matrix3f mat;
         mat <<    0.0, -vec(2),  vec(1), 
-            vec(2),     0.0, -vec(0),
-            -vec(1),  vec(0),     0.0;
+               vec(2),     0.0, -vec(0),
+              -vec(1),  vec(0),     0.0;
+              
         return mat;
     };
 };

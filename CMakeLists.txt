@@ -42,6 +42,7 @@ catkin_package(
 
 set(SRC ${SRC} 
   src/ros_wrapper/mononode.cpp
+  src/ros_wrapper/ros_print_in_color.cpp
 
   src/core/scale_mono_vo.cpp
   src/core/scale_mono_vo_backend.cpp

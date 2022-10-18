@@ -24,6 +24,8 @@
 #include "scale_mono_vo_ros/statisticsStamped.h"
 #include "util/geometry_library.h"
 
+#include "ros_wrapper/ros_print_in_color.h"
+
 class MonoNode{
 public:
     MonoNode(ros::NodeHandle& nh);

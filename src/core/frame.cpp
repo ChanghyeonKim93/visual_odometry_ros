@@ -172,9 +172,9 @@ bool Frame::isTurningFrame() const {
 
 void Frame::cancelThisTurningFrame()
 {
-    is_turning_frame_ = false;
+    is_turning_frame_       = false;
     frame_previous_turning_ = nullptr;
-    steering_angle_ = 0.0;
-    scale_raw_ = 0.0;
-    scale_ = 0.0;
+    steering_angle_         = 0.0;
+    scale_raw_              = 0.0;
+    scale_                  = 0.0;
 };

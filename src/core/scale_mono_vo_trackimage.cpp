@@ -224,12 +224,14 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 
 		// Make tracking prior & estimated scale
 		lmtrack_prev.pts1.resize(lmtrack_prev.pts0.size());
-		for(int i = 0; i < lmtrack_prev.pts0.size(); ++i){
+		for(int i = 0; i < lmtrack_prev.pts0.size(); ++i)
+		{
 			const LandmarkPtr& lm = lmtrack_prev.lms[i];
 			float patch_scale = 1.0f;
-			if( lm->isBundled() ){
+			if( lm->isBundled() )
+			{
 				const Point& Xw = lm->get3DPoint();
-				Point Xp = Tcw_prev.block<3,3>(0,0)*Xw + Tcw_prev.block<3,1>(0,3);
+				Point Xp = Tcw_prev.block<3,3>(0,0)*Xw  + Tcw_prev.block<3,1>(0,3);
 				Point Xc = Tcw_prior.block<3,3>(0,0)*Xw + Tcw_prior.block<3,1>(0,3);
 				float dp = Xp(2); float dc = Xc(2);
 
@@ -325,7 +327,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			std::cout <<"======== prior dt01: " << dt01.transpose() <<std::endl;
 
 			timer::tic();
-			if(motion_estimator_->calcPoseOnlyBundleAdjustment(Xp_depth_ok, pts1_depth_ok, cam_, params_.motion_estimator.thres_poseba_error,
+			if(motion_estimator_->poseOnlyBundleAdjustment(Xp_depth_ok, pts1_depth_ok, cam_, params_.motion_estimator.thres_poseba_error,
 					dR01, dt01, mask_motion))
 			{
 				dT01 << dR01, dt01, 0,0,0,1;

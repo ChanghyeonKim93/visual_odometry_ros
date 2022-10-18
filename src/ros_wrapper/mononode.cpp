@@ -1,4 +1,4 @@
-#include "mononode.h"
+#include "ros_wrapper/mononode.h"
 
 /**
  * @brief MonoNode 생성자. ROS wrapper for scale mono vo.
@@ -103,6 +103,9 @@ void MonoNode::getParameters(){
  * @date 10-July-2022
  */
 void MonoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
+
+    ros::Time t_callback_start = ros::Time::now();
+
     cv_bridge::CvImageConstPtr cv_ptr;
     try {
         cv_ptr = cv_bridge::toCvShare(msg);
@@ -113,9 +116,13 @@ void MonoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
         return;
     }    
     // update camera pose.
+    ros::Time t_track_start = ros::Time::now();
     double time_now = cv_ptr->header.stamp.toSec();
     scale_mono_vo_->trackImage(cv_ptr->image, time_now);
-    
+    ros::Time t_track_end = ros::Time::now();
+
+    ROS_GREEN_STREAM("Time for track: " << (t_track_end.toSec() - t_track_start.toSec()) * 1000.0 << " [ms]");
+
     // Get odometry results
     ScaleMonoVO::AlgorithmStatistics stat;
     stat = scale_mono_vo_->getStatistics();
@@ -191,26 +198,26 @@ void MonoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
 
 
     // Publish path
-    msg_trajectory_.header.frame_id = "map";
-    msg_trajectory_.header.stamp = ros::Time::now();
+    // msg_trajectory_.header.frame_id = "map";
+    // msg_trajectory_.header.stamp = ros::Time::now();
 
-    geometry_msgs::PoseStamped p;
-    p.header.frame_id = "map";
-    p.header.stamp = ros::Time::now();
-    p.pose = msg_pose.pose.pose;
-    msg_trajectory_.poses.push_back(p);
+    // geometry_msgs::PoseStamped p;
+    // p.header.frame_id = "map";
+    // p.header.stamp = ros::Time::now();
+    // p.pose = msg_pose.pose.pose;
+    // msg_trajectory_.poses.push_back(p);
 
-    msg_trajectory_.poses.resize(stat.stats_keyframe.size());
-    for(int j = 0; j < msg_trajectory_.poses.size(); ++j)
-    {
-        PoseSE3 Twc = stat.stats_keyframe[j].Twc;
-        msg_pose.pose.pose.position.x = Twc(0,3);
-        msg_pose.pose.pose.position.y = Twc(1,3);
-        msg_pose.pose.pose.position.z = Twc(2,3);
-        msg_trajectory_.poses[j].pose = msg_pose.pose.pose;
-    }
+    // msg_trajectory_.poses.resize(stat.stats_keyframe.size());
+    // for(int j = 0; j < msg_trajectory_.poses.size(); ++j)
+    // {
+    //     PoseSE3 Twc = stat.stats_keyframe[j].Twc;
+    //     msg_pose.pose.pose.position.x = Twc(0,3);
+    //     msg_pose.pose.pose.position.y = Twc(1,3);
+    //     msg_pose.pose.pose.position.z = Twc(2,3);
+    //     msg_trajectory_.poses[j].pose = msg_pose.pose.pose;
+    // }
 
-    pub_trajectory_.publish(msg_trajectory_);
+    // pub_trajectory_.publish(msg_trajectory_);
 
 
     // Publish mappoints
@@ -246,7 +253,12 @@ void MonoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
     reduced_msg.image           = img_debug; // Your cv::Mat
 
     pub_debug_image_.publish(reduced_msg.toImageMsg());
-   
+
+
+
+    ros::Time t_callback_end = ros::Time::now();
+
+    ROS_GREEN_STREAM("Time for CALLBACK: " << (t_callback_end.toSec() - t_callback_start.toSec()) * 1000.0 << " [ms]\n");   
 };
 
 void MonoNode::groundtruthCallback(const geometry_msgs::PoseStampedConstPtr& msg){

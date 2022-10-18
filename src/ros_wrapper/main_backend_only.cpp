@@ -7,7 +7,7 @@
 
 #include "util/signal_handler_linux.h"
 
-#include "backend_node.h"
+#include "ros_wrapper/backend_node.h"
 
 int main(int argc, char **argv) {
     ros::init(argc, argv, "backend_node");

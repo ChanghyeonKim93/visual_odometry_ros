@@ -21,9 +21,8 @@ ScaleEstimator::ScaleEstimator(
     flag_do_ASR_ = flag_do_ASR;
 
     // Detecting turn region variables
-    THRES_CNT_TURN_ = 10;
-    THRES_PSI_      = 3.0*M_PI/180.0;
-
+    this->setTurnRegion_ThresPsi(2.0*M_PI/180.0);
+    this->setTurnRegion_ThresCountTurn(10);
 
     // Run process thread.
     terminate_future_ = terminate_promise_.get_future();
@@ -89,10 +88,10 @@ void ScaleEstimator::process(std::shared_future<void> terminate_signal)
 
 
 void ScaleEstimator::setTurnRegion_ThresPsi(float psi){
-    THRES_PSI_ = psi;
+    this->THRES_PSI_ = psi;
 };
 void ScaleEstimator::setTurnRegion_ThresCountTurn(uint32_t thres_cnt_turn){
-    THRES_CNT_TURN_ = thres_cnt_turn;
+    this->THRES_CNT_TURN_ = thres_cnt_turn;
 };
 
 
@@ -103,48 +102,9 @@ void ScaleEstimator::insertNewFrame(const FramePtr& frame)
     
     // Check whether this is a turning frame or not
     bool flag_turn_detected = this->detectTurnRegions(frame);
-
-    // flag is not on 
-    
-    // if(flag_turn_detected)
-    // {
-    //     // This is a turning frame
-    // }
-    // else
-    // {
-    //     // This is not a turning frame.
-    // 
 };
 
 
-
-/*
-    frame, frame_prev_
-
-    if(frame_prev_ == nullptr){
-        frame_prev_ = frame;
-        flag_turn_detected = false;
-        return flag_turn_detected;
-    }
-
-    if(psi > thres_psi)
-    {
-        if(cnt_turn >= thres_turn)
-        {
-            
-        }
-        else // 부족 --> 전부 unconstrained로 
-        {
-
-        }
-    }
-    else // Straight
-    {
-        frame_unconst.push_back(frame);
-    }
-
-    frame_prev_ = frame;
-*/
 bool ScaleEstimator::detectTurnRegions(const FramePtr& frame)
 {
     bool flag_turn_detected = false;
@@ -280,10 +240,10 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame)
                 if( frames_turn_prev_.size() > 0)
                 {
                     // Run the Absolute Scale Recovery (ASR) Module.
-                    asr_module_->runASR(
-                        frames_turn_prev_,
-                        frames_unconstrained_,
-                        frames_turn_curr_);
+                    // asr_module_->runASR(
+                    //     frames_turn_prev_,
+                    //     frames_unconstrained_,
+                    //     frames_turn_curr_);
                 }
                                 
                 // Update previous turning region & empty the unconstrained region
