@@ -2,6 +2,17 @@
 
 SparseBundleAdjustmentScaleSQPSolver::SparseBundleAdjustmentScaleSQPSolver()
 {
+    cam_         = nullptr;
+    ba_params_   = nullptr;
+    scale_const_ = nullptr;
+
+    A_.reserve(500); // reserve expected # of optimizable poses (N_opt)
+    B_.reserve(500); // 
+    Bt_.reserve(50000);
+    C_.reserve(50000); // reserve expected # of optimizable landmarks (M)
+    D_.reserve(1000);
+    Dt_.reserve(1000);
+
     std::cerr << "SparseBundleAdjustmentScaleSQPSolver is constructed.\n";
 };
 
@@ -130,7 +141,8 @@ void SparseBundleAdjustmentScaleSQPSolver::zeroizeStorageMatrices()
         ap_[j].setZero();
         Apinv_ap_[j].setZero();
 
-        for(_BA_Index i = 0; i < M_; ++i){
+        for(_BA_Index i = 0; i < M_; ++i)
+        {
             B_[j][i].setZero();
             Bt_[i][j].setZero();
             BCinv_[j][i].setZero();

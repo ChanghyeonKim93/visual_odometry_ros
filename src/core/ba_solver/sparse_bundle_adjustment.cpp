@@ -145,7 +145,7 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
     // Initialize parameters
     std::vector<_BA_numeric> r_prev(n_obs_, 0.0f);
     _BA_numeric err_prev = 1e10f;
-    _BA_numeric lambda   = 0.0000001;
+    _BA_numeric lambda   = 0.00001;
     for(int iter = 0; iter < MAX_ITER; ++iter){
         // std::cout << iter <<"-th iteration...\n";
 

@@ -22,7 +22,7 @@ ScaleEstimator::ScaleEstimator(
 
     // Detecting turn region variables
     THRES_CNT_TURN_ = 10;
-    THRES_PSI_      = 2.0*M_PI/180.0;
+    THRES_PSI_      = 3.0*M_PI/180.0;
 
 
     // Run process thread.
