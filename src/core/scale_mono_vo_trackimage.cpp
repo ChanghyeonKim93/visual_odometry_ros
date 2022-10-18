@@ -410,6 +410,11 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 		extractor_->extractORBwithBinning(I1, pts1_new, true);
 		std::cout << "Time [extract ORB      ]: " << timer::toc(0) << " [ms]\n";
 		
+		timer::tic();
+		PixelVec pts1_newnew;
+		extractor_->extractORBwithBinning_fast(I1, pts1_newnew,true);
+		std::cout << "Time [extract ORB  fast]: " << timer::toc(0) << " [ms]\n";
+
 		// std::cout << "# features : " << pts1_new.size()  << std::endl;
 		if( true )
 			this->showTrackingBA("img_feautues", I1, pts1_depth_ok, pts1_project, mask_sampson);

@@ -120,6 +120,13 @@ struct WeightBin {
 		}
 		// std::cout <<" - FEATURE_EXTRACTOR - WeightBin - 'update' : # input points: "<<n_pts << "\n";
 	};
+
+	/// @brief Find bucket index.
+	/// @param pt opencv cv::Point2f
+	/// @param u bin u
+	/// @param v bin v
+	/// @return true: in-image & empty bucket, false: out of image or not required bucket.
+	bool findBucket(const Pixel& pt, unsigned long& u, unsigned long& v);
 };
 
 class FeatureExtractor 
@@ -152,7 +159,8 @@ public:
 	void resetWeightBin();
 	void suppressCenterBins();
 	void extractORBwithBinning(const cv::Mat& img, PixelVec& pts_extracted, bool flag_nonmax);
-	
+	void extractORBwithBinning_fast(const cv::Mat& img, PixelVec& pts_extracted, bool flag_nonmax);
+
 	void extractAndComputeORB(const cv::Mat& img, std::vector<cv::KeyPoint>& kpts_extracted, cv::Mat& desc_extracted);
 	void extractAndComputORBwithBinning(const cv::Mat& img, std::vector<cv::KeyPoint>& kpts_extracted, cv::Mat& desc_extracted);
 

@@ -201,6 +201,57 @@ void FeatureExtractor::extractORBwithBinning(const cv::Mat& img, PixelVec& pts_e
 	// std::cout << " - FEATURE_EXTRACTOR - 'extractORBwithBinning' - # detected pts : " << pts_extracted.size() << std::endl;
 };
 
+void FeatureExtractor::extractORBwithBinning_fast(const cv::Mat& img, PixelVec& pts_extracted, bool flag_nonmax)
+{
+	// INPUT IMAGE MUST BE 'CV_8UC1' image.
+	cv::Mat img_in;
+	if (img.type() != CV_8UC1) {
+		img.convertTo(img_in, CV_8UC1);
+		std::cout << "in extractor, image is converted to the CV_8UC1.\n";
+	}
+	else 
+		img_in = img;
+
+	int n_cols = img_in.cols;
+	int n_rows = img_in.rows;
+
+	int overlap = floor(1 * params_orb_.EdgeThreshold);
+
+	std::vector<cv::KeyPoint> fts;
+	fts.reserve(30000); 
+
+	pts_extracted.resize(0);
+	pts_extracted.reserve(2000);
+
+	const std::vector<int>& u_idx = weight_bin_->u_bound;
+	const std::vector<int>& v_idx = weight_bin_->v_bound;
+
+
+	// int v_range[2] = { 0,0 };
+	// int u_range[2] = { 0,0 };
+	// for (int v = 0; v < n_bins_v_; ++v) 
+	// {
+	// 	for (int u = 0; u < n_bins_u_; ++u) 
+	// 	{
+	// 		int bin_idx = v * n_bins_u_ + u;
+	// 		int n_pts_desired = weight_bin_->weight[bin_idx] * params_orb_.MaxFeatures;
+	// 	}
+	// }
+	extractor_orb_->detect(img_in, fts);
+	std::cout << "# of orb : " << fts.size() << std::endl;
+
+
+	for(int i = 0; i < fts.size(); ++i)
+	{
+		const cv::KeyPoint& ft = fts[i];
+		ft.pt;
+		
+	}
+
+
+};
+
+
 void FeatureExtractor::extractAndComputeORB(const cv::Mat& img, std::vector<cv::KeyPoint>& kpts_extracted, cv::Mat& desc_extracted) {
 	// INPUT IMAGE MUST BE CV_8UC1 image.
 
