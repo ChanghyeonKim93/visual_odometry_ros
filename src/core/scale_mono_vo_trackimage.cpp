@@ -233,7 +233,9 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 				const Point& Xw = lm->get3DPoint();
 				Point Xp = Tcw_prev.block<3,3>(0,0)*Xw  + Tcw_prev.block<3,1>(0,3);
 				Point Xc = Tcw_prior.block<3,3>(0,0)*Xw + Tcw_prior.block<3,1>(0,3);
-				float dp = Xp(2); float dc = Xc(2);
+				
+				float dp = Xp(2); 
+				float dc = Xc(2);
 
 				patch_scale = dp/dc;
 				// std::cout << "scale : " << patch_scale << std::endl;

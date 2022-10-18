@@ -68,6 +68,7 @@ set(SRC ${SRC}
   src/core/mapping.cpp
 
   src/util/timer.cpp
+  src/util/stop_watch_timer.cpp
   src/util/signal_handler_linux.cpp
   src/util/geometry_library.cpp
   src/util/histogram.cpp

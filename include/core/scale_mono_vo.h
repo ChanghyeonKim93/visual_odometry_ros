@@ -251,7 +251,7 @@ public:
 	void trackImage(const cv::Mat& img, const double& timestamp);
 	void trackImageBackend(const cv::Mat& img, const double& timestamp, const PoseSE3& pose, const PoseSE3& dT01);
 
-	AlgorithmStatistics getStatistics() const;
+	const AlgorithmStatistics& getStatistics() const;
 
 private:
 	int pruneInvalidLandmarks(const PixelVec& pts0, const PixelVec& pts1, const LandmarkPtrVec& lms, const MaskVec& mask,

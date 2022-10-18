@@ -5,9 +5,7 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
-        - /Grid1
         - /VO_pose1/Shape1
-        - /Image_debug1
       Splitter Ratio: 0.5010846257209778
     Tree Height: 291
   - Class: rviz/Selection
@@ -178,7 +176,7 @@ Visualization Manager:
       Topic: /scale_mono_vo/trajectory
       Unreliable: false
       Value: true
-    - Alpha: 1
+    - Alpha: 0.6000000238418579
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
         Max Value: 6916.58154296875
@@ -286,7 +284,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 187.01089477539062
+      Distance: 211.3571014404297
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -294,9 +292,9 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -4.696719169616699
-        Y: 0.6934148669242859
-        Z: 37.43813705444336
+        X: 7.94741678237915
+        Y: 0.45920485258102417
+        Z: 43.602394104003906
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false

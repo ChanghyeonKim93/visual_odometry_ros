@@ -145,8 +145,9 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
     // Initialize parameters
     std::vector<_BA_numeric> r_prev(n_obs_, 0.0f);
     _BA_numeric err_prev = 1e10f;
-    _BA_numeric lambda   = 0.00001;
-    for(_BA_Index iter = 0; iter < MAX_ITER; ++iter){
+    _BA_numeric lambda   = 0.0000001;
+    for(_BA_Index iter = 0; iter < MAX_ITER; ++iter)
+    {
         // std::cout << iter <<"-th iteration...\n";
 
         // Reset A, B, Bt, C, Cinv, a, b, x, y...
@@ -155,14 +156,16 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
         // Iteratively solve. (Levenberg-Marquardt algorithm)
         _BA_Index cnt = 0;
         _BA_numeric err = 0.0f;
-        for(_BA_Index i = 0; i < M_; ++i){
+        for(_BA_Index i = 0; i < M_; ++i)
+        {
             // For i-th landmark
             const LandmarkBA&   lmba = ba_params_->getLandmarkBA(i);
             const _BA_Point&    Xi   = lmba.X; 
             const FramePtrVec&  kfs  = lmba.kfs_seen;
             const _BA_PixelVec& pts  = lmba.pts_on_kfs;
 
-            for(_BA_Index jj = 0; jj < kfs.size(); ++jj) {
+            for(_BA_Index jj = 0; jj < kfs.size(); ++jj) 
+            {
                 // For j-th keyframe
                 const _BA_Pixel& pij = pts.at(jj);
                 const FramePtr&   kf = kfs.at(jj);
@@ -170,7 +173,8 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
                 // 0) check whether it is optimizable keyframe
                 bool is_optimizable_keyframe = false;
                 _BA_Index j = -1;
-                if(ba_params_->isOptFrame(kf)){
+                if(ba_params_->isOptFrame(kf))
+                {
                     is_optimizable_keyframe = true;
                     j = ba_params_->getOptPoseIndex(kf);
                 }
@@ -213,7 +217,8 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
 
                 _BA_numeric weight = 1.0;
                 bool flag_weight = false;
-                if(absrxry > THRES_HUBER_){
+                if(absrxry > THRES_HUBER_)
+                {
                     weight = (THRES_HUBER_/absrxry);
                     flag_weight = true;
                 }
@@ -221,7 +226,8 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
                 // 4) Add (or fill) data (JtWJ & mJtWr & err).  
                 _BA_Mat33 Rij_t_Rij;
                 _BA_Vec3  Rij_t_rij;
-                if(flag_weight){
+                if(flag_weight)
+                {
                     this->calc_Rij_t_Rij_weight(weight, Rij, Rij_t_Rij);
                     // Rij_t_Rij = weight * (Rij.transpose()*Rij);
                     Rij_t_rij = weight * (Rij.transpose()*rij);
@@ -236,7 +242,9 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
                 C_[i].noalias() += Rij_t_Rij; // FILL STORAGE (3)
                 b_[i].noalias() -= Rij_t_rij; // FILL STORAGE (5)
 
-                if(is_optimizable_keyframe) { // Optimizable keyframe.
+                if(is_optimizable_keyframe) 
+                {
+                    // Optimizable keyframe.
                     _BA_Mat26 Qij;
                     Qij << fxinvz,0,-fx_xinvz2,-fx*xinvz_yinvz,fx*(1.0+xinvz*xinvz), -fx*yinvz,
                            0,fyinvz,-fy_yinvz2,-fy*(1.0+yinvz*yinvz),fy*xinvz_yinvz,  fy*xinvz;

@@ -907,12 +907,12 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
 
     std::cout << "===============     Local Bundle adjustment (Sparse Solver)     ===============\n";
 
-    int THRES_AGE           = 2; // landmark의 최소 age
-    int THRES_MINIMUM_SEEN  = 2; // landmark의 최소 관측 keyframes
-    float THRES_PARALLAX    = 0.7*D2R; // landmark의 최소 parallax
+    int THRES_AGE           = 3; // landmark의 최소 age
+    int THRES_MINIMUM_SEEN  = 3; // landmark의 최소 관측 keyframes
+    float THRES_PARALLAX    = 0.5*D2R; // landmark의 최소 parallax
 
     // Optimization paraameters
-    int   MAX_ITER          = 5;
+    int   MAX_ITER          = 7;
 
     float lam               = 1e-3;  // for Levenberg-Marquardt algorithm
     float MAX_LAM           = 1.0f;  // for Levenberg-Marquardt algorithm
@@ -933,8 +933,8 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     float THRES_DELTA_THETA = 1e-7;
     float THRES_ERROR       = 1e-7;
 
-    int NUM_MINIMUM_REQUIRED_KEYFRAMES = 3; // 최소 keyframe 갯수.
-    int NUM_FIX_KEYFRAMES_IN_WINDOW    = 2; // optimization에서 제외 할 keyframe 갯수. 과거 순.
+    int NUM_MINIMUM_REQUIRED_KEYFRAMES = 2; // 최소 keyframe 갯수.
+    int NUM_FIX_KEYFRAMES_IN_WINDOW    = 1; // optimization에서 제외 할 keyframe 갯수. 과거 순.
 
     // Check whether there are enough keyframes
     if(kfs_window->getCurrentNumOfKeyframes() < NUM_MINIMUM_REQUIRED_KEYFRAMES)

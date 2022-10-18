@@ -363,7 +363,7 @@ void ScaleMonoVO::showTracking(const std::string& window_name, const cv::Mat& im
 };
 
 
-ScaleMonoVO::AlgorithmStatistics ScaleMonoVO::getStatistics() const{
+const ScaleMonoVO::AlgorithmStatistics& ScaleMonoVO::getStatistics() const{
 	return stat_;
 };
 
