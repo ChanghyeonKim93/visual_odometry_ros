@@ -22,7 +22,8 @@
 
 class FeatureExtractor;
 
-struct ParamsORB {
+struct ParamsORB 
+{
 	int   MaxFeatures     ;// % MaxFeatures (300) % The maximum number of features to retain.
 	float ScaleFactor     ;// % ScaleFactor (1.2) % Pyramid decimation ratio.
 	int   NLevels         ;// % NLevels (8)% The number of pyramid levels.
@@ -35,8 +36,9 @@ struct ParamsORB {
 	float r               ;// % Radius of non maximum suppresion (5)
 	int   n_bins_u        ;
 	int   n_bins_v        ;
+
 	ParamsORB(){
-		MaxFeatures     = 100;    // % MaxFeatures (300) % The maximum number of features to retain.
+		MaxFeatures     = 5000;    // % MaxFeatures (300) % The maximum number of features to retain.
 		ScaleFactor     = 1.05;   // % ScaleFactor (1.2) % Pyramid decimation ratio.
 		NLevels         = 1;      // % NLevels (8)% The number of pyramid levels.
 		EdgeThreshold   = 31;     // % EdgeThreshold (31)% This is size of the border where the features are not detected.
@@ -61,6 +63,9 @@ struct WeightBin {
 	int v_step  ;
 	int n_bins_total;
 
+	float inv_u_step_;
+	float inv_v_step_;
+
 	WeightBin() 
 	{
 		u_bound.resize(0);
@@ -69,6 +74,8 @@ struct WeightBin {
 		n_bins_v = 0;
 		u_step = 0;
 		v_step = 0;
+		inv_u_step_ = 0;
+		inv_v_step_ = 0;
 		n_bins_total = 0;
 	};
 
@@ -96,6 +103,9 @@ struct WeightBin {
 
 		this->u_step = (int)floor((float)n_cols / (float)n_bins_u);
 		this->v_step = (int)floor((float)n_rows / (float)n_bins_v);
+
+		this->inv_u_step_ = 1.0f/(float)this->u_step;
+		this->inv_v_step_ = 1.0f/(float)this->v_step;
 
 		for (int i = 1; i < n_bins_u; ++i) this->u_bound[i] = u_step * i;
 		for (int i = 1; i < n_bins_v; ++i) this->v_bound[i] = v_step * i;
@@ -132,6 +142,22 @@ struct WeightBin {
 class FeatureExtractor 
 {
 private:
+// 현재까지 가장 높은 스코어를 저장. 
+	struct IndexBin
+	{
+		std::vector<int> index_;
+		int   index_max_;
+		float max_score_;
+
+		IndexBin() 
+		{
+			index_.reserve(100);
+			index_max_ = -1;
+			max_score_ = -1;
+		};
+	};
+	
+private:
 	std::shared_ptr<WeightBin> weight_bin_;
 
 	ParamsORB  params_orb_;
@@ -146,6 +172,9 @@ private:
 	int   THRES_FAST_;
 	int   NUM_NONMAX_;
 	float r_;
+
+
+	std::vector<IndexBin> index_bins_;
 
 public:
 	/// @brief FeatureExtractor class constructor

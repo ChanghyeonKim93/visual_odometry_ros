@@ -26,8 +26,8 @@ void FeatureTracker::track(const cv::Mat& img0, const cv::Mat& img1, const Pixel
     std::vector<uchar> status;
     std::vector<float> err;
     int maxLevel = max_pyr_lvl;
-    cv::calcOpticalFlowPyrLK(img0, img1, 
-        pts0, pts_track, 
+    cv::calcOpticalFlowPyrLK(img0, img1,
+        pts0, pts_track,
         status, err, cv::Size(window_size,window_size), maxLevel);
     
     for(int i = 0; i < n_pts; ++i)
@@ -335,6 +335,7 @@ void FeatureTracker::trackWithScale(
     std::vector<float> I0_patt(n_elem);
     std::vector<float> du0_patt(n_elem);
     std::vector<float> dv0_patt(n_elem);
+
     std::vector<float> I1_patt(n_elem);
 
     // temporal container
@@ -344,7 +345,7 @@ void FeatureTracker::trackWithScale(
     
     // Iteratively update for each point.
     for(int i = 0; i < n_pts; ++i) // for each point
-    { 
+    {
         // std::cout <<i <<"-th point\n";
         // If invalid point, skip.
         if(!mask_valid.at(i)) 
@@ -438,8 +439,8 @@ void FeatureTracker::trackWithScale(
             int cnt_valid = 0;       
             err_curr = 0;
             for(int j = 0; j < n_elem; ++j)
-            {   
-                if(mask_I0.at(j) && mask_I1.at(j))
+            {
+                if( mask_I0[j] && mask_I1[j] )
                 {   
                     const float& I0_tmp  = I0_patt[j];
                     const float& I1_tmp  = I1_patt[j];
@@ -489,10 +490,10 @@ void FeatureTracker::trackWithScale(
             // std::cout << iter << "-itr: " << t << ", e: " << err_curr 
             //           << ", dtnorm: "<< dt_norm << std::endl;
             
-            if(iter > 1) 
+            if( iter > 1 ) 
             {
                 if( err_rate <= EPS_ERR_RATE 
-                 || dt_norm  <= EPS_UPDATE ) 
+                 || dt_norm  <= EPS_UPDATE )
                     break;
             }
 
@@ -521,7 +522,7 @@ void FeatureTracker::trackWithScale(
 void FeatureTracker::refineTrackWithScale(const cv::Mat& img1, const LandmarkPtrVec& lms, const std::vector<float>& scale_est,
         PixelVec& pts_track, MaskVec& mask_valid)
 {
-    std::cout << "RefineTrackWithScale starts.\n";
+    // std::cout << "RefineTrackWithScale starts.\n";
     if(pts_track.size() != lms.size() ) throw std::runtime_error("pts_track.size() != lms.size()");
     
     int n_pts = lms.size(); 
@@ -675,7 +676,7 @@ void FeatureTracker::refineTrackWithScale(const cv::Mat& img1, const LandmarkPtr
             
             if(iter > 1) {
                 if( err_rate <= EPS_ERR_RATE 
-                 || dt_norm  <= EPS_UPDATE ) 
+                 ||  dt_norm <= EPS_UPDATE ) 
                     break;
             }
 
@@ -698,5 +699,5 @@ void FeatureTracker::refineTrackWithScale(const cv::Mat& img1, const LandmarkPtr
                 mask_valid[i] = false; // not update.
         }
     } // END i-th pixel
-    std::cout << "RefineTrackWithScale ends.\n";
+    // std::cout << "RefineTrackWithScale ends.\n";
 };

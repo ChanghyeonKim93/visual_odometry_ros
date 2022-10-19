@@ -119,23 +119,23 @@ void ScaleMonoVO::loadCameraIntrinsicAndUserParameters(const std::string& dir) {
 
 	// Load user setting parameters
 	// Feature tracker
-	params_.feature_tracker.thres_error = fs["feature_tracker.thres_error"];
-	params_.feature_tracker.thres_bidirection = fs["feature_tracker.thres_bidirection"];
-	params_.feature_tracker.thres_sampson = fs["feature_tracker.thres_sampson"];
-	params_.feature_tracker.window_size = (int)fs["feature_tracker.window_size"];
-	params_.feature_tracker.max_level = (int)fs["feature_tracker.max_level"];
+	params_.feature_tracker.thres_error            = fs["feature_tracker.thres_error"];
+	params_.feature_tracker.thres_bidirection      = fs["feature_tracker.thres_bidirection"];
+	params_.feature_tracker.thres_sampson          = fs["feature_tracker.thres_sampson"];
+	params_.feature_tracker.window_size            = (int)fs["feature_tracker.window_size"];
+	params_.feature_tracker.max_level              = (int)fs["feature_tracker.max_level"];
 
 	// Feature extractor
-	params_.feature_extractor.n_features = (int)fs["feature_extractor.n_features"];
-	params_.feature_extractor.n_bins_u   = (int)fs["feature_extractor.n_bins_u"];
-	params_.feature_extractor.n_bins_v   = (int)fs["feature_extractor.n_bins_v"];
-	params_.feature_extractor.thres_fastscore = fs["feature_extractor.thres_fastscore"];
-	params_.feature_extractor.radius          = fs["feature_extractor.radius"];
+	params_.feature_extractor.n_features           = (int)fs["feature_extractor.n_features"];
+	params_.feature_extractor.n_bins_u             = (int)fs["feature_extractor.n_bins_u"];
+	params_.feature_extractor.n_bins_v             = (int)fs["feature_extractor.n_bins_v"];
+	params_.feature_extractor.thres_fastscore      = fs["feature_extractor.thres_fastscore"];
+	params_.feature_extractor.radius               = fs["feature_extractor.radius"];
 
 	// Motion estimator
-	params_.motion_estimator.thres_1p_error = fs["motion_estimator.thres_1p_error"];
-	params_.motion_estimator.thres_5p_error = fs["motion_estimator.thres_5p_error"];
-	params_.motion_estimator.thres_poseba_error = fs["motion_estimator.thres_poseba_error"];
+	params_.motion_estimator.thres_1p_error        = fs["motion_estimator.thres_1p_error"];
+	params_.motion_estimator.thres_5p_error        = fs["motion_estimator.thres_5p_error"];
+	params_.motion_estimator.thres_poseba_error    = fs["motion_estimator.thres_poseba_error"];
 
 	// Scale estimator
 	params_.scale_estimator.initial_scale          = fs["scale_estimator.initial_scale"];
@@ -148,8 +148,8 @@ void ScaleMonoVO::loadCameraIntrinsicAndUserParameters(const std::string& dir) {
 	params_.scale_estimator.thres_parallax_recon   = fs["scale_estimator.thres_parallax_recon"];
 
 	// Keyframe update
-	params_.keyframe_update.thres_alive_ratio   = fs["keyframe_update.thres_alive_ratio"];
-	params_.keyframe_update.thres_mean_parallax = fs["keyframe_update.thres_mean_parallax"];
+	params_.keyframe_update.thres_alive_ratio      = fs["keyframe_update.thres_alive_ratio"];
+	params_.keyframe_update.thres_mean_parallax    = fs["keyframe_update.thres_mean_parallax"];
 	
 	// Map update
 	params_.map_update.thres_parallax = fs["map_update.thres_parallax"];
@@ -320,21 +320,27 @@ void ScaleMonoVO::showTracking(const std::string& window_name, const cv::Mat& im
 };
 
 void ScaleMonoVO::showTrackingBA(const std::string& window_name, const cv::Mat& img, const PixelVec& pts1, const PixelVec& pts1_project, const MaskVec& mask_valid){	
+	int rect_half = 6;
+	int circle_radius = 4;
+
+	cv::Scalar color_red   = cv::Scalar(0,0,255);
+	cv::Scalar color_green = cv::Scalar(0,255,0);
+
 	cv::namedWindow(window_name);
 	img.copyTo(img_debug_);
 	cv::cvtColor(img_debug_, img_debug_, CV_GRAY2RGB);
 	for(int i = 0; i < pts1.size(); ++i) {
 		if(mask_valid[i])
-			cv::circle(img_debug_, pts1[i], 1.0, cv::Scalar(0,0,255),4); // alived magenta
+			cv::circle(img_debug_, pts1[i], 1.0, color_red, circle_radius); // alived magenta
 	}
 	for(int i = 0; i < pts1.size(); ++i){
 		if(mask_valid[i])
-			cv::rectangle(img_debug_, cv::Point2f(pts1_project[i].x-8,pts1_project[i].y-8),cv::Point2f(pts1_project[i].x+4,pts1_project[i].y+4), 
-				cv::Scalar(0,255,0), 1);
+			cv::rectangle(img_debug_, cv::Point2f(pts1_project[i].x-rect_half,pts1_project[i].y-rect_half),cv::Point2f(pts1_project[i].x+rect_half,pts1_project[i].y+rect_half), 
+				color_green, 2);
 	}
 	
 	cv::imshow(window_name, img_debug_);
-	cv::waitKey(3);
+	cv::waitKey(2);
 };
 
 void ScaleMonoVO::showTracking(const std::string& window_name, const cv::Mat& img, const LandmarkPtrVec& lms){

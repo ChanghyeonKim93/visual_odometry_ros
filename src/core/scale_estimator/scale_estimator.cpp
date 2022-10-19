@@ -277,7 +277,7 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame)
         }
     }
 
-    std::cout << "in detect: " << frame->getID() << ", " << frame_prev_->getID() << std::endl;
+    // std::cout << "in detect: " << frame->getID() << ", " << frame_prev_->getID() << std::endl;
     frame_prev_ = frame;
 
     return flag_turn_detected;

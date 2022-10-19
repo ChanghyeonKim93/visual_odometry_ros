@@ -965,25 +965,25 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     ba_params->setPosesAndPoints(frames, idx_fix, idx_opt);
 
     // BA sparse solver
-    timer::tic();
+    // timer::tic();
     sparse_ba_solver_->reset(); // reset the solver
     sparse_ba_solver_->setCamera(cam); // set 
     sparse_ba_solver_->setBAParameters(ba_params);
     sparse_ba_solver_->setHuberThreshold(THRES_HUBER);
-    double dt_prepare = timer::toc(0);
+    // double dt_prepare = timer::toc(0);
 
-    timer::tic();
+    // timer::tic();
     sparse_ba_solver_->solveForFiniteIterations(MAX_ITER);
-    double dt_solve = timer::toc(0);
+    // double dt_solve = timer::toc(0);
 
-    timer::tic();
+    // timer::tic();
     sparse_ba_solver_->reset();
-    double dt_reset = timer::toc(0);
+    // double dt_reset = timer::toc(0);
 
     // Time analysis
-    std::cout << "== LBA time to prepare: " << dt_prepare << " [ms]\n";
-    std::cout << "== LBA time to solve: "   << dt_solve   << " [ms]\n";
-    std::cout << "== LBA time to reset: "   << dt_reset   << " [ms]\n\n";
+    // std::cout << "== LBA time to prepare: " << dt_prepare << " [ms]\n";
+    // std::cout << "== LBA time to solve: "   << dt_solve   << " [ms]\n";
+    // std::cout << "== LBA time to reset: "   << dt_reset   << " [ms]\n\n";
 
     return true;
 };

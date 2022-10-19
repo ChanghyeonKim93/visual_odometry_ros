@@ -18,32 +18,34 @@ FeatureExtractor::FeatureExtractor()
 
 	std::cout << " - FEATURE_EXTRACTOR is constructed.\n";
 };
-FeatureExtractor::~FeatureExtractor() {
 
+FeatureExtractor::~FeatureExtractor() 
+{
 	std::cout << " - FEATURE_EXTRACTOR is deleted.\n";
 };
 
-void FeatureExtractor::initParams(int n_cols, int n_rows, int n_bins_u, int n_bins_v, int THRES_FAST, int radius) {
+void FeatureExtractor::initParams(int n_cols, int n_rows, int n_bins_u, int n_bins_v, int THRES_FAST, int radius) 
+{
 	std::cout << " - FEATURE_EXTRACTOR - 'initParams'\n";
 
 	this->extractor_orb_ = cv::ORB::create();
 
 	std::cout << " ORB is created.\n";
 
-	this->flag_debug_ = false;
+	this->flag_debug_  = false;
 	this->flag_nonmax_ = true;
 
-	this->NUM_NONMAX_ = 5;
+	this->NUM_NONMAX_  = 5;
 
-	this->n_bins_u_ = n_bins_u;
-	this->n_bins_v_ = n_bins_v;
+	this->n_bins_u_    = n_bins_u;
+	this->n_bins_v_    = n_bins_v;
 
-	this->THRES_FAST_ = THRES_FAST;
-	this->r_ = radius;
+	this->THRES_FAST_  = THRES_FAST;
+	this->r_           = radius;
 
 	this->params_orb_.FastThreshold = this->THRES_FAST_;
-	this->params_orb_.n_bins_u = this->n_bins_u_;
-	this->params_orb_.n_bins_v = this->n_bins_v_;
+	this->params_orb_.n_bins_u      = this->n_bins_u_;
+	this->params_orb_.n_bins_v      = this->n_bins_v_;
 
 	extractor_orb_->setMaxFeatures(10000);
 	extractor_orb_->setScaleFactor(1.2);
@@ -55,13 +57,20 @@ void FeatureExtractor::initParams(int n_cols, int n_rows, int n_bins_u, int n_bi
 	extractor_orb_->setPatchSize(31);
 	extractor_orb_->setFastThreshold(this->THRES_FAST_);
 
+	this->index_bins_.resize(n_bins_u_*n_bins_v_);
+	for(int i = 0; i < index_bins_.size(); ++i)
+	{
+		index_bins_[i].index_.reserve(100);
+		index_bins_[i].index_max_ = -1;
+		index_bins_[i].max_score_ = -1.0f;
+	}
+
 	this->weight_bin_ = std::make_shared<WeightBin>();
 	this->weight_bin_->init(n_cols, n_rows, this->n_bins_u_, this->n_bins_v_);
 };
 
 void FeatureExtractor::resetWeightBin() {
 	// printf(" - FEATURE_EXTRACTOR - 'resetWeightBin'\n");
-
 	weight_bin_->reset();
 };
 
@@ -85,7 +94,6 @@ void FeatureExtractor::suppressCenterBins(){
 
 void FeatureExtractor::updateWeightBin(const PixelVec& fts) {
 	// std::cout << " - FEATURE_EXTRACTOR - 'updateWeightBin'\n";
-
 	weight_bin_->reset();
 	weight_bin_->update(fts);
 };
@@ -212,6 +220,13 @@ void FeatureExtractor::extractORBwithBinning_fast(const cv::Mat& img, PixelVec& 
 	else 
 		img_in = img;
 
+	// Reset the index bins
+	for(IndexBin& v : index_bins_)
+	{
+		v.index_.resize(0);
+		v.max_score_ = -1;
+	}
+
 	int n_cols = img_in.cols;
 	int n_rows = img_in.rows;
 
@@ -223,31 +238,83 @@ void FeatureExtractor::extractORBwithBinning_fast(const cv::Mat& img, PixelVec& 
 	pts_extracted.resize(0);
 	pts_extracted.reserve(2000);
 
-	const std::vector<int>& u_idx = weight_bin_->u_bound;
-	const std::vector<int>& v_idx = weight_bin_->v_bound;
-
-
-	// int v_range[2] = { 0,0 };
-	// int u_range[2] = { 0,0 };
-	// for (int v = 0; v < n_bins_v_; ++v) 
-	// {
-	// 	for (int u = 0; u < n_bins_u_; ++u) 
-	// 	{
-	// 		int bin_idx = v * n_bins_u_ + u;
-	// 		int n_pts_desired = weight_bin_->weight[bin_idx] * params_orb_.MaxFeatures;
-	// 	}
-	// }
+	// detect orb feature for the whole image.
 	extractor_orb_->detect(img_in, fts);
-	std::cout << "# of orb : " << fts.size() << std::endl;
 
-
-	for(int i = 0; i < fts.size(); ++i)
+	// Bucketing.
+	if(flag_nonmax_)
 	{
-		const cv::KeyPoint& ft = fts[i];
-		ft.pt;
-		
-	}
 
+		// Reset the index bins
+		for(IndexBin& v : index_bins_)
+			v.index_max_ = -1;
+
+		for(int i = 0; i < fts.size(); ++i)
+		{
+			const cv::KeyPoint& ft = fts[i];
+
+			unsigned int u = (int)floor(ft.pt.x * weight_bin_->inv_u_step_);
+			unsigned int v = (int)floor(ft.pt.y * weight_bin_->inv_v_step_);
+
+			int bin_idx = v * n_bins_u_ + u;
+			if( weight_bin_->weight[bin_idx] == 0 ||
+				u < 0 || u >= n_bins_u_ ||
+				v < 0 || v >= n_bins_v_ ) 
+				continue;
+
+			// std::cout << i << "-th point, uv: " << u << ", " << v << std::endl;
+			
+			// Push Point in the
+			IndexBin& bin_tmp = index_bins_[bin_idx];
+			if(bin_tmp.max_score_ < ft.response){
+				bin_tmp.index_max_ = i;
+				bin_tmp.max_score_ = ft.response;
+			}
+		}
+
+		// Make 
+		for(int j = 0; j < index_bins_.size(); ++j)
+		{
+			if(weight_bin_->weight[j] > 0)
+				pts_extracted.push_back(fts[index_bins_[j].index_max_].pt);
+		}
+
+		std::cout << "# pts (final): " << pts_extracted.size() << std::endl;
+	}
+	else
+	{
+		for(int i = 0; i < fts.size(); ++i)
+		{
+			const cv::KeyPoint& ft = fts[i];
+
+			unsigned int u = (int)floor(ft.pt.x * weight_bin_->inv_u_step_);
+			unsigned int v = (int)floor(ft.pt.y * weight_bin_->inv_v_step_);
+
+			int bin_idx = v * n_bins_u_ + u;
+			if( weight_bin_->weight[bin_idx] == 0 ||
+				u < 0 || u >= n_bins_u_ ||
+				v < 0 || v >= n_bins_v_ ) 
+				continue;
+
+			// std::cout << i << "-th point, uv: " << u << ", " << v << std::endl;
+			
+			// Push Point in the
+			index_bins_[bin_idx].index_.push_back(i);
+
+			// Make 
+			for(int j = 0; j < index_bins_.size(); ++j)
+			{
+				const std::vector<int>& index_vec = index_bins_[j].index_;
+				for(int i = 0; i < index_vec.size(); ++i)
+				{
+					pts_extracted.push_back(fts[index_vec[i]].pt);
+				}
+			}
+
+			std::cout << "# pts (final): " << pts_extracted.size() << std::endl;
+		}
+	}
+	
 
 };
 

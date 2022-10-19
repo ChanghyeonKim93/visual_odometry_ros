@@ -11,6 +11,26 @@
  */
 void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp)
 {
+
+	const std::string text_black   = "\033[0;30m";
+	const std::string text_red     = "\033[0;31m";
+	const std::string text_green   = "\033[0;32m";
+	const std::string text_yellow  = "\033[0;33m";
+	const std::string text_blue    = "\033[0;34m";
+	const std::string text_magenta = "\033[0;35m";
+	const std::string text_cyan    = "\033[0;36m";
+	const std::string text_white   = "\033[0;37m";
+
+	const std::string cout_reset     = "\033[0m";
+	const std::string cout_bold      = "\033[1m";
+	const std::string cout_underline = "\033[4m";
+	const std::string cout_inverse   = "\033[7m";
+
+	const std::string cout_boldoff      = "\033[21m";
+	const std::string cout_underlineoff = "\033[24m";
+	const std::string cout_inverseoff   = "\033[27m";
+
+
 	float THRES_SAMPSON  = params_.feature_tracker.thres_sampson;
 	float THRES_PARALLAX = params_.map_update.thres_parallax;
 
@@ -46,12 +66,11 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp)
 		// 초기화 미완료
 		if( !system_flags_.flagFirstImageGot ) 
 		{ 
-			// 최초 이미지	
+			// 최초 이미지
 			// Extract pixels
 			LandmarkTracking lmtrack_curr;
 			extractor_->resetWeightBin();
-			extractor_->extractORBwithBinning(I1, lmtrack_curr.pts1, true);
-			std::cout << "# features : " << lmtrack_curr.pts1.size()  << std::endl;
+			extractor_->extractORBwithBinning_fast(I1, lmtrack_curr.pts1, true);
 
 			// 초기 landmark 생성
 			for(auto pt : lmtrack_curr.pts1)
@@ -139,7 +158,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			// 빈 곳에 특징점 pts1_new 를 추출한다. 2 ms
 			PixelVec pts1_new;
 			extractor_->updateWeightBin(lmtrack_final.pts1); // 이미 pts1가 있는 곳은 제외.
-			extractor_->extractORBwithBinning(I1, pts1_new, true);
+			extractor_->extractORBwithBinning_fast(I1, pts1_new, true);
 
 			if( true )
 				this->showTracking("img_features", I1, lmtrack_final.pts0, lmtrack_final.pts1, pts1_new);
@@ -208,6 +227,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 	}
 	else 
 	{
+		timer::tic();
 		// VO initialized. Do track the new image.
 		LandmarkTracking lmtrack_prev;
 		lmtrack_prev.pts0 = frame_prev_->getPtsSeen();
@@ -247,18 +267,18 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 
 			lmtrack_prev.scale_change.push_back(patch_scale);
 		}
-
+		std::cout << text_green << "Time [track preliminary]: " << timer::toc(0) << " [ms]\n" << cout_reset;
+		
 		// frame_prev_ 의 lms 를 현재 이미지로 track. 5ms
+		timer::tic();
 		MaskVec  mask_track;
 		// tracker_->trackWithPrior(I0, I1, lmtrack_prev.pts0, params_.feature_tracker.window_size, params_.feature_tracker.max_level, params_.feature_tracker.thres_error,
 			// lmtrack_prev.pts1, mask_track);
-		timer::tic();
 		tracker_->trackBidirectionWithPrior(I0, I1, lmtrack_prev.pts0, params_.feature_tracker.window_size, params_.feature_tracker.max_level, params_.feature_tracker.thres_error, params_.feature_tracker.thres_bidirection,
 			lmtrack_prev.pts1, mask_track);
-		std::cout << "Time [track bidirection]: " << timer::toc(0) << " [ms]\n";
+		std::cout << text_green << "Time [track bidirection]: " << timer::toc(0) << " [ms]\n" << cout_reset;
 
 		LandmarkTracking lmtrack_kltok;
-		std::cout << "# of PREV  : " << lmtrack_prev.pts0.size() << std::endl;
 		std::cout << "# of kltok : " << this->pruneInvalidLandmarks(lmtrack_prev, mask_track, lmtrack_kltok) << std::endl;
 
 		// Scale refinement 50ms
@@ -270,12 +290,15 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			I0, du0, dv0, I1, 
 			lmtrack_kltok.pts0, lmtrack_kltok.scale_change, lmtrack_kltok.pts1,
 			mask_refine);
-		std::cout << "Time [trackWithScale   ]: " << timer::toc(0) << " [ms]\n";
 
 		LandmarkTracking lmtrack_scaleok;
 		std::cout << "# of scaleok : " << this->pruneInvalidLandmarks(lmtrack_kltok, mask_refine, lmtrack_scaleok) << std::endl;
 		
+		std::cout << text_green << "Time [trackWithScale   ]: " << timer::toc(0) << " [ms]\n" << cout_reset;
+		
+		
 		// 깊이를 가진 점 갯수를 세어보고, 30개 이상이면 local bundle을 수행한다.
+		timer::tic();
 		uint32_t cnt_depth_ok = 0;
 		PixelVec pts1_depth_ok;
 		PointVec Xp_depth_ok;
@@ -330,7 +353,6 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			dt01 = dT01_prior.block<3,1>(0,3);
 			std::cout <<"======== prior dt01: " << dt01.transpose() <<std::endl;
 
-			timer::tic();
 			if(motion_estimator_->poseOnlyBundleAdjustment(Xp_depth_ok, pts1_depth_ok, cam_, params_.motion_estimator.thres_poseba_error,
 					dR01, dt01, mask_motion))
 			{
@@ -360,7 +382,6 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			else 
 				flag_do_5point = true; // Failed to converge. Re-estimate motion with 5-point algorithm.
 			
-			timer::toc(1);
 		}
 		else 
 			flag_do_5point = true; // Not enough points. Estimate motion with 5-point algorithm.
@@ -382,7 +403,8 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 		}
 		LandmarkTracking lmtrack_motion;
 		std::cout << "# of motion: " << this->pruneInvalidLandmarks(lmtrack_scaleok, mask_motion, lmtrack_motion) << std::endl;
-
+		std::cout << text_green << "Time [track Motion Est.]: " << timer::toc(0) << " [ms]\n" << cout_reset;
+		
 		// Check sampson distance 0.01 ms
 		std::vector<float> symm_epi_dist;
 		motion_estimator_->calcSampsonDistance(lmtrack_motion.pts0, lmtrack_motion.pts1, cam_, dT10.block<3,3>(0,0), dT10.block<3,1>(0,3), symm_epi_dist);
@@ -407,15 +429,12 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 		timer::tic();
 		PixelVec pts1_new;
 		extractor_->updateWeightBin(lmtrack_final.pts1); // 이미 pts1가 있는 곳은 제외.
-		extractor_->extractORBwithBinning(I1, pts1_new, true);
-		std::cout << "Time [extract ORB      ]: " << timer::toc(0) << " [ms]\n";
+		extractor_->extractORBwithBinning_fast(I1, pts1_new, true);
+		std::cout << text_green << "Time [extract ORB      ]: " << timer::toc(0) << " [ms]\n" << cout_reset;
 		
-		timer::tic();
-		PixelVec pts1_newnew;
-		extractor_->extractORBwithBinning_fast(I1, pts1_newnew,true);
-		std::cout << "Time [extract ORB  fast]: " << timer::toc(0) << " [ms]\n";
-
 		// std::cout << "# features : " << pts1_new.size()  << std::endl;
+
+		timer::tic();
 		if( true )
 			this->showTrackingBA("img_feautues", I1, pts1_depth_ok, pts1_project, mask_sampson);
 			// this->showTracking("img_features", I1, lmtrack_final.pts0, lmtrack_final.pts1, pts1_new);
@@ -442,7 +461,8 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 				}
 			}
 		}
-
+		std::cout << text_green << "Time [New fts ext track]: " << timer::toc(0) << " [ms]\n" << cout_reset;
+		
 		// lms1와 pts1을 frame_curr에 넣는다.
 		frame_curr->setPtsSeenAndRelatedLandmarks(lmtrack_final.pts1, lmtrack_final.lms);
 	}
@@ -452,6 +472,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 	if( flag_add_new_keyframe )
 	{
 		
+		timer::tic();
 		// Add new keyframe
 		this->saveKeyframe(frame_curr);
 		keyframes_->addNewKeyframe(frame_curr);
@@ -490,11 +511,13 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			else 
 				mask_final[i] = false;
 		}
+		std::cout << text_green << "Time [keyframe addition]: " << timer::toc(0) << " [ms]\n" << cout_reset;
+		
 
 		// Refine the tracking results
 		timer::tic();
 		tracker_->refineTrackWithScale(I1, lms_final, scale_estimated, pts_refine, mask_final);
-		std::cout << "trackWithScale time : " << timer::toc(0) << " [ms]\n";
+		std::cout << text_green << "Time [trackWithScale   ]: " << timer::toc(0) << " [ms]\n" << cout_reset;
 
 		// Update points
 		for(int i = 0; i < lms_final.size(); ++i)
@@ -506,6 +529,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 
 		// Reconstruct map points
 		// lms1_final 중, depth가 복원되지 않은 경우 복원해준다.
+		timer::tic();
 		uint32_t cnt_recon = 0;
 		for(auto lm : frame_curr->getRelatedLandmarkPtr())
 		{
@@ -553,8 +577,10 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 
 		// Do local bundle adjustment for keyframes.
 		motion_estimator_->localBundleAdjustmentSparseSolver(keyframes_, cam_);
-
+		std::cout << text_green << "Time [LBA              ]: " << timer::toc(0) << " [ms]\n" << cout_reset;
+		
 #ifdef RECORD_KEYFRAME_STAT
+timer::tic();
 PointVec X_tmp;
 const LandmarkPtrVec& lmvec_tmp = frame_curr->getRelatedLandmarkPtr();
 for(int i = 0; i < lmvec_tmp.size(); ++i)
@@ -574,6 +600,8 @@ for(int j = 0; j < stat_.stats_keyframe.size(); ++j){
 		stat_.stats_keyframe[j].mappoints[i] = lmvec_tmp[i]->get3DPoint();
 	}
 }
+std::cout << text_green << "Time [RECORD KEYFR STAT]: " << timer::toc(0) << " [ms]\n" << cout_reset;
+
 #endif
 
 	} // KEYFRAME addition done.
