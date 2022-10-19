@@ -251,6 +251,8 @@ public:
 	void trackImage(const cv::Mat& img, const double& timestamp);
 	void trackImageBackend(const cv::Mat& img, const double& timestamp, const PoseSE3& pose, const PoseSE3& dT01);
 
+	void trackImageFeatureOnly(const cv::Mat& img, const double& timestamp);
+
 	const AlgorithmStatistics& getStatistics() const;
 
 private:
