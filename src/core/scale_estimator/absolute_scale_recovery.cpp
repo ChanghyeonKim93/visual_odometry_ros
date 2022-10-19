@@ -22,7 +22,7 @@ void AbsoluteScaleRecovery::runASR(
     const FramePtrVec& frames_u,  
     const FramePtrVec& frames_t1)
 {
-    std::cerr << colorcode::text_magenta << "== Run Absolute Scale Recovery ...\n";
+    std::cerr << colorcode::text_yellow << "== Run Absolute Scale Recovery ...\n";
 
     // Optimization parameters
     int   MAX_ITER    = 6; // Maximum allowable iterations

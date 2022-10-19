@@ -174,11 +174,16 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame)
             {
                 // New Turning Region is detected.
                 // Sufficient frames, do Absolute Scale Recovery (ASR)
-                std::cout << colorcode::text_magenta << " ======================                                =====================\n";
-                std::cout << " ======================                                =====================\n";
-                std::cout << " ====================== A NEW TURN REGION IS DETECTED! =====================\n";
-                std::cout << " ======================                                =====================\n";
-                std::cout << " ======================                                =====================\n" << colorcode::cout_reset;
+                std::cerr << colorcode::text_black << colorcode::background_white
+                << " ======================                                =====================\n"
+                << " ======================                                =====================\n"
+                << " ====================== A NEW TURN REGION IS DETECTED! =====================\n"
+                << " ======================                                =====================\n"
+                << " ======================                                =====================\n"
+                << colorcode::cout_reset << std::endl;
+
+
+                std::cerr << BOLD(FONTRED("weoriwjoreiqjefoiqjwfe")) << std::endl;
 
                 // Calculate refined scales of 'frames_turn_curr_'
                 int n_Fcurr = frames_turn_curr_.size();
