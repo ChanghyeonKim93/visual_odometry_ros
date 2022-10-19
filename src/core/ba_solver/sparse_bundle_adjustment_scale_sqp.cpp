@@ -562,7 +562,7 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
         _BA_numeric average_error = 0.5*err/(_BA_numeric)n_obs_;
         constraint_error /= (double)K_;
             
-        std::cout << iter << "-th iter, error : " << average_error <<", constraint error: " << constraint_error << "\n";
+        std::cout << iter << "-th iter, error : " << average_error <<", constraint error: " << constraint_error*100.0 << " [m]\n";
 
         // Check extraordinary cases.
         // flag_nan_pass   = std::isnan(err) ? false : true;

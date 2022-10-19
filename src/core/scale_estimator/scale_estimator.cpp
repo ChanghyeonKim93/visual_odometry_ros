@@ -239,11 +239,18 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame)
                 // If there is a previous turning frames, do ASR
                 if( frames_turn_prev_.size() > 0)
                 {
+
+
+
                     // Run the Absolute Scale Recovery (ASR) Module.
                     asr_module_->runASR(
                         frames_turn_prev_, frames_unconstrained_, frames_turn_curr_);
+
+
+
+            
                 }
-                                
+                                            
                 // Update previous turning region & empty the unconstrained region
                 frames_unconstrained_.resize(0);
                 frames_turn_prev_.resize(frames_turn_curr_.size());

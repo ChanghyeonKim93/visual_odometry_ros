@@ -44,6 +44,7 @@
 #include "core/mapping.h"
 
 #include "util/timer.h"
+#include "util/cout_color.h"
 
 class ScaleMonoVO 
 {
