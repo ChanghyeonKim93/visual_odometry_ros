@@ -25,6 +25,7 @@
 #include "core/frame.h"
 
 #include "util/timer.h"
+#include "util/cout_color.h"
 
 // SQP with eq. constraints solver
 #include "core/scale_estimator/scale_constraint.h"

@@ -592,7 +592,7 @@ void SparseBundleAdjustmentSolver::reset(){
     am_BCinv_b_.resize(0); 
     CinvBt_x_.resize(0);
 
-    std::cout << "Reset bundle adjustment solver.\n";
+    // std::cout << "Reset bundle adjustment solver.\n";
 };
 
 void SparseBundleAdjustmentSolver::setParameterVectorFromPosesPoints(){

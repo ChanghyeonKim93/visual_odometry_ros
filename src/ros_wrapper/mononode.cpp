@@ -224,7 +224,7 @@ void MonoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
     
     ros::Time t_stat_end = ros::Time::now();
 
-    ROS_GREEN_STREAM("Time for STATISTICS: " << (t_stat_end.toSec() - t_stat_start.toSec()) * 1000.0 << " [ms]\n");   
+    ROS_GREEN_STREAM("Time for STATISTICS: " << (t_stat_end.toSec() - t_stat_start.toSec()) * 1000.0 << " [ms]");   
 
 
 

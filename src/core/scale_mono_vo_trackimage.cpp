@@ -259,7 +259,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 		std::cout << colorcode::text_green << "Time [track bidirection]: " << timer::toc(0) << " [ms]\n" << colorcode::cout_reset;
 
 		LandmarkTracking lmtrack_kltok;
-		std::cout << "# of kltok : " << this->pruneInvalidLandmarks(lmtrack_prev, mask_track, lmtrack_kltok) << std::endl;
+		this->pruneInvalidLandmarks(lmtrack_prev, mask_track, lmtrack_kltok);
 
 		// Scale refinement 50ms
 		timer::tic();
@@ -272,7 +272,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			mask_refine); // TODO (SCALE + Position KLT)
 
 		LandmarkTracking lmtrack_scaleok;
-		std::cout << "# of scaleok : " << this->pruneInvalidLandmarks(lmtrack_kltok, mask_refine, lmtrack_scaleok) << std::endl;
+		this->pruneInvalidLandmarks(lmtrack_kltok, mask_refine, lmtrack_scaleok);
 		
 		std::cout << colorcode::text_green << "Time [trackWithScale   ]: " << timer::toc(0) << " [ms]\n" << colorcode::cout_reset;
 		
@@ -331,7 +331,8 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 
 			dR01 = dT01_prior.block<3,3>(0,0);
 			dt01 = dT01_prior.block<3,1>(0,3);
-			std::cout <<"======== prior dt01: " << dt01.transpose() <<std::endl;
+
+			Pos3 dt01_prior = dt01;
 
 			if(motion_estimator_->poseOnlyBundleAdjustment(Xp_depth_ok, pts1_depth_ok, cam_, params_.motion_estimator.thres_poseba_error,
 					dR01, dt01, mask_motion))
@@ -356,8 +357,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 					Point Xc = dR10*Xp_depth_ok[i] + dt10;
 					pts1_project[i] = cam_->projectToPixel(Xc);
 				}
-				std::cout <<"======== est   dt01: " << dt01.transpose() <<std::endl;
-
+				std::cout <<"======== prior --> est dt01: " << dt01_prior.transpose() << " --> " << dt01.transpose() <<std::endl;
 			}
 			else 
 				flag_do_5point = true; // Failed to converge. Re-estimate motion with 5-point algorithm.

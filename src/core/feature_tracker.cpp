@@ -169,13 +169,16 @@ void FeatureTracker::trackBidirectionWithPrior(const cv::Mat& img0, const cv::Ma
         
     }
 
-    std::cout << "cnt_inimage     : " << cnt_inimage      << " / " << pts_track.size() << std::endl;     
-    std::cout << "cnt_forward     : " << cnt_forward      << " / " << pts_track.size() << std::endl;     
-    std::cout << "cnt_forward_err : " << cnt_forward_err  << " / " << pts_track.size() << std::endl; 
-    std::cout << "cnt_backward    : " << cnt_backward     << " / " << pts_track.size() << std::endl;    
-    std::cout << "cnt_backward_err: " << cnt_backward_err << " / " << pts_track.size() << std::endl;
-    std::cout << "cnt_bidirection : " << cnt_bidirection  << " / " << pts_track.size() << std::endl; 
-    std::cout << "cnt prior works : " << cnt_prior_works  << " / " << pts_track.size() <<std::endl;
+    if(0)
+    {
+        std::cout << "cnt_inimage     : " << cnt_inimage      << " / " << pts_track.size() << std::endl;     
+        std::cout << "cnt_forward     : " << cnt_forward      << " / " << pts_track.size() << std::endl;     
+        std::cout << "cnt_forward_err : " << cnt_forward_err  << " / " << pts_track.size() << std::endl; 
+        std::cout << "cnt_backward    : " << cnt_backward     << " / " << pts_track.size() << std::endl;    
+        std::cout << "cnt_backward_err: " << cnt_backward_err << " / " << pts_track.size() << std::endl;
+        std::cout << "cnt_bidirection : " << cnt_bidirection  << " / " << pts_track.size() << std::endl; 
+        std::cout << "cnt prior works : " << cnt_prior_works  << " / " << pts_track.size() <<std::endl;
+    }
     
     // printf(" - FEATURE_TRACKER - 'trackBidirection()'\n");
 };
