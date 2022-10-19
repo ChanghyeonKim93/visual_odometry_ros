@@ -289,7 +289,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 		tracker_->trackWithScale(
 			I0, du0, dv0, I1, 
 			lmtrack_kltok.pts0, lmtrack_kltok.scale_change, lmtrack_kltok.pts1,
-			mask_refine);
+			mask_refine); // TODO (SCALE + Position KLT)
 
 		LandmarkTracking lmtrack_scaleok;
 		std::cout << "# of scaleok : " << this->pruneInvalidLandmarks(lmtrack_kltok, mask_refine, lmtrack_scaleok) << std::endl;

@@ -541,8 +541,10 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
         // for(int k = 0; k < K_; ++k)
         //     std::cout << z_[k] << std::endl;
         // std::cout << "Constraint value:\n";
-        // for(int k = 0; k < K_; ++k)
-        //     std::cout << c_[k] << std::endl;
+
+        float constraint_error = 0;
+        for(int k = 0; k < K_; ++k)
+            constraint_error += c_[k];
 
         // Update step
         for(_BA_Index j = 0; j < N_opt_; ++j)
@@ -558,8 +560,9 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
 
 
         _BA_numeric average_error = 0.5*err/(_BA_numeric)n_obs_;
+        constraint_error /= (double)K_;
             
-        std::cout << iter << "-th iter, error : " << average_error << "\n";
+        std::cout << iter << "-th iter, error : " << average_error <<", constraint error: " << constraint_error << "\n";
 
         // Check extraordinary cases.
         // flag_nan_pass   = std::isnan(err) ? false : true;
@@ -573,7 +576,8 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
     // Finally, update parameters
     if(1)
     {
-        for(_BA_Index j = 0; j < N_opt_; ++j){
+        for(_BA_Index j = 0; j < N_opt_; ++j)
+        {
             const FramePtr& kf = ba_params_->getOptFramePtr(j);
             
             _BA_PoseSE3 Tjw_update = ba_params_->getPose(kf);
@@ -603,9 +607,7 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
         }
     }
 
-
     std::cout << "End of optimization.\n";
-
 
     return flag_success;
 };
@@ -748,13 +750,14 @@ void SparseBundleAdjustmentScaleSQPSolver::initializeLagrangeMultipliers()
             // d{p_ij}/d{X_i} = dp/dw  \in R^{2x3}
             _BA_Mat23 Rij;
             const _BA_numeric& r11 = R_jw(0,0), r12 = R_jw(0,1), r13 = R_jw(0,2),
-                                r21 = R_jw(1,0), r22 = R_jw(1,1), r23 = R_jw(1,2),
-                                r31 = R_jw(2,0), r32 = R_jw(2,1), r33 = R_jw(2,2);
+                               r21 = R_jw(1,0), r22 = R_jw(1,1), r23 = R_jw(1,2),
+                               r31 = R_jw(2,0), r32 = R_jw(2,1), r33 = R_jw(2,2);
             Rij << fxinvz*r11-fx_xinvz2*r31, fxinvz*r12-fx_xinvz2*r32, fxinvz*r13-fx_xinvz2*r33, 
-                    fyinvz*r21-fy_yinvz2*r31, fyinvz*r22-fy_yinvz2*r32, fyinvz*r23-fy_yinvz2*r33; // Related to dr/dXi
+                   fyinvz*r21-fy_yinvz2*r31, fyinvz*r22-fy_yinvz2*r32, fyinvz*r23-fy_yinvz2*r33; // Related to dr/dXi
 
             _BA_Vec3  Rij_t_rij = Rij.transpose()*rij; // fixed pose
-            if(flag_weight){
+            if(flag_weight)
+            {
                 Rij_t_rij *= weight;
             }
 
@@ -768,7 +771,8 @@ void SparseBundleAdjustmentScaleSQPSolver::initializeLagrangeMultipliers()
                         0,fyinvz,-fy_yinvz2;
                         
                 _BA_Vec3  Qij_t_rij = Qij.transpose()*rij; // fixed pose, opt. pose
-                if(flag_weight){
+                if(flag_weight)
+                {
                     Qij_t_rij *= weight;
                 }
                 a_[j].noalias() += -Qij_t_rij; // FILL STORAGE (4)

@@ -26,19 +26,21 @@ Camera.height: 772
 #--------------------------------------------------------------------------------------------
 
 # Parameters of feature tracker
-feature_tracker.thres_error: 50.0      
-feature_tracker.thres_bidirection: 0.5
+feature_tracker.thres_error: 80.0      
+feature_tracker.thres_bidirection: 1.0
 feature_tracker.thres_sampson: 0.5
-feature_tracker.window_size: 13
-feature_tracker.max_level: 6
+feature_tracker.window_size: 25
+feature_tracker.max_level: 5
 
 # Parameters of map update
-map_update.thres_parallax: 2.0
+map_update.thres_parallax: 1.0
 
 # Parameters of feature extractor
 feature_extractor.n_features: 10000
-feature_extractor.n_bins_u: 32
-feature_extractor.n_bins_v: 20
+# feature_extractor.n_bins_u: 32
+# feature_extractor.n_bins_v: 20
+feature_extractor.n_bins_u: 20
+feature_extractor.n_bins_v: 16
 feature_extractor.thres_fastscore: 10.0
 feature_extractor.radius: 5.0
 

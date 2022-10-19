@@ -102,9 +102,9 @@ public:
     void updateOptPoint(_BA_Index i, const _BA_Point& X_update){
         if(i >= M_ || i < 0)
             throw std::runtime_error("i >= M_ || i < 0");
-        lmbavec_all_.at(i).X(0) = X_update(0);
-        lmbavec_all_.at(i).X(1) = X_update(1);
-        lmbavec_all_.at(i).X(2) = X_update(2);
+        lmbavec_all_[i].X(0) = X_update(0);
+        lmbavec_all_[i].X(1) = X_update(1);
+        lmbavec_all_[i].X(2) = X_update(2);
     };
     
     void updateOptPose(_BA_Index j_opt, const _BA_PoseSE3& Tjw_update){
@@ -121,7 +121,7 @@ public:
     const _BA_Point& getOptPoint(_BA_Index i){
         if(i >= M_ || i < 0)
             throw std::runtime_error("i >= M_ || i < 0");
-        return lmbavec_all_.at(i).X;
+        return lmbavec_all_[i].X;
     };
 
     const _BA_PoseSE3& getOptPose(_BA_Index j_opt){

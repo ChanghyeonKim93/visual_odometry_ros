@@ -22,7 +22,7 @@ ScaleEstimator::ScaleEstimator(
 
     // Detecting turn region variables
     this->setTurnRegion_ThresPsi(2.0*M_PI/180.0);
-    this->setTurnRegion_ThresCountTurn(9);
+    this->setTurnRegion_ThresCountTurn(8);
 
     // Run process thread.
     terminate_future_ = terminate_promise_.get_future();
@@ -240,8 +240,8 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame)
                 if( frames_turn_prev_.size() > 0)
                 {
                     // Run the Absolute Scale Recovery (ASR) Module.
-                    // asr_module_->runASR(
-                    //     frames_turn_prev_, frames_unconstrained_, frames_turn_curr_);
+                    asr_module_->runASR(
+                        frames_turn_prev_, frames_unconstrained_, frames_turn_curr_);
                 }
                                 
                 // Update previous turning region & empty the unconstrained region

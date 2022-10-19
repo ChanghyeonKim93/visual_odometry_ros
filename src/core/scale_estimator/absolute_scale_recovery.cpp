@@ -3,11 +3,8 @@
 AbsoluteScaleRecovery::AbsoluteScaleRecovery(const std::shared_ptr<Camera>& cam)
 : cam_(cam)
 {
-
     // Make SPQ solver
     sqp_solver_ = std::make_shared<SparseBundleAdjustmentScaleSQPSolver>();
-
-
 
     // OK!
     std::cerr << "AbsoluteScaleRecovery is constructed.\n";
@@ -28,8 +25,8 @@ void AbsoluteScaleRecovery::runASR(
     std::cerr << "== Run Absolute Scale Recovery ...\n";
 
     // Optimization parameters
-    int   MAX_ITER    = 5; // Maximum allowable iterations
-    float THRES_HUBER = 0.3f; // huber threshold
+    int   MAX_ITER    = 6; // Maximum allowable iterations
+    float THRES_HUBER = 0.5f; // huber threshold
 
     // The number of frames
     int K  = frames_t0.size() + frames_t1.size() - 1;
@@ -56,8 +53,8 @@ void AbsoluteScaleRecovery::runASR(
     for(int i = 0; i <  frames_u.size(); ++i) frames_all.push_back(frames_u.at(i));
     for(int i = 0; i < frames_t1.size(); ++i) frames_all.push_back(frames_t1.at(i));
     
-    idx_fix.push_back(0);
-    for(int i = 1; i < N; ++i) idx_opt.push_back(i);
+    idx_fix.push_back(0); // Set the first frame fixed.
+    for(int i = 1; i < N; ++i) idx_opt.push_back(i); // The others are in optimization.
 
     std::cerr << " N : "<< N <<", frames_all.size(): " << frames_all.size() << ", idx_fix.size() + idx_opt.size() : " << idx_fix.size() + idx_opt.size() << std::endl;
 
