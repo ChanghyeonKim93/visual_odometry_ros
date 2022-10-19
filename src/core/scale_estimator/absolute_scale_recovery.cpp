@@ -93,5 +93,7 @@ void AbsoluteScaleRecovery::runASR(
     std::cout << "==== SQP time to reset: "   << dt_reset   << " [ms]\n\n";
     std::cerr << "==== Absolute Scale Recovery is done! ====\n";
     std::cerr << "\n\n\n\n\n\n\n\n\n";
+    std::cerr << "\n\n\n\n\n\n\n\n\n";
+    std::cerr << "\n\n\n\n\n\n\n\n\n";
 
 };
