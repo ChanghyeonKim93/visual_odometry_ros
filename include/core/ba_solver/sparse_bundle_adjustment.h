@@ -15,6 +15,7 @@
 
 #include "util/geometry_library.h"
 #include "util/timer.h"
+#include "util/cout_color.h"
 
 // BA related headers
 #include "core/ba_solver/ba_types.h"
@@ -94,8 +95,8 @@ private:
 
 private:
     // Optimization parameters
-    _BA_numeric THRES_HUBER_;
-    _BA_numeric THRES_EPS_;
+    _BA_Numeric THRES_HUBER_;
+    _BA_Numeric THRES_EPS_;
 
 public:
     /// @brief Constructor for BundleAdjustmentSolver ( se3 (6-DoF), 3D points (3-DoF) ). Sparse solver with 6x6 block diagonals, 3x3 block diagonals, 6x3 and 3x6 blocks.
@@ -107,7 +108,7 @@ public:
 
     /// @brief Set Huber threshold for SLBA
     /// @param thres_huber Huber norm threshold value
-    void setHuberThreshold(_BA_numeric thres_huber);
+    void setHuberThreshold(_BA_Numeric thres_huber);
 
     /// @brief Set camera pointer
     /// @param cam camera pointer
@@ -139,12 +140,12 @@ private:
 private:
     inline void calc_Rij_t_Rij(const _BA_Mat23& Rij,
         _BA_Mat33& Rij_t_Rij);
-    inline void calc_Rij_t_Rij_weight(const _BA_numeric weight, const _BA_Mat23& Rij,
+    inline void calc_Rij_t_Rij_weight(const _BA_Numeric weight, const _BA_Mat23& Rij,
         _BA_Mat33& Rij_t_Rij);
 
     inline void calc_Qij_t_Qij(const _BA_Mat26& Qij, 
         _BA_Mat66& Qij_t_Qij);
-    inline void calc_Qij_t_Qij_weight(const _BA_numeric weight, const _BA_Mat26& Qij, 
+    inline void calc_Qij_t_Qij_weight(const _BA_Numeric weight, const _BA_Mat26& Qij, 
         _BA_Mat66& Qij_t_Qij);
 
 

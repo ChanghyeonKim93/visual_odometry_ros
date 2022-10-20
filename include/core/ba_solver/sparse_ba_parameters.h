@@ -22,8 +22,8 @@ class SparseBAParameters
 private: // Reference Pose and scaling factor for numerical stability
     _BA_PoseSE3 Twj_ref_;
     _BA_PoseSE3 Tjw_ref_;
-    _BA_numeric pose_scale_;
-    _BA_numeric inv_pose_scale_;
+    _BA_Numeric pose_scale_;
+    _BA_Numeric inv_pose_scale_;
 
 private: // all frames and landmarks used for BA.
     std::set<FramePtr>       frameset_all_;
@@ -122,6 +122,12 @@ public:
         if(i >= M_ || i < 0)
             throw std::runtime_error("i >= M_ || i < 0");
         return lmbavec_all_[i].X;
+    };
+
+    const LandmarkPtr& getOptLandmarkPtr(_BA_Index i){
+        if(i >= M_ || i < 0)
+            throw std::runtime_error("i >= M_ || i < 0");
+        return lmbavec_all_[i].lm;
     };
 
     const _BA_PoseSE3& getOptPose(_BA_Index j_opt){

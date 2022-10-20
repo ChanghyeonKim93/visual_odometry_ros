@@ -30,7 +30,7 @@ feature_tracker.thres_error: 100.0
 feature_tracker.thres_bidirection: 0.5
 feature_tracker.thres_sampson: 0.5
 feature_tracker.window_size: 15
-feature_tracker.max_level: 5
+feature_tracker.max_level: 6
 
 # Parameters of map update
 map_update.thres_parallax: 1.0

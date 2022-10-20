@@ -156,8 +156,8 @@ private:
 
 private:
     // Optimization parameters
-    _BA_numeric THRES_HUBER_;
-    _BA_numeric THRES_EPS_;
+    _BA_Numeric THRES_HUBER_;
+    _BA_Numeric THRES_EPS_;
 
 public:
     /// @brief Constructor for BundleAdjustmentSolver ( trans (3-DoF), 3D points (3-DoF) ). Sparse solver with 3x3 block diagonals, 3x3 block diagonals, 3x3 blocks.
@@ -194,12 +194,12 @@ private:
 private:
     inline void calc_Rij_t_Rij(const _BA_Mat23& Rij,
         _BA_Mat33& Rij_t_Rij);
-    inline void calc_Rij_t_Rij_weight(const _BA_numeric weight, const _BA_Mat23& Rij,
+    inline void calc_Rij_t_Rij_weight(const _BA_Numeric weight, const _BA_Mat23& Rij,
         _BA_Mat33& Rij_t_Rij);
 
     inline void calc_Qij_t_Qij(const _BA_Mat23& Qij, 
         _BA_Mat33& Qij_t_Qij);
-    inline void calc_Qij_t_Qij_weight(const _BA_numeric weight, const _BA_Mat23& Qij, 
+    inline void calc_Qij_t_Qij_weight(const _BA_Numeric weight, const _BA_Mat23& Qij, 
         _BA_Mat33& Qij_t_Qij);
 };
 #endif

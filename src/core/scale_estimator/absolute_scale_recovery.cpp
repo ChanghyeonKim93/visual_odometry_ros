@@ -22,7 +22,8 @@ void AbsoluteScaleRecovery::runASR(
     const FramePtrVec& frames_u,  
     const FramePtrVec& frames_t1)
 {
-    std::cerr << colorcode::text_yellow << "== Run Absolute Scale Recovery ...\n";
+    std::cerr << colorcode::text_yellow <<colorcode::cout_bold
+    << "\n====================== Run Absolute Scale Recovery ...  ======================\n";
 
     // Optimization parameters
     int   MAX_ITER    = 6; // Maximum allowable iterations
@@ -87,13 +88,27 @@ void AbsoluteScaleRecovery::runASR(
     sqp_solver_->reset();
     double dt_reset = timer::toc(0);
 
+    std::cout << "==== Show Translations: \n";
+    for(int j = 0; j < ba_params->getNumOfOptimizeFrames(); ++j)
+    {
+        const FramePtr& f = ba_params->getOptFramePtr(j);
+
+        std::cout << "[" << f->getID() << "] frame's trans: " << f->getPose().block<3,1>(0,3).transpose() << "\n";
+    }
+
+    std::cout << "==== Show Points: \n";
+    for(int i = 0; i < ba_params->getNumOfOptimizeLandmarks(); ++i)
+    {
+        const LandmarkPtr& lm = ba_params->getOptLandmarkPtr(i);
+
+        std::cout << "[" << lm->getID() << "] point: " << lm->get3DPoint().transpose() << "\n";
+    }
+    
     // Time analysis
     std::cout << "==== SQP time to prepare: " << dt_prepare << " [ms]\n";
     std::cout << "==== SQP time to solve: "   << dt_solve   << " [ms]\n";
     std::cout << "==== SQP time to reset: "   << dt_reset   << " [ms]\n\n";
     std::cerr << "==== Absolute Scale Recovery is done! ====\n";
-    std::cerr << "\n\n\n\n\n\n\n\n\n";
-    std::cerr << "\n\n\n\n\n\n\n\n\n";
-    std::cerr << "\n\n\n\n\n\n\n\n\n" << colorcode::cout_reset;
+    std::cerr << "\n\n\n\n\n" << colorcode::cout_reset;
 
 };

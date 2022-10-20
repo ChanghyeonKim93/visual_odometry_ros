@@ -18,7 +18,7 @@
 #include "util/timer.h"
 
 typedef int                              _BA_Int;
-typedef _BA_numeric                      _BA_Scale;
+typedef _BA_Numeric                      _BA_Scale;
 
 typedef std::vector<_BA_Scale>           _BA_ScaleVec;
 
@@ -74,8 +74,8 @@ class ScaleConstraints
 {
 private: // scaling factor for numerical stability
     _BA_Int Nt_; // total number of constraint frames
-    _BA_numeric scaler_;
-    _BA_numeric inv_scaler_;
+    _BA_Numeric scaler_;
+    _BA_Numeric inv_scaler_;
 
 private: // all frames constrained
     std::set<FramePtr> fmajorset_; // constraint를 가지는 프레임들 (major frames)
