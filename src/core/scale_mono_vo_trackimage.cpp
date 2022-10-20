@@ -45,8 +45,9 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp)
 		if( !system_flags_.flagFirstImageGot ) 
 		{ 
 			// 최초 이미지
-			// Extract pixels
 			LandmarkTracking lmtrack_curr;
+
+			// Extract pixels
 			extractor_->resetWeightBin();
 			extractor_->extractORBwithBinning_fast(I1, lmtrack_curr.pts1, true);
 
@@ -211,7 +212,12 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 
 		// VO initialized. Do track the new image.
 		LandmarkTracking lmtrack_prev;
-		lmtrack_prev.initializeFromFramePtr(frame_prev_);
+		lmtrack_prev.lms  = frame_prev_->getRelatedLandmarkPtr();
+		lmtrack_prev.pts0 = frame_prev_->getPtsSeen();
+		lmtrack_prev.pts1 = PixelVec();
+		lmtrack_prev.scale_change = FloatVec();
+		lmtrack_prev.n_pts = lmtrack_prev.lms.size();
+		// lmtrack_prev.initializeFromFramePtr(frame_prev_);
 
 		// 이전 자세의 변화량을 가져온다. 
 		PoseSE3 Twc_prev   = frame_prev_->getPose();
@@ -268,8 +274,8 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			lmtrack_kltok.pts0, lmtrack_kltok.scale_change, lmtrack_kltok.pts1,
 			mask_refine); // TODO (SCALE + Position KLT)
 
-		LandmarkTracking lmtrack_scaleok;
-		this->pruneInvalidLandmarks(lmtrack_kltok, mask_refine, lmtrack_scaleok);
+		LandmarkTracking lmtrack_scaleok(lmtrack_kltok, mask_refine);
+		// this->pruneInvalidLandmarks(lmtrack_kltok, mask_refine, lmtrack_scaleok);
 		
 		std::cout << colorcode::text_green << "Time [trackWithScale   ]: " << timer::toc(0) << " [ms]\n" << colorcode::cout_reset;
 		
@@ -393,8 +399,8 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			frame_curr->setPoseDiff10(dT10);	
 		}
 
-		LandmarkTracking lmtrack_motion;
-		std::cout << "# of motion: " << this->pruneInvalidLandmarks(lmtrack_scaleok, mask_motion, lmtrack_motion) << std::endl;
+		LandmarkTracking lmtrack_motion(lmtrack_scaleok, mask_motion);
+		// std::cout << "# of motion: " << this->pruneInvalidLandmarks(lmtrack_scaleok, mask_motion, lmtrack_motion) << std::endl;
 		std::cout << colorcode::text_green << "Time [track Motion Est.]: " << timer::toc(0) << " [ms]\n" << colorcode::cout_reset;
 		
 		// Check sampson distance 0.01 ms
@@ -404,8 +410,8 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 		for(int i = 0; i < mask_sampson.size(); ++i)
 			mask_sampson[i] = symm_epi_dist[i] < params_.feature_tracker.thres_sampson;
 		
-		LandmarkTracking lmtrack_final;
-		std::cout << "# of samps : " << this->pruneInvalidLandmarks(lmtrack_motion, mask_sampson, lmtrack_final) << std::endl;
+		LandmarkTracking lmtrack_final(lmtrack_motion, mask_sampson);
+		// std::cout << "# of samps : " << this->pruneInvalidLandmarks(lmtrack_motion, mask_sampson, lmtrack_final) << std::endl;
 
 		for(int i = 0; i < lmtrack_final.pts0.size(); ++i)
 			lmtrack_final.lms[i]->addObservationAndRelatedFrame(lmtrack_final.pts1[i], frame_curr);
@@ -443,14 +449,14 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 					const Pixel& p0_new = pts0_new[i];
 					const Pixel& p1_new = pts1_new[i];
 
-					LandmarkPtr ptr = std::make_shared<Landmark>(p0_new, frame_prev_, cam_);
-					ptr->addObservationAndRelatedFrame(p1_new, frame_curr);
+					LandmarkPtr lmptr = std::make_shared<Landmark>(p0_new, frame_prev_, cam_);
+					lmptr->addObservationAndRelatedFrame(p1_new, frame_curr);
 
 					lmtrack_final.pts0.push_back(p0_new);
 					lmtrack_final.pts1.push_back(p1_new);
-					lmtrack_final.lms.push_back(ptr);
+					lmtrack_final.lms.push_back(lmptr);
 
-					this->saveLandmark(ptr);
+					this->saveLandmark(lmptr);
 				}
 			}
 		}

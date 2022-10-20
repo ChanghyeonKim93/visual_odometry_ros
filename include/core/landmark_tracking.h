@@ -24,36 +24,35 @@ private:
 public:
     LandmarkTracking();
     LandmarkTracking(const LandmarkTracking& lmtrack, const MaskVec& mask);
+    
+public:
+    void initializeFromFramePtr(const FramePtr& f);
 
-    void initializeFromFramePtr(const FramePtr& f)
-    {
-        const PixelVec&      pts0_frame = f->getPtsSeen();
-        const LandmarkPtrVec& lms_frame = f->getRelatedLandmarkPtr();
+public:
+    int getNumLandmarks() const;
+    
+    const LandmarkPtr& getLandmarkPtr(int i) const;
+    const Pixel&       getPixel0(int i) const;
+    const Pixel&       getPixel1(int i) const;
+    float              getScaleChange(int i) const;
 
-        int n_pts_frame = pts0_frame.size();
-        
-        pts0.reserve(n_pts_frame);
-        lms.reserve(n_pts_frame);
-        pts1.reserve(n_pts_frame); 
-        scale_change.reserve(n_pts_frame);
+    const LandmarkPtrVec& getLandmarkPtrVec() const;
+    const PixelVec&       getPixelVec0() const;
+    const PixelVec&       getPixelVec1() const;
+    const FloatVec&       getScaleChangeVec() const;
 
-        // Get only valid points
-        for(int i = 0; i < n_pts_frame; ++i)
-        {
-            const LandmarkPtr& lm = lms_frame[i];
+    LandmarkPtrVec& getLandmarkPtrVecRef();
+    PixelVec&       getPixelVec0Ref();
+    PixelVec&       getPixelVec1Ref();
+    FloatVec&       getScaleChangeVecRef();
 
-            if( lm->isAlive() )
-            {
-                pts0.emplace_back(pts0_frame[i]);
-                lms.push_back(lm);
-            }
-        }
+public:
+    void setLandmarkPtrVec(const LandmarkPtrVec& lmvec);
+    void setPixelVec0(const PixelVec& pts0);
+    void setPixelVec1(const PixelVec& pts1);
+    void setScaleChangeVec(const FloatVec& scale_change);
 
-        pts1.resize(pts0.size());
-        scale_change.resize(pts0.size());
-        
-        n_pts = pts1.size();
-    };
+
 };
 
 #endif

@@ -53,6 +53,8 @@ set(SRC ${SRC}
   src/core/landmark.cpp
   src/core/keyframes.cpp
 
+  # src/core/landmark_tracking.cpp
+
   src/core/feature_extractor.cpp
   src/core/feature_tracker.cpp
   src/core/motion_estimator.cpp

@@ -17,8 +17,6 @@
 // Address of fraems where the landmark was seen.
 // 3D coordinate of the landmark represented in the global frame. It can be obtained by scale propagation and recovery modules.
 
-class Frame;
-
 /// @brief Landmark class
 class Landmark
 {
@@ -124,7 +122,6 @@ public:
     float              getLastParallax() const;  
 };
 
-/// @brief A temporal structur for monocular feature tracking 
 class LandmarkTracking
 {
 public:
@@ -134,7 +131,7 @@ public:
     std::vector<float> scale_change;
 
     int n_pts;
-    
+
 public:
     LandmarkTracking()
     {
@@ -183,36 +180,6 @@ public:
         }
 
         n_pts = cnt_alive;
-    };
-
-    void initializeFromFramePtr(const FramePtr& f)
-    {
-        const PixelVec&      pts0_frame = f->getPtsSeen();
-        const LandmarkPtrVec& lms_frame = f->getRelatedLandmarkPtr();
-
-        int n_pts_frame = pts0_frame.size();
-        
-        pts0.reserve(n_pts_frame);
-        lms.reserve(n_pts_frame);
-        pts1.reserve(n_pts_frame); 
-        scale_change.reserve(n_pts_frame);
-
-        // Get only valid points
-        for(int i = 0; i < n_pts_frame; ++i)
-        {
-            const LandmarkPtr& lm = lms_frame[i];
-
-            if( lm->isAlive() )
-            {
-                pts0.emplace_back(pts0_frame[i]);
-                lms.push_back(lm);
-            }
-        }
-
-        pts1.resize(pts0.size());
-        scale_change.resize(pts0.size());
-        
-        n_pts = pts1.size();
     };
 };
 
