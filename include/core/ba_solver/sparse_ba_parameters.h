@@ -130,6 +130,12 @@ public:
         return lmbavec_all_[i].lm;
     };
 
+    LandmarkPtr& getOptLandmarkPtrRef(_BA_Index i){
+        if(i >= M_ || i < 0)
+            throw std::runtime_error("i >= M_ || i < 0");
+        return lmbavec_all_[i].lm;
+    };
+
     const _BA_PoseSE3& getOptPose(_BA_Index j_opt){
         if(j_opt >= N_opt_ || j_opt < 0) 
             throw std::runtime_error("j_opt >= N_opt_ || j_opt < 0");
@@ -219,15 +225,20 @@ public:
         std::set<LandmarkPtr> lmset_window; // 안겹치는 랜드마크들
         std::set<FramePtr> frameset_window; // 윈도우 내부 키프레임들
         FramePtrVec kfvec_window; // 윈도우 내부의 키프레임들
-        for(const auto& kf : frames) { // 모든 keyframe in window 순회 
+        for(const auto& kf : frames) 
+        { 
+            // 모든 keyframe in window 순회 
             kfvec_window.push_back(kf); // window keyframes 저장.
             frameset_window.insert(kf);
 
-            for(const auto& lm : kf->getRelatedLandmarkPtr()){ // 현재 keyframe에서 보인 모든 landmark 순회
+            for(const auto& lm : kf->getRelatedLandmarkPtr())
+            { 
+                // 현재 keyframe에서 보인 모든 landmark 순회
                 if( lm->isTriangulated() ) // age > THRES, triangulate() == true 경우 포함.
                     lmset_window.insert(lm);
             }
         }
+
         // 1-1) get reference pose.
         const PoseSE3& Twj_ref_float = kfvec_window.front()->getPose();
         Twj_ref_ << Twj_ref_float(0,0),Twj_ref_float(0,1),Twj_ref_float(0,2),Twj_ref_float(0,3),
@@ -238,7 +249,9 @@ public:
         Tjw_ref_ = geometry::inverseSE3(Twj_ref_);
 
         // 2) make LandmarkBAVec
-        for(const auto& lm : lmset_window) { // keyframe window 내에서 보였던 모든 landmark를 순회.
+        for(const auto& lm : lmset_window) 
+        { 
+            // keyframe window 내에서 보였던 모든 landmark를 순회.
             LandmarkBA lm_ba;
             lm_ba.lm = lm; // landmark pointer
 
@@ -251,20 +264,25 @@ public:
             
             lm_ba.kfs_seen.reserve(100);
             lm_ba.pts_on_kfs.reserve(100);
+            lm_ba.err_on_kfs.reserve(100);
 
             // 현재 landmark가 보였던 keyframes을 저장한다.
-            for(int j = 0; j < lm->getRelatedKeyframePtr().size(); ++j) {
+            for(int j = 0; j < lm->getRelatedKeyframePtr().size(); ++j) 
+            {
                 const FramePtr& kf = lm->getRelatedKeyframePtr()[j];
                 const Pixel&    pt = lm->getObservationsOnKeyframes()[j];
                 if(frameset_window.find(kf) != frameset_window.end())
-                {   //window keyframe만으로 제한
+                {   
+                    //window keyframe만으로 제한
                     lm_ba.kfs_seen.push_back(kf);
                     lm_ba.pts_on_kfs.emplace_back(pt.x, pt.y);
+                    lm_ba.err_on_kfs.emplace_back(0.0);
                 }
             }
 
             // 충분히 많은 keyframes in window에서 보인 landmark만 최적화에 포함.
-            if(lm_ba.kfs_seen.size() >= THRES_MINIMUM_SEEN) {
+            if(lm_ba.kfs_seen.size() >= THRES_MINIMUM_SEEN) 
+            {
                 lmbavec_all_.push_back(lm_ba); 
                 landmarkset_all_.insert(lm);
                 for(int j = 0; j < lm_ba.kfs_seen.size(); ++j) // all related keyframes.
@@ -279,13 +297,14 @@ public:
         // std::cout << "Recomputed N: " << N_ <<", N_fix + N_opt: " << N_fix_ << "+" << N_opt_ << std::endl;
 
         // 4) set poses for all frames
-        for(const auto& kf : frameset_all_){
+        for(const auto& kf : frameset_all_)
+        {
             _BA_PoseSE3 Tjw_tmp;
             const PoseSE3& Tjw_float = kf->getPoseInv();
             Tjw_tmp << Tjw_float(0,0), Tjw_float(0,1), Tjw_float(0,2), Tjw_float(0,3),
                        Tjw_float(1,0), Tjw_float(1,1), Tjw_float(1,2), Tjw_float(1,3),
                        Tjw_float(2,0), Tjw_float(2,1), Tjw_float(2,2), Tjw_float(2,3),
-                       Tjw_float(3,0), Tjw_float(3,1), Tjw_float(3,2), Tjw_float(3,3);
+                       0.0, 0.0, 0.0, 1.0;
             
             Tjw_tmp = this->changeInvPoseWorldToRef(Tjw_tmp);
             Tjw_tmp = this->scalingPose(Tjw_tmp);
@@ -296,7 +315,8 @@ public:
         // 5) set optimizable keyframes (posemap, indexmap, framemap)
         _BA_Index cnt_idx = 0;
         idx_optimize;
-        for(int jj = 0; jj < idx_optimize.size(); ++jj){
+        for(int jj = 0; jj < idx_optimize.size(); ++jj)
+        {
             int j = idx_optimize.at(jj);
             indexmap_opt_.insert({frames[j],cnt_idx});
             framemap_opt_.push_back(frames[j]);

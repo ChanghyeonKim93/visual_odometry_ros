@@ -41,8 +41,8 @@ public:
 
 
 public:
-    inline bool isConnectedToPoint() const      { flag_connected_to_point_; };
-    inline bool isConnectedToConstraint() const { flag_connected_to_constraint_; };
+    inline bool isConnectedToPoint() const      { return flag_connected_to_point_; };
+    inline bool isConnectedToConstraint() const { return flag_connected_to_constraint_; };
 };
 
 
@@ -69,8 +69,8 @@ public:
 
 
 public:
-    inline bool isConnectedToPose() const       { flag_connected_to_pose_; };
-    inline bool isConnectedToConstraint() const { flag_connected_to_constraint_; };
+    inline bool isConnectedToPose() const       { return flag_connected_to_pose_; };
+    inline bool isConnectedToConstraint() const { return flag_connected_to_constraint_; };
 };
 
 
@@ -96,8 +96,8 @@ public:
     int getNumOfConnectedPoints() const { return index_of_connected_points_.size(); };
 
 public:
-    inline bool isConnectedToPose() const  { flag_connected_to_pose_; };
-    inline bool isConnectedToPoint() const { flag_connected_to_point_; };
+    inline bool isConnectedToPose() const  { return flag_connected_to_pose_; };
+    inline bool isConnectedToPoint() const { return flag_connected_to_point_; };
 
 };
 

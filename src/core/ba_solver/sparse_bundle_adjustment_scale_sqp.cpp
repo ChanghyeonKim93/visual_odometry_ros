@@ -277,9 +277,11 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
         for(_BA_Index i = 0; i < M_; ++i)
         {           
             const LandmarkBA&   lmba = ba_params_->getLandmarkBA(i);
+            
             const _BA_Point&    Xi   = lmba.X; 
             const FramePtrVec&  kfs  = lmba.kfs_seen;
             const _BA_PixelVec& pts  = lmba.pts_on_kfs;
+            const _BA_ErrorVec& err_on_kfs = lmba.err_on_kfs;
 
             // For j-th landmark
             for(_BA_Index jj = 0; jj < kfs.size(); ++jj)
@@ -319,6 +321,7 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
 
                 // 2) HUBER weight calculation (Manhattan distance)
                 _BA_Numeric absrxry = abs(rij(0)) + abs(rij(1));
+                
                 r_prev[cnt] = absrxry;
 
                 _BA_Numeric weight = 1.0;

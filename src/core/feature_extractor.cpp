@@ -266,7 +266,8 @@ void FeatureExtractor::extractORBwithBinning_fast(const cv::Mat& img, PixelVec& 
 			
 			// Push Point in the
 			IndexBin& bin_tmp = index_bins_[bin_idx];
-			if(bin_tmp.max_score_ < ft.response){
+			if(bin_tmp.max_score_ < ft.response)
+			{
 				bin_tmp.index_max_ = i;
 				bin_tmp.max_score_ = ft.response;
 			}

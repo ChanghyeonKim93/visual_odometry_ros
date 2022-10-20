@@ -17,6 +17,8 @@
 // Address of fraems where the landmark was seen.
 // 3D coordinate of the landmark represented in the global frame. It can be obtained by scale propagation and recovery modules.
 
+class Frame;
+
 /// @brief Landmark class
 class Landmark
 {
@@ -123,19 +125,94 @@ public:
 };
 
 /// @brief A temporal structur for monocular feature tracking 
-struct LandmarkTracking
+class LandmarkTracking
 {
+public:
     PixelVec pts0;
     PixelVec pts1;
     LandmarkPtrVec lms;
     std::vector<float> scale_change;
 
+    int n_pts;
+    
+public:
     LandmarkTracking()
     {
         pts0.reserve(1000);
         pts1.reserve(1000);
         lms.reserve(1000);
         scale_change.reserve(1000);
+        n_pts = 0;
+    };
+
+    LandmarkTracking(const LandmarkTracking& lmtrack, const MaskVec& mask)
+    {
+        if(lmtrack.pts0.size() != lmtrack.pts1.size() 
+        || lmtrack.pts0.size() != lmtrack.lms.size()
+        || lmtrack.pts0.size() != mask.size())
+            throw std::runtime_error("lmtrack.pts0.size() != lmtrack.pts1.size() || lmtrack.pts0.size() != lmtrack.lms.size() || lmtrack.pts0.size() != mask.size()");
+	
+        int n_pts_input = lmtrack.pts0.size();
+
+        std::vector<int> index_valid;
+        index_valid.reserve(n_pts);
+        int cnt_alive = 0;
+        for(int i = 0; i < n_pts_input; ++i)
+        {
+            if( mask[i] )
+            {
+                index_valid.push_back(i);
+                ++cnt_alive;
+            }
+            else
+                lmtrack.lms[i]->setDead();
+        }
+
+        // set
+        pts0.resize(cnt_alive);
+        pts1.resize(cnt_alive);
+        lms.resize(cnt_alive);
+        scale_change.resize(cnt_alive);
+        for(int i = 0; i < cnt_alive; ++i)
+        {
+            const int& idx  = index_valid[i];
+            pts0[i]         = lmtrack.pts0[idx];
+            pts1[i]         = lmtrack.pts1[idx];
+            scale_change[i] = lmtrack.scale_change[idx];
+            lms[i]          = lmtrack.lms[idx];
+        }
+
+        n_pts = cnt_alive;
+    };
+
+    void initializeFromFramePtr(const FramePtr& f)
+    {
+        const PixelVec&      pts0_frame = f->getPtsSeen();
+        const LandmarkPtrVec& lms_frame = f->getRelatedLandmarkPtr();
+
+        int n_pts_frame = pts0_frame.size();
+        
+        pts0.reserve(n_pts_frame);
+        lms.reserve(n_pts_frame);
+        pts1.reserve(n_pts_frame); 
+        scale_change.reserve(n_pts_frame);
+
+        // Get only valid points
+        for(int i = 0; i < n_pts_frame; ++i)
+        {
+            const LandmarkPtr& lm = lms_frame[i];
+
+            if( lm->isAlive() )
+            {
+                pts0.emplace_back(pts0_frame[i]);
+                lms.push_back(lm);
+            }
+        }
+
+        pts1.resize(pts0.size());
+        scale_change.resize(pts0.size());
+        
+        n_pts = pts1.size();
     };
 };
 

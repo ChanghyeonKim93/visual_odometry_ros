@@ -212,25 +212,54 @@ int ScaleMonoVO::pruneInvalidLandmarks(const LandmarkTracking& lmtrack, const Ma
 	int n_pts = lmtrack.pts0.size();
 
 	// Tracking 결과를 반영하여 pts1_alive, lms1_alive를 정리한다.
-	lmtrack_alive.pts0.resize(0);
-	lmtrack_alive.scale_change.resize(0);
-	lmtrack_alive.pts1.resize(0);
-	lmtrack_alive.lms.resize(0);
-	lmtrack_alive.pts0.reserve(n_pts);
-	lmtrack_alive.scale_change.reserve(n_pts);
-	lmtrack_alive.pts1.reserve(n_pts);
-	lmtrack_alive.lms.reserve(n_pts);
+	// lmtrack_alive.pts0.resize(0);
+	// lmtrack_alive.scale_change.resize(0);
+	// lmtrack_alive.pts1.resize(0);
+	// lmtrack_alive.lms.resize(0);
+	// lmtrack_alive.pts0.reserve(n_pts);
+	// lmtrack_alive.scale_change.reserve(n_pts);
+	// lmtrack_alive.pts1.reserve(n_pts);
+	// lmtrack_alive.lms.reserve(n_pts);
+	// int cnt_alive = 0;
+	// for(int i = 0; i < n_pts; ++i)
+	// {
+	// 	if( mask[i]) {
+	// 		lmtrack_alive.pts0.push_back(lmtrack.pts0[i]);
+	// 		lmtrack_alive.pts1.push_back(lmtrack.pts1[i]);
+	// 		lmtrack_alive.scale_change.push_back(lmtrack.scale_change[i]);
+	// 		lmtrack_alive.lms.push_back(lmtrack.lms[i]);
+	// 		++cnt_alive;
+	// 	}
+	// 	else lmtrack.lms[i]->setDead(); // track failed. Dead point.
+	// }
+
+	std::vector<int> index_valid;
+	index_valid.reserve(n_pts);
 	int cnt_alive = 0;
-	for(int i = 0; i < n_pts; ++i){
-		if( mask[i]) {
-			lmtrack_alive.pts0.push_back(lmtrack.pts0[i]);
-			lmtrack_alive.pts1.push_back(lmtrack.pts1[i]);
-			lmtrack_alive.scale_change.push_back(lmtrack.scale_change[i]);
-			lmtrack_alive.lms.push_back(lmtrack.lms[i]);
+	for(int i = 0; i < n_pts; ++i)
+	{
+		if( mask[i] )
+		{
+			index_valid.push_back(i);
 			++cnt_alive;
 		}
-		else lmtrack.lms[i]->setDead(); // track failed. Dead point.
+		else
+			lmtrack.lms[i]->setDead();
 	}
+
+	lmtrack_alive.pts0.resize(cnt_alive);
+	lmtrack_alive.scale_change.resize(cnt_alive);
+	lmtrack_alive.pts1.resize(cnt_alive);
+	lmtrack_alive.lms.resize(cnt_alive);
+	for(int i = 0; i < cnt_alive; ++i)
+	{
+		const int& idx = index_valid[i];
+		lmtrack_alive.pts0[i] = lmtrack.pts0[idx];
+		lmtrack_alive.pts1[i] = lmtrack.pts1[idx];
+		lmtrack_alive.scale_change[i] = lmtrack.scale_change[idx];
+		lmtrack_alive.lms[i] = lmtrack.lms[idx];
+	}
+
 	return cnt_alive;
 };
 

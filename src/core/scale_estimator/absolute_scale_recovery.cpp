@@ -100,10 +100,13 @@ void AbsoluteScaleRecovery::runASR(
     for(int i = 0; i < ba_params->getNumOfOptimizeLandmarks(); ++i)
     {
         const LandmarkPtr& lm = ba_params->getOptLandmarkPtr(i);
-
-        std::cout << "[" << lm->getID() << "] point: " << lm->get3DPoint().transpose() << "\n";
+        
+        if(lm->get3DPoint().norm() > 1000)
+            std::cout << " LARGE !!!! [" << lm->getID() << "] point: " << lm->get3DPoint().transpose() << "\n";
+        else    
+            std::cout << "[" << lm->getID() << "] point: " << lm->get3DPoint().transpose() << "\n";
     }
-    
+
     // Time analysis
     std::cout << "==== SQP time to prepare: " << dt_prepare << " [ms]\n";
     std::cout << "==== SQP time to solve: "   << dt_solve   << " [ms]\n";

@@ -43,7 +43,7 @@ typedef Eigen::Matrix<_BA_Numeric,3,1>     _BA_Pos3;
 typedef Eigen::Matrix<_BA_Numeric,4,4>     _BA_PoseSE3;
 typedef Eigen::Matrix<_BA_Numeric,6,1>     _BA_PoseSE3Tangent;
 
-typedef std::vector<_BA_Numeric>           _BA_NumericVec;
+typedef std::vector<_BA_Numeric>           _BA_ErrorVec;
 typedef std::vector<_BA_Index>             _BA_IndexVec;
 typedef std::vector<_BA_Pixel>             _BA_PixelVec;
 typedef std::vector<_BA_Point>             _BA_PointVec;

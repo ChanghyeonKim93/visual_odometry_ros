@@ -129,7 +129,7 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame)
 
     float psi_pc = this->calcSteeringAngle(Rpc);
 
-    std::cout << frame->getID() <<"-th frame is keyframe? : " << (frame->isKeyframe() ? "YES" : "NO") << std::endl;
+    std::cout << frame->getID() << "-th frame is keyframe? : " << (frame->isKeyframe() ? "YES" : "NO") << std::endl;
     std::cout << frame->getID() << "-th steering angle: " << psi_pc*R2D << " [deg]\n";
     
     // 현재 구한 steering angle이 문턱값보다 높으면, turning frame이다.
@@ -175,11 +175,11 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame)
                 // New Turning Region is detected.
                 // Sufficient frames, do Absolute Scale Recovery (ASR)
                 std::cerr << colorcode::text_yellow << colorcode::cout_bold
-                << " ======================                                =====================\n"
-                << " ======================                                =====================\n"
-                << " ====================== A NEW TURN REGION IS DETECTED! =====================\n"
-                << " ======================                                =====================\n"
-                << " ======================                                =====================\n";
+                    << " ======================                                =====================\n"
+                    << " ======================                                =====================\n"
+                    << " ====================== A NEW TURN REGION IS DETECTED! =====================\n"
+                    << " ======================                                =====================\n"
+                    << " ======================                                =====================\n";
                 
                 // Calculate refined scales of 'frames_turn_curr_'
                 int n_Fcurr = frames_turn_curr_.size();
@@ -237,19 +237,16 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame)
                     std::cout << f->getID() << " ";
                 std::cout << std::endl;
 
+
                 // If there is a previous turning frames, do ASR
                 if( frames_turn_prev_.size() > 0)
                 {
-
-
 
                     // Run the Absolute Scale Recovery (ASR) Module.
                     asr_module_->runASR(
                         frames_turn_prev_, frames_unconstrained_, frames_turn_curr_);
 
 
-
-            
                 }
                                             
                 // Update previous turning region & empty the unconstrained region
