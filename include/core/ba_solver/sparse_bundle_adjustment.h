@@ -50,10 +50,10 @@ private:
 
 private:
     // Storages to solve Schur Complement
-    BlockDiagMat66 A_; // N_opt (6x6) block diagonal part for poses +
-    BlockFullMat63 B_; // N_opt x M (6x3) block part (side) +
-    BlockFullMat36 Bt_; // M x N_opt (3x6) block part (side, transposed) +
-    BlockDiagMat33 C_; // M (3x3) block diagonal part for landmarks' 3D points +
+    DiagBlockMat66 A_; // N_opt (6x6) block diagonal part for poses +
+    FullBlockMat63 B_; // N_opt x M (6x3) block part (side) +
+    FullBlockMat36 Bt_; // M x N_opt (3x6) block part (side, transposed) +
+    DiagBlockMat33 C_; // M (3x3) block diagonal part for landmarks' 3D points +
     
     BlockVec6 a_; // N_opt x 1 (6x1) +
     BlockVec3 b_; // M x 1 (3x1) +
@@ -64,17 +64,23 @@ private:
     BlockVec6 params_poses_;  // N_opt (6x1) parameter vector for poses
     BlockVec3 params_points_; // M     (3x1) parameter vector for points
 
-    BlockDiagMat33 Cinv_;    // M (3x3) block diagonal part for landmarks' 3D points (inverse) +
-    BlockFullMat63 BCinv_;   // N_opt X M  (6x3) +
-    BlockFullMat36 CinvBt_;  // M x N_opt (3x6) +
-    BlockFullMat66 BCinvBt_; // N_opt x N_opt (6x6) +
+    DiagBlockMat33 Cinv_;    // M (3x3) block diagonal part for landmarks' 3D points (inverse) +
+    FullBlockMat63 BCinv_;   // N_opt X M  (6x3) +
+    FullBlockMat36 CinvBt_;  // M x N_opt (3x6) +
+    FullBlockMat66 BCinvBt_; // N_opt x N_opt (6x6) +
     BlockVec6      BCinv_b_; // N_opt (6x1) +
     BlockVec3      Bt_x_;    // M     (3x1) +
     BlockVec3      Cinv_b_;  // M     (3x1) +
 
-    BlockFullMat66 Am_BCinvBt_; // N_opt x N_opt (6x6) +
-    BlockVec6      am_BCinv_b_;      // N_opt (6x1) +
-    BlockVec3      CinvBt_x_;        // M (3x1) +
+    FullBlockMat66 Am_BCinvBt_; // N_opt x N_opt (6x6) +
+    BlockVec6      am_BCinv_b_; // N_opt (6x1) +
+    BlockVec3      CinvBt_x_;   // M (3x1) +
+
+// Dynamic matrix
+    _BA_MatX Am_BCinvBt_mat_; // 6*N_opt_, 6*N_opt_
+    _BA_MatX am_BCinv_b_mat_;  // 6*N_opt_, 1
+
+    _BA_MatX x_mat_; // 6*N_opt_, 1
 
     // Input variable
     std::shared_ptr<SparseBAParameters> ba_params_;

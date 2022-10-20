@@ -22,6 +22,10 @@
 #include "core/scale_estimator/scale_constraint.h"
 #include "core/ba_solver/connectivity_map.h"
 
+#define N_OPT_PRIOR 500
+#define M_PRIOR 50000
+#define K_PRIOR 1000
+
 struct LandmarkBA;
 class SparseBAParameters;
 class SparseBundleAdjustmentScaleSQPSolver;
@@ -68,77 +72,72 @@ private:
 */
 
 /*
-    < Governed by 'i' >
-    C_  [ i ] = Sum(Rij.'*Rij)
-    b_  [ i ] = Sum(Rij.'*rij) + additional
-    
-    for(int i = 0; i < M_; ++i)
-        Cinv_b_[i] = Cinv_[i]*b_[i];  // FILL STORAGE (10)
+< Notation Rule >
 
+    j : pose index
+    i : point index
+    k : constraint index
 
-    < Governed by 'j' >
-    A_  [ j ] = sum(Qij.'*Qij)
-    a_  [ j ] = sum(Qij.'*rij) + additional
-
-
-    < Governed by 'i, j' >
-    B_  [ j, i ]
-    Bt_ [ i, j ]
-
-
-    < Governed by 'k, j' >
-    D_  [ k, j ] 
-    Dt_ [ j, k ]
-
-*/  
-
-/*
-    Connectivity map
-
-    i <-> j
-    j <-> k
-    
 */
 
 // Base storages
-    BlockDiagMat33 A_;  // j    N_opt (3x3) block diagonal part for poses (translation only)
-    BlockFullMat33 B_;  // j,i  N_opt x M (3x3) block part (side)
-    BlockFullMat33 Bt_; // i,j  M x N_opt (3x3) block part (side, transposed)
-    BlockDiagMat33 C_;  // i    M (3x3) block diagonal part for landmarks' 3D points
-    BlockFullMat31 Dt_; // i,k  N_opt x K (3x1) block part
-    BlockFullMat13 D_;  // k,i  K x N_opt (1x3) block part
+    DiagBlockMat33 A_;  // j    N_opt (3x3) block diagonal part for poses (translation only)
+    FullBlockMat33 B_;  // j,i  N_opt x M (3x3) block part (side)
+    FullBlockMat33 Bt_; // i,j  M x N_opt (3x3) block part (side, transposed)
+    DiagBlockMat33 C_;  // i    M (3x3) block diagonal part for landmarks' 3D points
+    FullBlockMat31 Dt_; // j,k  N_opt x K (3x1) block part
+    FullBlockMat13 D_;  // k,j  K x N_opt (1x3) block part
 
     BlockVec3 a_; // j N_opt x 1 (3x1) (the number of optimization poses == N-1)
     BlockVec3 b_; // i     M x 1 (3x1) (the number of landmarks)
     BlockVec1 c_; // k     K x 1 (1x1) (the number of constrained poses (turning frames))
 
 // Update step
-    BlockVec3 x_; // N_opt (3x1) translation
-    BlockVec3 y_; //     M (3x1) landmarks
-    BlockVec1 z_; //     K (1x1) Lagrange multiplier
+    BlockVec3 x_; // j N_opt (3x1) translation
+    BlockVec3 y_; // i    M (3x1) landmarks
+    BlockVec1 z_; // k    K (1x1) Lagrange multiplier
 
 // parameters to be considered.
-    BlockDiagMat33 fixparams_rot_;   // N_opt (3x3) rotation (fixed!). (R_jw)
+    DiagBlockMat33 fixparams_rot_;   // N_opt (3x3) rotation (fixed!). (R_jw)
 
     BlockVec3 params_trans_;         // N_opt (3x1) 3D translation of the frame. (t_jw)
     BlockVec3 params_points_;        //     M (3x1) 3D points (Xi)
     BlockVec1 params_lagrange_;      //     K (1x1) Lagrange multiplier (lambda_k)
 
 // Derivated Storages
-    BlockDiagMat33 Cinv_;   // N_opt  (3x3) block diag mat.
-    BlockVec3      Cinvb_;  // N_opt  (3x1) block vector
-    BlockFullMat33 BCinv_;   // N_opt x M (3x3) block full mat.
-    BlockVec3      BCinvb_;  // N_opt x 1 (3x1) block vector
-    BlockFullMat33 BCinvBt_; // N_opt x N_opt (3x3) block full mat.
+    DiagBlockMat33 Cinv_;    // i    M (3x3) block diag mat.
+    BlockVec3      Cinvb_;   // i    M  (3x1) block vector
+    FullBlockMat33 BCinv_;   // j,i  N_opt x M (3x3) block full mat.
+    BlockVec3      BCinvb_;  // j    N_opt x 1 (3x1) block vector
+    FullBlockMat33 BCinvBt_; // j,j  N_opt x N_opt (3x3) block full mat.
 
-    BlockFullMat33 Ap_; // N_opt x N_opt (3x3), == A - B*Cinv*Bt
-    BlockVec3      ap_; // N_opt x 1 (3x1) == a - B*Cinv*b
+    FullBlockMat33 Ap_; // j,j  N_opt x N_opt (3x3), == A - B*Cinv*Bt
+    BlockVec3      ap_; // j    N_opt x 1 (3x1) == a - B*Cinv*b
 
-    BlockVec3      Apinv_ap_; // N_opt x 1 (3x1) == (A - B*Cinv*Bt)^-1 * (a - B*Cinv*b)
-    BlockFullMat31 Apinv_Dt_; // N_opt x K (3x1) == (A - B*Cinv*Bt)^-1 * Dt
+    BlockVec3      Apinv_ap_; // j    N_opt x 1 (3x1) == (A - B*Cinv*Bt)^-1 * (a - B*Cinv*b)
+    FullBlockMat31 Apinv_Dt_; // j,k  N_opt x K (3x1) == (A - B*Cinv*Bt)^-1 * Dt
     
-    BlockVec1      D_Apinv_ap_; // K x 1 (1x1)
-    BlockFullMat11 D_Apinv_Dt_; // K x K (1x1)
+    BlockVec1      D_Apinv_ap_; // k    K x 1 (1x1)
+    FullBlockMat11 D_Apinv_Dt_; // k,k  K x K (1x1)
+
+
+// Large Eigen matrix
+    _BA_MatX Ap_mat_;       // 3*N_opt x 3*N_opt
+    _BA_MatX ap_mat_;       // 3*N_opt x       1
+    _BA_MatX D_mat_;        // K       x 3*N_opt
+    _BA_MatX Dt_mat_;       // 3*N_opt x       K
+    _BA_MatX a_mat_;        // 3*N_opt x       1
+
+    _BA_MatX Apinv_ap_mat_; // 3*N_opt x       1
+    _BA_MatX Apinv_Dt_mat_; // 3*N_opt x       K
+
+    _BA_MatX D_Apinv_Dt_mat_;     // K       x       K
+    _BA_MatX D_Apinv_ap_m_c_mat_; // K       x       1
+
+    _BA_MatX z_mat_; // K       x       1
+    _BA_MatX x_mat_; // 3*N_opt x       1
+
+
 
     // Input variable
     std::shared_ptr<SparseBAParameters> ba_params_;
@@ -173,7 +172,7 @@ public:
     void setCamera(const std::shared_ptr<Camera>& cam);
     
 // Solve and reset.
-public:    
+public:
     /// @brief Solve the BA for fixed number of iterations
     /// @param MAX_ITER Maximum iterations
     /// @return true when success, false when failed.

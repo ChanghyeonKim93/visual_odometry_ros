@@ -75,8 +75,8 @@ void AbsoluteScaleRecovery::runASR(
     timer::tic();
     sqp_solver_->reset();
     sqp_solver_->setCamera(cam_);
-    sqp_solver_->setBAParametersAndConstraints(ba_params, scale_constraints);
     sqp_solver_->setHuberThreshold(THRES_HUBER);
+    sqp_solver_->setBAParametersAndConstraints(ba_params, scale_constraints);
     double dt_prepare = timer::toc(0);
 
     timer::tic();

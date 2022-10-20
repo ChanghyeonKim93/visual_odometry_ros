@@ -20,8 +20,8 @@
 SparseBundleAdjustmentSolver::SparseBundleAdjustmentSolver() 
 : N_(0), N_opt_(0), M_(0), n_obs_(0), THRES_EPS_(0), THRES_HUBER_(0)
 {
-    cam_       = nullptr;
-    ba_params_ = nullptr;
+    this->cam_       = nullptr;
+    this->ba_params_ = nullptr;
 
     A_.reserve(500); // reserve expected # of optimizable poses (N_opt)
     B_.reserve(500); // 
@@ -31,12 +31,12 @@ SparseBundleAdjustmentSolver::SparseBundleAdjustmentSolver()
 
 void SparseBundleAdjustmentSolver::setBAParameters(const std::shared_ptr<SparseBAParameters>& ba_params)
 {
-    ba_params_ = ba_params;
+    this->ba_params_ = ba_params;
     
-    N_     = ba_params_->getNumOfAllFrames();
-    N_opt_ = ba_params_->getNumOfOptimizeFrames();
-    M_     = ba_params_->getNumOfOptimizeLandmarks();
-    n_obs_ = ba_params_->getNumOfObservations();
+    this->N_     = this->ba_params_->getNumOfAllFrames();
+    this->N_opt_ = this->ba_params_->getNumOfOptimizeFrames();
+    this->M_     = this->ba_params_->getNumOfOptimizeLandmarks();
+    this->n_obs_ = this->ba_params_->getNumOfObservations();
 
     this->setProblemSize(N_, N_opt_, M_, n_obs_);
 };
@@ -51,10 +51,10 @@ void SparseBundleAdjustmentSolver::setCamera(const std::shared_ptr<Camera>& cam)
 
 void SparseBundleAdjustmentSolver::setProblemSize(int N, int N_opt, int M, int n_obs){ 
     // Set sizes
-    N_     = N; // # of total keyframes (including fixed frames)
-    N_opt_ = N_opt; // # of optimizable keyframes
-    M_     = M; // # of landmarks to be optimized.
-    n_obs_ = n_obs;
+    this->N_     = N; // # of total keyframes (including fixed frames)
+    this->N_opt_ = N_opt; // # of optimizable keyframes
+    this->M_     = M; // # of landmarks to be optimized.
+    this->n_obs_ = n_obs;
 
     // Resize storages.
     A_.resize(N_opt_); 
@@ -102,6 +102,15 @@ void SparseBundleAdjustmentSolver::setProblemSize(int N, int N_opt, int M, int n
     Bt_x_.resize(M_);        // 3x1, M x 1 blocks
     CinvBt_x_.resize(M_);
 
+
+    // Dynamic matrices
+    Am_BCinvBt_mat_.resize(6*N_opt_, 6*N_opt_);
+    am_BCinv_b_mat_.resize(6*N_opt_, 1);
+    x_mat_.resize(6*N_opt_, 1);
+
+    Am_BCinvBt_mat_.setZero();
+    am_BCinv_b_mat_.setZero();
+    x_mat_.setZero();
 };
 
 bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
@@ -201,6 +210,8 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
                 const _BA_numeric& r31 = R_jw(2,0), r32 = R_jw(2,1), r33 = R_jw(2,2);
                 Rij << fxinvz*r11-fx_xinvz2*r31, fxinvz*r12-fx_xinvz2*r32, fxinvz*r13-fx_xinvz2*r33, 
                        fyinvz*r21-fy_yinvz2*r31, fyinvz*r22-fy_yinvz2*r32, fyinvz*r23-fy_yinvz2*r33;
+                
+                _BA_Mat32 Rij_t = Rij.transpose();
 
                 // 2) residual calculation
                 _BA_Pixel ptw;
@@ -230,17 +241,17 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
                 {
                     this->calc_Rij_t_Rij_weight(weight, Rij, Rij_t_Rij);
                     // Rij_t_Rij = weight * (Rij.transpose()*Rij);
-                    Rij_t_rij = weight * (Rij.transpose()*rij);
+                    Rij_t_rij = weight * (Rij_t*rij);
                 }
                 else
                 {
                     this->calc_Rij_t_Rij(Rij, Rij_t_Rij);
                     // Rij_t_Rij = Rij.transpose()*Rij; // fixed pose
-                    Rij_t_rij = Rij.transpose()*rij; // fixed pose                
+                    Rij_t_rij = Rij_t*rij; // fixed pose                
                 }
 
-                C_[i].noalias() += Rij_t_Rij; // FILL STORAGE (3)
-                b_[i].noalias() -= Rij_t_rij; // FILL STORAGE (5)
+                C_[i].noalias() +=  Rij_t_Rij; // FILL STORAGE (3)
+                b_[i].noalias() += -Rij_t_rij; // FILL STORAGE (5)
 
                 if(is_optimizable_keyframe) 
                 {
@@ -248,7 +259,9 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
                     _BA_Mat26 Qij;
                     Qij << fxinvz,0,-fx_xinvz2,-fx*xinvz_yinvz,fx*(1.0+xinvz*xinvz), -fx*yinvz,
                            0,fyinvz,-fy_yinvz2,-fy*(1.0+yinvz*yinvz),fy*xinvz_yinvz,  fy*xinvz;
-                           
+
+                    _BA_Mat62 Qij_t = Qij.transpose();
+
                     _BA_Mat66 Qij_t_Qij; Qij_t_Qij.setZero();
                     _BA_Mat63 Qij_t_Rij; Qij_t_Rij.setZero();
                     _BA_Vec6 Qij_t_rij; Qij_t_rij.setZero();
@@ -256,21 +269,21 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
                     {
                         this->calc_Qij_t_Qij_weight(weight, Qij, Qij_t_Qij);
                         // Qij_t_Qij = weight * (Qij.transpose()*Qij);
-                        Qij_t_Rij = weight * (Qij.transpose()*Rij);
-                        Qij_t_rij = weight * (Qij.transpose()*rij);
+                        Qij_t_Rij = weight * (Qij_t*Rij);
+                        Qij_t_rij = weight * (Qij_t*rij);
                     }
                     else
                     {
                         this->calc_Qij_t_Qij(Qij, Qij_t_Qij); // fixed pose, opt. pose
                         // Qij_t_Qij = Qij.transpose()*Qij; // fixed pose, opt. pose
-                        Qij_t_Rij = Qij.transpose()*Rij; // fixed pose, opt. pose
-                        Qij_t_rij = Qij.transpose()*rij; // fixed pose, opt. pose
+                        Qij_t_Rij = Qij_t*Rij; // fixed pose, opt. pose
+                        Qij_t_rij = Qij_t*rij; // fixed pose, opt. pose
                     }
 
-                    A_[j].noalias() += Qij_t_Qij; // FILL STORAGE (1)
-                    B_[j][i]         = Qij_t_Rij; // FILL STORAGE (2)
-                    Bt_[i][j]        = Qij_t_Rij.transpose().eval(); // FILL STORAGE (2-1)
-                    a_[j].noalias() -= Qij_t_rij; // FILL STORAGE (4)
+                    A_[j].noalias() +=  Qij_t_Qij; // FILL STORAGE (1)
+                    B_[j][i]         =  Qij_t_Rij; // FILL STORAGE (2)
+                    Bt_[i][j]        =  Qij_t_Rij.transpose().eval(); // FILL STORAGE (2-1)
+                    a_[j].noalias() += -Qij_t_rij; // FILL STORAGE (4)
 
                     // if(std::isnan(Qij_t_Qij.norm()) 
                     // || std::isnan(Qij_t_Rij.norm()) 
@@ -370,9 +383,11 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
         
         // Solve problem.
         // 1) solve x
-        _BA_MatX Am_BCinvBt_mat(6*N_opt_,6*N_opt_);
-        _BA_MatX am_BCinv_b_mat(6*N_opt_,1);
-        
+        // _BA_MatX Am_BCinvBt_mat(6*N_opt_,6*N_opt_);
+        // _BA_MatX am_BCinv_b_mat(6*N_opt_,1);
+        _BA_MatX& Am_BCinvBt_mat = Am_BCinvBt_mat_;
+        _BA_MatX& am_BCinv_b_mat = am_BCinv_b_mat_;
+
         _BA_Index idx0 = 0;
         for(_BA_Index j = 0; j < N_opt_; ++j, idx0 += 6){
             _BA_Index idx1 = 0;
@@ -382,7 +397,8 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
             am_BCinv_b_mat.block(idx0,0,6,1) = am_BCinv_b_[j];
         }
 
-        _BA_MatX x_mat = Am_BCinvBt_mat.ldlt().solve(am_BCinv_b_mat);
+        _BA_MatX& x_mat = x_mat_;
+        x_mat = Am_BCinvBt_mat.ldlt().solve(am_BCinv_b_mat);
         idx0 = 0;
         for(_BA_Index j = 0; j < N_opt_; ++j, idx0 += 6)
             x_[j] = x_mat.block<6,1>(idx0,0);
@@ -421,13 +437,9 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER){
         }
                 
         // Update step
-        for(_BA_Index j_opt = 0; j_opt < N_opt_; ++j_opt){
-            // std::cout << j_opt <<"-th xi update : " 
-                // << params_poses_[j_opt].transpose() << " + " << x_[j_opt].transpose() << " --> " ;
-            
-            geometry::addFrontse3(params_poses_[j_opt], x_[j_opt]);
-            // std::cout << params_poses_[j_opt].transpose() << std::endl;
-        }
+        for(_BA_Index j = 0; j < N_opt_; ++j)
+            geometry::addFrontse3(params_poses_[j], x_[j]);
+
         for(_BA_Index i = 0; i < M_; ++i)
             params_points_[i].noalias() += y_[i];
 
@@ -660,6 +672,12 @@ void SparseBundleAdjustmentSolver::zeroizeStorageMatrices(){
         Cinv_b_[i].setZero();
         CinvBt_x_[i].setZero();
     }
+
+    // Dynamic matrices
+    Am_BCinvBt_mat_.setZero();
+    am_BCinv_b_mat_.setZero();
+    x_mat_.setZero();
+
     // std::cout << "zeroize done\n";
 };    
 

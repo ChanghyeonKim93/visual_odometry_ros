@@ -47,16 +47,16 @@ typedef std::vector<_BA_Index>             _BA_IndexVec;
 typedef std::vector<_BA_Pixel>             _BA_PixelVec;
 typedef std::vector<_BA_Point>             _BA_PointVec;
 
-typedef std::vector<_BA_Mat33>              BlockDiagMat33; 
-typedef std::vector<_BA_Mat66>              BlockDiagMat66; 
+typedef std::vector<_BA_Mat33>              DiagBlockMat33; 
+typedef std::vector<_BA_Mat66>              DiagBlockMat66; 
 
-typedef std::vector<std::vector<_BA_Mat11>> BlockFullMat11;
-typedef std::vector<std::vector<_BA_Mat13>> BlockFullMat13;
-typedef std::vector<std::vector<_BA_Mat31>> BlockFullMat31;
-typedef std::vector<std::vector<_BA_Mat33>> BlockFullMat33; 
-typedef std::vector<std::vector<_BA_Mat63>> BlockFullMat63; 
-typedef std::vector<std::vector<_BA_Mat36>> BlockFullMat36;
-typedef std::vector<std::vector<_BA_Mat66>> BlockFullMat66;
+typedef std::vector<std::vector<_BA_Mat11>> FullBlockMat11;
+typedef std::vector<std::vector<_BA_Mat13>> FullBlockMat13;
+typedef std::vector<std::vector<_BA_Mat31>> FullBlockMat31;
+typedef std::vector<std::vector<_BA_Mat33>> FullBlockMat33; 
+typedef std::vector<std::vector<_BA_Mat63>> FullBlockMat63; 
+typedef std::vector<std::vector<_BA_Mat36>> FullBlockMat36;
+typedef std::vector<std::vector<_BA_Mat66>> FullBlockMat66;
 
 typedef std::vector<_BA_Vec1>               BlockVec1;
 typedef std::vector<_BA_Vec3>               BlockVec3;
