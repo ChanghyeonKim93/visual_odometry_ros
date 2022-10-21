@@ -234,7 +234,7 @@ public:
             for(const auto& lm : kf->getRelatedLandmarkPtr())
             { 
                 // 현재 keyframe에서 보인 모든 landmark 순회
-                if( lm->isTriangulated() ) // age > THRES, triangulate() == true 경우 포함.
+                if( lm->isTriangulated() && lm->isAlive() ) // age > THRES, triangulate() == true 경우 포함.
                     lmset_window.insert(lm);
             }
         }
@@ -244,7 +244,7 @@ public:
         Twj_ref_ << Twj_ref_float(0,0),Twj_ref_float(0,1),Twj_ref_float(0,2),Twj_ref_float(0,3),
                     Twj_ref_float(1,0),Twj_ref_float(1,1),Twj_ref_float(1,2),Twj_ref_float(1,3),
                     Twj_ref_float(2,0),Twj_ref_float(2,1),Twj_ref_float(2,2),Twj_ref_float(2,3),
-                    Twj_ref_float(3,0),Twj_ref_float(3,1),Twj_ref_float(3,2),Twj_ref_float(3,3);
+                    0.0, 0.0, 0.0, 1.0;
         
         Tjw_ref_ = geometry::inverseSE3(Twj_ref_);
 

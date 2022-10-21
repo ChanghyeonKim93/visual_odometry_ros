@@ -210,11 +210,19 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 	{
 		// 초기화 완료.
 		/* 
-	========================================================================
-	========================================================================
-								알고리즘 계속 구동.
-	========================================================================
-	========================================================================
+				========================================================================
+				========================================================================
+				========================================================================
+				========================================================================
+				========================================================================
+
+											알고리즘 계속 구동.
+
+				========================================================================
+				========================================================================
+				========================================================================
+				========================================================================
+				========================================================================
 		*/
 
 		timer::tic();
@@ -296,7 +304,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 				const LandmarkPtr& lm = lmtrack_scaleok.lms[i];
 				if( lm->isBundled() ) {
 					Point Xp = Rcw_prev * lm->get3DPoint() + tcw_prev;
-					if(Xp(2) > 0.2) index_ba.push_back(i);
+					if(Xp(2) > 0.1) index_ba.push_back(i);
 				}
 			}
 		}
@@ -305,7 +313,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 				const LandmarkPtr& lm = lmtrack_scaleok.lms[i];
 				if( lm->isTriangulated() ) {
 					Point Xp = Rcw_prev * lm->get3DPoint() + tcw_prev;
-					if(Xp(2) > 0.2) index_ba.push_back(i);
+					if(Xp(2) > 0.1) index_ba.push_back(i);
 				}
 			}
 		}
@@ -344,8 +352,8 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			dR01 = dT01_prior.block<3,3>(0,0); 
 			dt01 = dT01_prior.block<3,1>(0,3);
 			poseonlyBA_success = motion_estimator_->poseOnlyBundleAdjustment(
-					Xp_ba, pts1_ba, cam_, params_.motion_estimator.thres_poseba_error,
-					dR01, dt01, mask_ba);
+								Xp_ba, pts1_ba, cam_, params_.motion_estimator.thres_poseba_error,
+								dR01, dt01, mask_ba);
 
 			if( poseonlyBA_success )
 			{	
@@ -415,7 +423,6 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 		}
 
 		LandmarkTracking lmtrack_motion(lmtrack_scaleok, mask_motion);
-		// std::cout << "# of motion: " << this->pruneInvalidLandmarks(lmtrack_scaleok, mask_motion, lmtrack_motion) << std::endl;
 		std::cout << colorcode::text_green << "Time [track Motion Est.]: " << timer::toc(0) << " [ms]\n" << colorcode::cout_reset;
 		
 		// Check sampson distance 0.01 ms

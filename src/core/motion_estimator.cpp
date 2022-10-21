@@ -842,7 +842,8 @@ bool MotionEstimator::poseOnlyBundleAdjustment(const PointVec& X, const PixelVec
         R01_true = T01_update.block<3,3>(0,0);
         t01_true = T01_update.block<3,1>(0,3);
     }
-    else is_success = false;  // if nan, do not update.
+    else
+        is_success = false;  // if nan, do not update.
 
     return is_success;
 };
