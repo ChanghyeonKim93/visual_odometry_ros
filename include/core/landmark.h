@@ -132,60 +132,19 @@ public:
 
     int n_pts;
 
+// Various constructors
 public:
-    LandmarkTracking()
-    {
-        pts0.reserve(1000);
-        pts1.reserve(1000);
-        lms.reserve(1000);
-        scale_change.reserve(1000);
-        n_pts = 0;
-    };
-
-    LandmarkTracking(const LandmarkTracking& lmtrack, const MaskVec& mask)
-    {
-        if(lmtrack.pts0.size() != lmtrack.pts1.size() 
-        || lmtrack.pts0.size() != lmtrack.lms.size()
-        || lmtrack.pts0.size() != mask.size())
-            throw std::runtime_error("lmtrack.pts0.size() != lmtrack.pts1.size() || lmtrack.pts0.size() != lmtrack.lms.size() || lmtrack.pts0.size() != mask.size()");
-	
-        int n_pts_input = lmtrack.pts0.size();
-
-        std::vector<int> index_valid;
-        index_valid.reserve(n_pts);
-        int cnt_alive = 0;
-        for(int i = 0; i < n_pts_input; ++i)
-        {
-            if( mask[i] )
-            {
-                index_valid.push_back(i);
-                ++cnt_alive;
-            }
-            else
-                lmtrack.lms[i]->setDead();
-        }
-
-        // set
-        pts0.resize(cnt_alive);
-        pts1.resize(cnt_alive);
-        lms.resize(cnt_alive);
-        scale_change.resize(cnt_alive);
-        for(int i = 0; i < cnt_alive; ++i)
-        {
-            const int& idx  = index_valid[i];
-            pts0[i]         = lmtrack.pts0[idx];
-            pts1[i]         = lmtrack.pts1[idx];
-            scale_change[i] = lmtrack.scale_change[idx];
-            lms[i]          = lmtrack.lms[idx];
-        }
-
-        n_pts = cnt_alive;
-    };
+    LandmarkTracking();
+    LandmarkTracking(const LandmarkTracking& lmtrack, const MaskVec& mask);
+    LandmarkTracking(const PixelVec& pts0_in, const PixelVec& pts1_in, const LandmarkPtrVec& lms_in);
 };
 
+
+
 /// @brief A temporal structur for stereo feature tracking 
-struct StereoLandmarkTracking 
+class StereoLandmarkTracking 
 {
+public:
     // lower camera prev. and current.
     PixelVec pts_l0;
     PixelVec pts_l1;
@@ -197,14 +156,9 @@ struct StereoLandmarkTracking
     // LandmarkPtr vector.
     LandmarkPtrVec lms;
 
+public:
     /// @brief Constructor of StereoLandmarkTracking
-    StereoLandmarkTracking()
-    {
-        pts_l0.reserve(1000); pts_l1.reserve(1000);
-        pts_u0.reserve(1000); pts_u1.reserve(1000);
-    
-        lms.reserve(1000);
-    };
+    StereoLandmarkTracking();
 };
 
 #endif

@@ -52,7 +52,7 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp)
 			extractor_->extractORBwithBinning_fast(I1, lmtrack_curr.pts1, true);
 
 			// 초기 landmark 생성
-			for(auto pt : lmtrack_curr.pts1)
+			for(const auto& pt : lmtrack_curr.pts1)
 			{
 				LandmarkPtr lm_new = std::make_shared<Landmark>(pt, frame_curr, cam_);
 				lmtrack_curr.lms.push_back(lm_new);
@@ -76,10 +76,12 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp)
 		}
 		else 
 		{
-			LandmarkTracking lmtrack_prev;
-			lmtrack_prev.pts0 = frame_prev_->getPtsSeen();
-			lmtrack_prev.pts1 = PixelVec();
-			lmtrack_prev.lms  = frame_prev_->getRelatedLandmarkPtr();
+			LandmarkTracking lmtrack_prev(frame_prev_->getPtsSeen(), frame_prev_->getPtsSeen(), frame_prev_->getRelatedLandmarkPtr());
+			// lmtrack_prev.pts0 = frame_prev_->getPtsSeen();
+			// lmtrack_prev.pts1 = PixelVec();
+			// lmtrack_prev.lms  = frame_prev_->getRelatedLandmarkPtr();
+			// lmtrack_prev.scale_change.resize(lmtrack_prev.pts0.size());
+			// lmtrack_prev.n_pts = lmtrack_prev.pts0.size();
 
 			// 이전 자세의 변화량을 가져온다. 
 			PoseSE3 Twc_prev   = frame_prev_->getPose();
@@ -90,17 +92,17 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp)
 			tracker_->track(I0, I1, lmtrack_prev.pts0, params_.feature_tracker.window_size, params_.feature_tracker.max_level, params_.feature_tracker.thres_error,
 				lmtrack_prev.pts1, mask_track);
 
-			LandmarkTracking lmtrack_klt;
-			this->pruneInvalidLandmarks(lmtrack_prev, mask_track, lmtrack_klt);
+			LandmarkTracking lmtrack_klt(lmtrack_prev, mask_track);
+			// this->pruneInvalidLandmarks(lmtrack_prev, mask_track, lmtrack_klt);
 
 			// Scale refinement 50ms
 			MaskVec mask_refine(lmtrack_klt.pts0.size(), true);			
-			LandmarkTracking lmtrack_scaleok;
-			this->pruneInvalidLandmarks(lmtrack_klt, mask_refine, lmtrack_scaleok);
+			LandmarkTracking lmtrack_scaleok(lmtrack_klt, mask_refine);
+			// this->pruneInvalidLandmarks(lmtrack_klt, mask_refine, lmtrack_scaleok);
 
 			// 5-point algorithm 2ms
-			MaskVec mask_5p(lmtrack_scaleok.pts0.size());
-			PointVec X0_inlier(lmtrack_scaleok.pts0.size());
+			MaskVec mask_5p(lmtrack_scaleok.n_pts);
+			PointVec X0_inlier(lmtrack_scaleok.n_pts);
 			Rot3 dR10; Pos3 dt10;
 			if( !motion_estimator_->calcPose5PointsAlgorithm(lmtrack_scaleok.pts0, lmtrack_scaleok.pts1, cam_, dR10, dt10, X0_inlier, mask_5p) ) 
 				throw std::runtime_error("calcPose5PointsAlgorithm() is failed.");
@@ -108,15 +110,15 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp)
 			// Check sampson distance 0.01 ms
 			std::vector<float> symm_epi_dist;
 			motion_estimator_->calcSampsonDistance(lmtrack_scaleok.pts0, lmtrack_scaleok.pts1, cam_, dR10, dt10, symm_epi_dist);
-			MaskVec mask_sampson(lmtrack_scaleok.pts0.size());
+			MaskVec mask_sampson(lmtrack_scaleok.n_pts);
 			for(int i = 0; i < mask_sampson.size(); ++i)
 				mask_sampson[i] = mask_5p[i] && (symm_epi_dist[i] < THRES_SAMPSON);
 			
-			LandmarkTracking lmtrack_final;
-			this->pruneInvalidLandmarks(lmtrack_scaleok, mask_sampson, lmtrack_final);
+			LandmarkTracking lmtrack_final(lmtrack_scaleok, mask_sampson);
+			// this->pruneInvalidLandmarks(lmtrack_scaleok, mask_sampson, lmtrack_final);
 
 			// Update tracking results
-			for(int i = 0; i < lmtrack_final.lms.size(); ++i)
+			for(int i = 0; i < lmtrack_final.n_pts; ++i)
 				lmtrack_final.lms[i]->addObservationAndRelatedFrame(lmtrack_final.pts1[i], frame_curr);
 			
 			// Frame_curr의 자세를 넣는다.
@@ -163,6 +165,9 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 						lmtrack_final.pts0.push_back(p0_new);
 						lmtrack_final.pts1.push_back(p1_new);
 						lmtrack_final.lms.push_back(ptr);
+						lmtrack_final.scale_change.push_back(0);
+						++lmtrack_final.n_pts;
+
 						this->saveLandmark(ptr);
 					}
 				}
@@ -170,7 +175,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 
 			// lms1_final 중, depth가 복원되지 않은 경우 복원해준다.
 			uint32_t cnt_recon = 0 ;
-			for(auto lm : lmtrack_final.lms)
+			for(const auto& lm : lmtrack_final.lms)
 			{
 				if( !lm->isTriangulated() && lm->getLastParallax() >= THRES_PARALLAX)
 				{
@@ -214,8 +219,8 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 		LandmarkTracking lmtrack_prev;
 		lmtrack_prev.lms  = frame_prev_->getRelatedLandmarkPtr();
 		lmtrack_prev.pts0 = frame_prev_->getPtsSeen();
-		lmtrack_prev.pts1 = PixelVec();
-		lmtrack_prev.scale_change = FloatVec();
+		lmtrack_prev.pts1 = PixelVec(lmtrack_prev.pts0.size());
+		lmtrack_prev.scale_change = FloatVec(lmtrack_prev.pts0.size());
 		lmtrack_prev.n_pts = lmtrack_prev.lms.size();
 		// lmtrack_prev.initializeFromFramePtr(frame_prev_);
 
@@ -249,7 +254,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			else 
 				lmtrack_prev.pts1[i] = lmtrack_prev.pts0[i];
 
-			lmtrack_prev.scale_change.push_back(patch_scale);
+			lmtrack_prev.scale_change[i] = patch_scale;
 		}
 		std::cout << colorcode::text_green << "Time [track preliminary]: " << timer::toc(0) << " [ms]\n" << colorcode::cout_reset;
 		
@@ -266,7 +271,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 
 		// Scale refinement 50ms
 		timer::tic();
-		MaskVec mask_refine(lmtrack_kltok.pts0.size(), true);
+		MaskVec mask_refine(lmtrack_kltok.n_pts, true);
 		const cv::Mat& du0 = frame_prev_->getImageDu();
 		const cv::Mat& dv0 = frame_prev_->getImageDv();
 		tracker_->trackWithScale(
@@ -292,7 +297,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 		if(keyframes_->getList().size() > 5) 
 		{
 			// # of keyframes is over 5 (키프레임이 많으면, bundled point만 사용한다.)
-			for(int i = 0; i < lmtrack_scaleok.pts0.size(); ++i)
+			for(int i = 0; i < lmtrack_scaleok.n_pts; ++i)
 			{
 				const LandmarkPtr& lm = lmtrack_scaleok.lms[i];
 				const Point&        X = lm->get3DPoint();
@@ -312,7 +317,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 		}
 		else
 		{
-			for(int i = 0; i < lmtrack_scaleok.pts0.size(); ++i)
+			for(int i = 0; i < lmtrack_scaleok.n_pts; ++i)
 			{
 				const LandmarkPtr& lm = lmtrack_scaleok.lms[i];
 				if(lm->isTriangulated() && lm->getAge() > 1 
@@ -331,7 +336,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 		PixelVec pts1_project;
 		pts1_project = pts1_ba;
 		
-		MaskVec mask_motion(lmtrack_scaleok.pts0.size(), true);
+		MaskVec mask_motion(lmtrack_scaleok.n_pts, true);
 		Rot3 dR10; Pos3 dt10; PoseSE3 dT10;
 		Rot3 dR01; Pos3 dt01; PoseSE3 dT01;
 
@@ -385,7 +390,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 		{ 
 			// do 5 point algorihtm (scale is of the previous frame)
 			std::cout << "\n\n\n!!!!!!!!!!!!!!!!!!!!!! -- WARNING ! DO 5-points algorithm -- !!!!!!!!!!!!!!!!!!!!! \n\n\n\n";
-			PointVec X0_inlier(lmtrack_scaleok.pts0.size());
+			PointVec X0_inlier(lmtrack_scaleok.n_pts);
 		
 			if( !motion_estimator_->calcPose5PointsAlgorithm(lmtrack_scaleok.pts0, lmtrack_scaleok.pts1, cam_, dR10, dt10, X0_inlier, mask_motion) ) 
 				throw std::runtime_error("calcPose5PointsAlgorithm() is failed.");
@@ -406,7 +411,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 		// Check sampson distance 0.01 ms
 		std::vector<float> symm_epi_dist;
 		motion_estimator_->calcSampsonDistance(lmtrack_motion.pts0, lmtrack_motion.pts1, cam_, dT10.block<3,3>(0,0), dT10.block<3,1>(0,3), symm_epi_dist);
-		MaskVec mask_sampson(lmtrack_motion.pts0.size(),true);
+		MaskVec mask_sampson(lmtrack_motion.n_pts, true);
 		for(int i = 0; i < mask_sampson.size(); ++i)
 			mask_sampson[i] = symm_epi_dist[i] < params_.feature_tracker.thres_sampson;
 		
@@ -455,6 +460,8 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 					lmtrack_final.pts0.push_back(p0_new);
 					lmtrack_final.pts1.push_back(p1_new);
 					lmtrack_final.lms.push_back(lmptr);
+					lmtrack_final.scale_change.push_back(0);
+					++lmtrack_final.n_pts;
 
 					this->saveLandmark(lmptr);
 				}
@@ -468,9 +475,9 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 
 	// Check keyframe update rules.
 	bool flag_add_new_keyframe = keyframes_->checkUpdateRule(frame_curr);
+
 	if( flag_add_new_keyframe )
 	{
-		
 		timer::tic();
 		// Add new keyframe
 		this->saveKeyframe(frame_curr);
@@ -530,7 +537,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 		// lms1_final 중, depth가 복원되지 않은 경우 복원해준다.
 		timer::tic();
 		uint32_t cnt_recon = 0;
-		for(auto lm : frame_curr->getRelatedLandmarkPtr())
+		for(const auto& lm : frame_curr->getRelatedLandmarkPtr())
 		{
 			if( !lm->isTriangulated() && lm->getLastParallax() >= THRES_PARALLAX )
 			{
@@ -565,7 +572,8 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 						continue;
 
 					// Check the point in front of cameras
-					if(X0(2) > 0 && X1(2) > 0) {
+					if(X0(2) > 0 && X1(2) > 0) 
+					{
 						Point Xworld = Tw0.block<3,3>(0,0)*X0 + Tw0.block<3,1>(0,3);
 						lm->set3DPoint(Xworld);
 						++cnt_recon;
@@ -578,10 +586,6 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 		motion_estimator_->localBundleAdjustmentSparseSolver(keyframes_, cam_);
 		std::cout << colorcode::text_green << "Time [LBA              ]: " << timer::toc(0) << " [ms]\n" << colorcode::cout_reset;
 		
-
-
-
-
 
 
 #ifdef RECORD_KEYFRAME_STAT
@@ -623,7 +627,7 @@ std::cout << colorcode::text_green << "Time [RECORD KEYFR STAT]: " << timer::toc
 	// Visualization 3D points
 	PointVec X_world_recon;
 	X_world_recon.reserve(all_landmarks_.size());
-	for(auto lm : all_landmarks_){
+	for(const auto& lm : all_landmarks_){
 		if(lm->isTriangulated()) 
 			X_world_recon.push_back(lm->get3DPoint());
 	}

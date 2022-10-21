@@ -162,3 +162,120 @@ float              Landmark::getMinParallax() const     { return min_parallax_; 
 float              Landmark::getMaxParallax() const     { return max_parallax_; };
 float              Landmark::getAvgParallax() const     { return avg_parallax_; };
 float              Landmark::getLastParallax() const    { return last_parallax_; };
+
+
+
+
+/*
+====================================================================================
+====================================================================================
+================================  LandmarkTracking  ================================
+====================================================================================
+====================================================================================
+*/
+
+LandmarkTracking::LandmarkTracking()
+{
+    pts0.reserve(1000);
+    pts1.reserve(1000);
+    lms.reserve(1000);
+    scale_change.reserve(1000);
+    n_pts = 0;
+};
+
+LandmarkTracking::LandmarkTracking(const LandmarkTracking& lmtrack, const MaskVec& mask)
+{
+    if(lmtrack.pts0.size() != lmtrack.pts1.size() 
+    || lmtrack.pts0.size() != lmtrack.lms.size()
+    || lmtrack.pts0.size() != mask.size())
+        throw std::runtime_error("lmtrack.pts0.size() != lmtrack.pts1.size() || lmtrack.pts0.size() != lmtrack.lms.size() || lmtrack.pts0.size() != mask.size()");
+
+    int n_pts_input = lmtrack.pts0.size();
+
+    std::vector<int> index_valid;
+    index_valid.reserve(n_pts_input);
+    int cnt_alive = 0;
+    for(int i = 0; i < n_pts_input; ++i)
+    {
+        if( mask[i] && lmtrack.lms[i]->isAlive())
+        {
+            index_valid.push_back(i);
+            ++cnt_alive;
+        }
+        else
+            lmtrack.lms[i]->setDead();
+    }
+
+    // set
+    n_pts = cnt_alive;
+
+    pts0.resize(n_pts);
+    pts1.resize(n_pts);
+    lms.resize(n_pts);
+    scale_change.resize(n_pts);
+    for(int i = 0; i < cnt_alive; ++i)
+    {
+        const int& idx  = index_valid[i];
+        
+        pts0[i]         = lmtrack.pts0[idx];
+        pts1[i]         = lmtrack.pts1[idx];
+        scale_change[i] = lmtrack.scale_change[idx];
+        lms[i]          = lmtrack.lms[idx];
+    }
+};
+
+LandmarkTracking::LandmarkTracking(const PixelVec& pts0_in, const PixelVec& pts1_in, const LandmarkPtrVec& lms_in)
+{
+    if(pts0_in.size() != pts1_in.size() 
+    || pts0_in.size() != lms_in.size())
+        throw std::runtime_error("pts0_in.size() != pts1_in.size() || pts0_in.size() != lms_in.size()");
+
+    int n_pts_input = pts0_in.size();
+
+    std::vector<int> index_valid;
+    index_valid.reserve(n_pts_input);
+    int cnt_alive = 0;
+    for(int i = 0; i < n_pts_input; ++i)
+    {
+        if(lms_in[i]->isAlive())
+        {
+            index_valid.push_back(i);
+            ++cnt_alive;
+        }
+        else continue;
+    }
+
+    // set
+    n_pts = cnt_alive;
+
+    pts0.resize(n_pts);
+    pts1.resize(n_pts);
+    lms.resize(n_pts);
+    scale_change.resize(n_pts);
+    for(int i = 0; i < cnt_alive; ++i)
+    {
+        const int& idx  = index_valid[i];
+
+        pts0[i]         = pts0_in[idx];
+        pts1[i]         = pts1_in[idx];
+        scale_change[i] = 0;
+        lms[i]          = lms_in[idx];
+    }
+};
+
+
+
+/*
+====================================================================================
+====================================================================================
+=============================  StereoLandmarkTracking  =============================
+====================================================================================
+====================================================================================
+*/
+StereoLandmarkTracking::StereoLandmarkTracking()
+{
+    pts_l0.reserve(1000); pts_l1.reserve(1000);
+    pts_u0.reserve(1000); pts_u1.reserve(1000);
+
+    lms.reserve(1000);
+};
