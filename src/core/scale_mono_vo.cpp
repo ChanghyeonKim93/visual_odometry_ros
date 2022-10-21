@@ -348,7 +348,7 @@ void ScaleMonoVO::showTracking(const std::string& window_name, const cv::Mat& im
 	cv::waitKey(3);
 };
 
-void ScaleMonoVO::showTrackingBA(const std::string& window_name, const cv::Mat& img, const PixelVec& pts1, const PixelVec& pts1_project, const MaskVec& mask_valid){	
+void ScaleMonoVO::showTrackingBA(const std::string& window_name, const cv::Mat& img, const PixelVec& pts1, const PixelVec& pts1_project){	
 	int rect_half = 6;
 	int circle_radius = 4;
 
@@ -359,13 +359,11 @@ void ScaleMonoVO::showTrackingBA(const std::string& window_name, const cv::Mat& 
 	img.copyTo(img_debug_);
 	cv::cvtColor(img_debug_, img_debug_, CV_GRAY2RGB);
 	for(int i = 0; i < pts1.size(); ++i) {
-		if(mask_valid[i])
-			cv::circle(img_debug_, pts1[i], 1.0, color_red, circle_radius); // alived magenta
+		cv::circle(img_debug_, pts1[i], 1.0, color_red, circle_radius); // alived magenta
 	}
 	for(int i = 0; i < pts1.size(); ++i){
-		if(mask_valid[i])
-			cv::rectangle(img_debug_, cv::Point2f(pts1_project[i].x-rect_half,pts1_project[i].y-rect_half),cv::Point2f(pts1_project[i].x+rect_half,pts1_project[i].y+rect_half), 
-				color_green, 2);
+		cv::rectangle(img_debug_, cv::Point2f(pts1_project[i].x-rect_half,pts1_project[i].y-rect_half),cv::Point2f(pts1_project[i].x+rect_half,pts1_project[i].y+rect_half), 
+			color_green, 2);
 	}
 	
 	cv::imshow(window_name, img_debug_);
