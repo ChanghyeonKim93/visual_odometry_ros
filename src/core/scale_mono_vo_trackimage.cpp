@@ -22,7 +22,7 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp)
 			
 	// 이미지 undistort (KITTI라서 할 필요 X)
 	cv::Mat img_undist;
-	if(system_flags_.flagDoUndistortion) 
+	if(system_flags_.flagDoUndistortion)
 	{
 		cam_->undistortImage(img, img_undist);
 		img_undist.convertTo(img_undist, CV_8UC1);
@@ -42,7 +42,7 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp)
 	if( !system_flags_.flagVOInit ) 
 	{ 
 		// 초기화 미완료
-		if( !system_flags_.flagFirstImageGot ) 
+		if( !system_flags_.flagFirstImageGot )
 		{ 
 			// 최초 이미지
 			LandmarkTracking lmtrack_curr;
@@ -76,7 +76,6 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp)
 		}
 		else 
 		{
-
 			// Get previously tracked landmarks
 			LandmarkTracking lmtrack_prev(frame_prev_->getPtsSeen(), frame_prev_->getPtsSeen(), frame_prev_->getRelatedLandmarkPtr());
 	
@@ -215,9 +214,15 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 				========================================================================
 				========================================================================
 				========================================================================
+				========================================================================
+				========================================================================
+
 
 											알고리즘 계속 구동.
 
+
+				========================================================================
+				========================================================================
 				========================================================================
 				========================================================================
 				========================================================================

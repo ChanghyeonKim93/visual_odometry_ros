@@ -44,9 +44,10 @@ private:
 
 // status
 private:
-    bool is_alive_; // alive flag
-    bool is_triangulated_; // triangulated flag
-    bool is_bundled_; // bundled flag
+    bool is_alive_;   // alive flag. 추적이 끝났고, bundle 등 결과, 점의 퀄리티가 너무 안좋으면 dead 로 만들어서 앞으로 사용하지 않는다. (ex- SQP 이후 점 좌표가 너무 커진 경우 등)
+    bool is_tracked_; // track flag. 추적이 끝났음을 알리는 것. dead와는 무관하다. (local bundle & SQP 등에서 사용되기 때문.)
+    bool is_triangulated_; // triangulated flag. 3D point를 가지고 있는지 여부. 
+    bool is_bundled_; // bundled flag. Bundle에 참여했었는지 여부.
 
     uint32_t age_; // tracking age
 
@@ -93,7 +94,8 @@ public:
     void changeLastObservation(const Pixel& p);
     
     void set3DPoint(const Point& Xw);
-
+    
+    void setUntracked();
     void setBundled();
     void setDead();
     
@@ -113,6 +115,7 @@ public:
     const MaskVec&            getMaskPatchVec() const;
 
     const bool&        isAlive() const;
+    const bool&        isTracked() const;
     const bool&        isTriangulated() const;
     const bool&        isBundled() const;
 

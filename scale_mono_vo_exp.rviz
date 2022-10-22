@@ -6,7 +6,6 @@ Panels:
       Expanded:
         - /Global Options1
         - /VO_pose1/Shape1
-        - /VO_path1
       Splitter Ratio: 0.5010846257209778
     Tree Height: 291
   - Class: rviz/Selection
@@ -285,7 +284,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 157.96902465820312
+      Distance: 187.78782653808594
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -293,17 +292,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -33.52137756347656
-        Y: 1.838647723197937
-        Z: 38.464012145996094
+        X: -25.53961753845215
+        Y: 1.8815816640853882
+        Z: 11
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: -0.00479667354375124
+      Pitch: 0.00020348653197288513
       Target Frame: <Fixed Frame>
-      Yaw: 4.718504905700684
+      Yaw: 4.723509788513184
     Saved: ~
 Window Geometry:
   Displays:

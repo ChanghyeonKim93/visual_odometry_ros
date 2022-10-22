@@ -236,7 +236,7 @@ public:
             for(const auto& lm : kf->getRelatedLandmarkPtr())
             { 
                 // 현재 keyframe에서 보인 모든 landmark 순회
-                if( lm->isTriangulated() ) // age > THRES, triangulate() == true 경우 포함.
+                if( lm->isTriangulated() && lm->isAlive() ) // age > THRES, triangulate() == true 경우 포함.
                     lmset_window.insert(lm);
             }
         }

@@ -283,6 +283,8 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
             const _BA_PixelVec& pts  = lmba.pts_on_kfs;
             const _BA_ErrorVec& err_on_kfs = lmba.err_on_kfs;
 
+            if( Xi.norm() > 1000) continue;
+
             // For j-th landmark
             for(_BA_Index jj = 0; jj < kfs.size(); ++jj)
             {
@@ -692,6 +694,8 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
                                 0.0, 0.0, 0.0, 1.0;
             kf->setPose(geometry::inverseSE3_f(Tjw_update_float));
         } 
+
+        int cnt_invalid_lms = 0;
         for(_BA_Index i = 0; i < M_; ++i)
         {
             const LandmarkBA& lmba = ba_params_->getLandmarkBA(i);
@@ -705,11 +709,15 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
             X_update_float << X_updated(0),X_updated(1),X_updated(2);
 
             lm->set3DPoint(X_update_float);
-            if(X_update_float.norm() <= 1000)
+            if(X_update_float.norm() <= 200)
                 lm->setBundled();
-            else
+            else {
+                ++cnt_invalid_lms;
                 lm->setDead();
+            }
         }
+
+        std::cout << "# of diverged landmarks : " << cnt_invalid_lms << " / " << M_ << std::endl;
     }
 
     std::cout << "\nEnd of SQP optimization.\n";

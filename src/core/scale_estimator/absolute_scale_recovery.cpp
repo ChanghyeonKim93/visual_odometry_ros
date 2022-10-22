@@ -101,16 +101,16 @@ void AbsoluteScaleRecovery::runASR(
         std::cout << "[" << f->getID() << "] frame's trans: " << f->getPose().block<3,1>(0,3).transpose() << "\n";
     }
 
-    std::cout << "==== Show Points: \n";
-    for(int i = 0; i < ba_params->getNumOfOptimizeLandmarks(); ++i)
-    {
-        const LandmarkPtr& lm = ba_params->getOptLandmarkPtr(i);
+    // std::cout << "==== Show Points: \n";
+    // for(int i = 0; i < ba_params->getNumOfOptimizeLandmarks(); ++i)
+    // {
+    //     const LandmarkPtr& lm = ba_params->getOptLandmarkPtr(i);
         
-        if(lm->get3DPoint().norm() > 1000)
-            std::cout << " LARGE !!!! [" << lm->getID() << "] point: " << lm->get3DPoint().transpose() << "\n";
-        else    
-            std::cout << "[" << lm->getID() << "] point: " << lm->get3DPoint().transpose() << "\n";
-    }
+    //     if(lm->get3DPoint().norm() > 200)
+    //         std::cout << " LARGE !!!! [" << lm->getID() << "] point: " << lm->get3DPoint().transpose() << "\n";
+    //     else    
+    //         std::cout << "[" << lm->getID() << "] point: " << lm->get3DPoint().transpose() << "\n";
+    // }
 
     // Time analysis
     std::cout << "==== SQP time to prepare: " << dt_prepare << " [ms]\n";

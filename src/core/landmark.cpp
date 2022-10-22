@@ -5,7 +5,10 @@ PixelVec Landmark::patt_ = PixelVec();
 Landmark::Landmark(const std::shared_ptr<Camera>& cam)
 : id_(landmark_counter_++), age_(0), 
 Xw_(0,0,0), x_front_(0,0,0), 
-is_alive_(true), is_triangulated_(false), is_bundled_(false)
+is_alive_(true), 
+is_tracked_(true),
+is_triangulated_(false), 
+is_bundled_(false)
 {
     cam_ = cam;
 
@@ -18,17 +21,20 @@ is_alive_(true), is_triangulated_(false), is_bundled_(false)
     related_keyframes_.reserve(50);
 
     // Initialize parallax and opt flow.
-    min_parallax_ = 1000.0f;
-    max_parallax_ = 0.0f;
-    avg_parallax_ = 0.0f;
+    min_parallax_  = 1000.0f;
+    max_parallax_  = 0.0f;
+    avg_parallax_  = 0.0f;
     last_parallax_ = 0.0f;
 };
 
 Landmark::Landmark(const Pixel& p, const FramePtr& frame, const std::shared_ptr<Camera>& cam)
 :
-id_(landmark_counter_++), age_(0), 
-Xw_(0,0,0), x_front_(0,0,0), 
-is_alive_(true), is_triangulated_(false), is_bundled_(false)
+id_(landmark_counter_++), age_(0),
+Xw_(0,0,0), x_front_(0,0,0),
+is_alive_(true),
+is_tracked_(true),
+is_triangulated_(false),
+is_bundled_(false)
 {
     this->cam_ = cam;
 
@@ -60,6 +66,10 @@ Landmark::~Landmark(){
 void Landmark::set3DPoint(const Point& Xw) { 
     this->Xw_        = Xw;  
     is_triangulated_ = true; 
+};
+
+void Landmark::setUntracked() {
+    is_tracked_ = false;
 };
 
 void Landmark::setBundled() { 
@@ -140,7 +150,7 @@ void Landmark::changeLastObservation(const Pixel& p)
     observations_.back() = p;
 };  
 
-void               Landmark::setDead() { is_alive_ = false; };
+void               Landmark::setDead() { is_alive_ = false; is_tracked_ = false; };
 
 uint32_t           Landmark::getID() const                      { return id_; };
 uint32_t           Landmark::getAge() const                     { return age_; };
@@ -156,6 +166,7 @@ const std::vector<float>& Landmark::getDvPatchVec() const    { return this->dv0_
 const MaskVec&            Landmark::getMaskPatchVec()  const { return this->mask_patt_; };
 
 const bool&        Landmark::isAlive() const            { return is_alive_; };
+const bool&        Landmark::isTracked() const          { return is_tracked_; };
 const bool&        Landmark::isTriangulated() const     { return is_triangulated_; };
 const bool&        Landmark::isBundled() const          { return is_bundled_; };
 
@@ -198,13 +209,13 @@ LandmarkTracking::LandmarkTracking(const LandmarkTracking& lmtrack, const MaskVe
     int cnt_alive = 0;
     for(int i = 0; i < n_pts_input; ++i)
     {
-        if( mask[i] && lmtrack.lms[i]->isAlive())
+        if( mask[i] && lmtrack.lms[i]->isAlive() && lmtrack.lms[i]->isTracked() )
         {
             index_valid.push_back(i);
             ++cnt_alive;
         }
         else
-            lmtrack.lms[i]->setDead();
+            lmtrack.lms[i]->setUntracked();
     }
 
     // set

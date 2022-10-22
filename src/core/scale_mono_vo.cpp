@@ -192,7 +192,8 @@ int ScaleMonoVO::pruneInvalidLandmarks(const PixelVec& pts0, const PixelVec& pts
 			lms_alive.push_back(lms[i]);
 			++cnt_alive;
 		}
-		else lms[i]->setDead(); // track failed. Dead point.
+		else 
+			lms[i]->setUntracked(); // track failed. Dead point.
 	}
 	return cnt_alive;
 };
@@ -238,13 +239,13 @@ int ScaleMonoVO::pruneInvalidLandmarks(const LandmarkTracking& lmtrack, const Ma
 	int cnt_alive = 0;
 	for(int i = 0; i < n_pts; ++i)
 	{
-		if( mask[i] )
+		if( mask[i] && lmtrack.lms[i]->isAlive() )
 		{
 			index_valid.push_back(i);
 			++cnt_alive;
 		}
 		else
-			lmtrack.lms[i]->setDead();
+			lmtrack.lms[i]->setUntracked();
 	}
 
 	lmtrack_alive.pts0.resize(cnt_alive);
