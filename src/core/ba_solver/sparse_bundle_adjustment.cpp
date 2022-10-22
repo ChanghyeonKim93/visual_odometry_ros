@@ -155,7 +155,7 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER)
     // Initialize parameters
     std::vector<_BA_Numeric> r_prev(n_obs_, 0.0f);
     _BA_Numeric err_prev = 1e10f;
-    _BA_Numeric lambda   = 0.0000001;
+    _BA_Numeric lambda   = 0.00001;
     for(_BA_Index iter = 0; iter < MAX_ITER; ++iter)
     {
         // std::cout << iter <<"-th iteration...\n";
@@ -519,7 +519,7 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER)
             Twj_original << Twj_original_float(0,0), Twj_original_float(0,1), Twj_original_float(0,2), Twj_original_float(0,3), 
                             Twj_original_float(1,0), Twj_original_float(1,1), Twj_original_float(1,2), Twj_original_float(1,3), 
                             Twj_original_float(2,0), Twj_original_float(2,1), Twj_original_float(2,2), Twj_original_float(2,3), 
-                            Twj_original_float(3,0), Twj_original_float(3,1), Twj_original_float(3,2), Twj_original_float(3,3); 
+                            0.0, 0.0, 0.0, 1.0; 
             
             _BA_PoseSE3 Tjw_update = ba_params_->getPose(kf);
             Tjw_update = ba_params_->recoverOriginalScalePose(Tjw_update);
@@ -534,7 +534,7 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER)
             Tjw_update_float << Tjw_update(0,0),Tjw_update(0,1),Tjw_update(0,2),Tjw_update(0,3),
                                 Tjw_update(1,0),Tjw_update(1,1),Tjw_update(1,2),Tjw_update(1,3),
                                 Tjw_update(2,0),Tjw_update(2,1),Tjw_update(2,2),Tjw_update(2,3),
-                                Tjw_update(3,0),Tjw_update(3,1),Tjw_update(3,2),Tjw_update(3,3);
+                                0.0, 0.0, 0.0, 1.0; 
             kf->setPose(geometry::inverseSE3_f(Tjw_update_float));
         }
         for(_BA_Index i = 0; i < M_; ++i)
@@ -567,8 +567,8 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER)
                 lm->setDead();
         }
 
-        // if(flag_large_update)
-            //  throw std::runtime_error("large update!");
+        if(flag_large_update)
+             throw std::runtime_error("large update!");
     }
     else
     {

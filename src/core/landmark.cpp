@@ -237,7 +237,7 @@ LandmarkTracking::LandmarkTracking(const PixelVec& pts0_in, const PixelVec& pts1
     int cnt_alive = 0;
     for(int i = 0; i < n_pts_input; ++i)
     {
-        if(lms_in[i]->isAlive())
+        if( lms_in[i]->isAlive() )
         {
             index_valid.push_back(i);
             ++cnt_alive;

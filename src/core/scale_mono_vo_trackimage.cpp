@@ -227,7 +227,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 
 		timer::tic();
 
-		// VO initialized. Do track the new image.
+		// VO initialized. Do track the new image. (only get 'alive()' landmarks)
 		LandmarkTracking lmtrack_prev(frame_prev_->getPtsSeen(), frame_prev_->getPtsSeen(), frame_prev_->getRelatedLandmarkPtr());
 
 		// 이전 자세의 변화량을 가져온다. 
@@ -267,8 +267,6 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 		// frame_prev_ 의 lms 를 현재 이미지로 track. 5ms
 		timer::tic();
 		MaskVec  mask_track;
-		// tracker_->trackWithPrior(I0, I1, lmtrack_prev.pts0, params_.feature_tracker.window_size, params_.feature_tracker.max_level, params_.feature_tracker.thres_error,
-			// lmtrack_prev.pts1, mask_track);
 		tracker_->trackBidirectionWithPrior(I0, I1, lmtrack_prev.pts0, params_.feature_tracker.window_size, params_.feature_tracker.max_level, params_.feature_tracker.thres_error, params_.feature_tracker.thres_bidirection,
 			lmtrack_prev.pts1, mask_track);
 		std::cout << colorcode::text_green << "Time [track bidirection]: " << timer::toc(0) << " [ms]\n" << colorcode::cout_reset;
@@ -277,7 +275,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 
 		// Scale refinement 50ms
 		timer::tic();
-		MaskVec mask_refine(lmtrack_kltok.n_pts, true);
+		MaskVec mask_refine;
 		const cv::Mat& du0 = frame_prev_->getImageDu();
 		const cv::Mat& dv0 = frame_prev_->getImageDv();
 		tracker_->trackWithScale(
@@ -286,7 +284,6 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			mask_refine); // TODO (SCALE + Position KLT)
 
 		LandmarkTracking lmtrack_scaleok(lmtrack_kltok, mask_refine);
-		std::cout << "lmtrack_scaleok:" << lmtrack_scaleok.pts0.size() <<", " << lmtrack_scaleok.pts1.size() << ", " << lmtrack_scaleok.lms.size() << ", " << lmtrack_scaleok.scale_change.size() << "\n";
 		std::cout << colorcode::text_green << "Time [trackWithScale   ]: " << timer::toc(0) << " [ms]\n" << colorcode::cout_reset;
 		
 
@@ -318,21 +315,18 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			}
 		}
 		
-		PixelVec pts1_ba;
-		PixelVec pts1_proj_ba;
-		
 		MaskVec mask_motion(lmtrack_scaleok.n_pts, true); // pose-only BA로 가면 size가 줄어든다...
 		Rot3 dR10; Pos3 dt10; PoseSE3 dT10;
 		Rot3 dR01; Pos3 dt01; PoseSE3 dT01;
 		bool poseonlyBA_success = false;
-		if(index_ba.size() > 20)
+		if(index_ba.size() > 10)
 		{
 			// Do Local BA
 			int n_pts_ba = index_ba.size();
 			std::cout << " DO pose-only Bundle Adjustment... with [" << n_pts_ba <<"] points.\n";
 
-			pts1_ba.resize(n_pts_ba); 
-			pts1_proj_ba.resize(n_pts_ba);
+			PixelVec pts1_ba(n_pts_ba);
+			PixelVec pts1_proj_ba(n_pts_ba);
 			PointVec Xp_ba(n_pts_ba);
 			MaskVec  mask_ba(n_pts_ba, true);
 			for(int i = 0; i < n_pts_ba; ++i)
@@ -389,7 +383,6 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 				
 				if( true )
 					this->showTrackingBA("img_feautues", I1, pts1_ba, pts1_proj_ba); // show motion estimation result
-
 			}
 		}
 
@@ -427,13 +420,17 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 		
 		// Check sampson distance 0.01 ms
 		std::vector<float> symm_epi_dist;
-		motion_estimator_->calcSampsonDistance(lmtrack_motion.pts0, lmtrack_motion.pts1, cam_, dT10.block<3,3>(0,0), dT10.block<3,1>(0,3), symm_epi_dist);
+		motion_estimator_->calcSampsonDistance(lmtrack_motion.pts0, lmtrack_motion.pts1, cam_, 
+												dT10.block<3,3>(0,0), dT10.block<3,1>(0,3), symm_epi_dist);
+
 		MaskVec mask_sampson(lmtrack_motion.n_pts, true);
 		for(int i = 0; i < mask_sampson.size(); ++i)
 			mask_sampson[i] = symm_epi_dist[i] < params_.feature_tracker.thres_sampson;
 		
+
+		// Done. Add observations.
 		LandmarkTracking lmtrack_final(lmtrack_motion, mask_sampson);
-		for(int i = 0; i < lmtrack_final.pts0.size(); ++i)
+		for(int i = 0; i < lmtrack_final.pts1.size(); ++i)
 			lmtrack_final.lms[i]->addObservationAndRelatedFrame(lmtrack_final.pts1[i], frame_curr);
 				
 	
@@ -455,7 +452,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 		if( pts1_new.size() > 0 ){
 			// 새로운 특징점을 back-track.
 			PixelVec pts0_new;
-			MaskVec mask_new;
+			MaskVec  mask_new;
 			tracker_->trackBidirection(I1, I0, pts1_new, params_.feature_tracker.window_size, params_.feature_tracker.max_level, params_.feature_tracker.thres_error, params_.feature_tracker.thres_bidirection,
 				pts0_new, mask_new);
 
@@ -481,6 +478,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			}
 		}
 		std::cout << colorcode::text_green << "Time [New fts ext track]: " << timer::toc(0) << " [ms]\n" << colorcode::cout_reset;
+		
 		
 		// lms1와 pts1을 frame_curr에 넣는다.
 		frame_curr->setPtsSeenAndRelatedLandmarks(lmtrack_final.pts1, lmtrack_final.lms);

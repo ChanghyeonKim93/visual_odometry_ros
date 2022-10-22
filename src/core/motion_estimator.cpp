@@ -671,14 +671,13 @@ bool MotionEstimator::poseOnlyBundleAdjustment(const PointVec& X, const PixelVec
     int n_pts = X.size();
     mask_inlier.resize(n_pts);
     
-    int MAX_ITER = 250;
+    int MAX_ITER = 100;
     float THRES_HUBER        = 0.5f; // pixels
-    float THRES_DELTA_XI     = 1e-5;
-    float THRES_DELTA_ERROR  = 1e-6;
+    float THRES_DELTA_XI     = 1e-6;
+    float THRES_DELTA_ERROR  = 1e-7;
     float THRES_REPROJ_ERROR = thres_reproj_outlier; // pixels
 
-    float lambda = 0.01f;
-    float step_size = 1.0f;
+    float lambda = 0.00001f;
     
     float fx = cam->fx(); float fy = cam->fy();
     float cx = cam->cx(); float cy = cam->cy();
@@ -814,7 +813,6 @@ bool MotionEstimator::poseOnlyBundleAdjustment(const PointVec& X, const PixelVec
             JtWJ(i,i) *= (1.0f + lambda); // lambda 
 
         PoseSE3Tangent delta_xi = JtWJ.ldlt().solve(mJtWr);
-        delta_xi *= step_size;
 
         // Update matrix
         PoseSE3 dT;
@@ -825,7 +823,7 @@ bool MotionEstimator::poseOnlyBundleAdjustment(const PointVec& X, const PixelVec
         // std::cout << "reproj. err. (avg): " << err_curr << ", step: " << delta_xi.transpose() << std::endl;
         if(delta_xi.norm() < THRES_DELTA_XI || delta_err < THRES_DELTA_ERROR)
         {
-            std::cout << "poseonly BA stops at: " << iter <<", err: " << err_curr <<", derr: " << delta_err << ", # invalid: " << cnt_invalid << "\n";
+            std::cout << "poseonly BA stops at: " << iter <<", err: " << err_curr <<", derr: " << delta_err << ", deltaxi: " << delta_xi.norm() << ", # invalid: " << cnt_invalid << "\n";
             break;
         }
         if(iter == MAX_ITER-1)
@@ -834,7 +832,7 @@ bool MotionEstimator::poseOnlyBundleAdjustment(const PointVec& X, const PixelVec
         }
     }
 
-    if(!std::isnan(xi10.norm()))
+    if(!std::isnan(T10_optimized.norm()))
     {
         PoseSE3 T01_update;
         // geometry::se3Exp_f(-xi10, T01_update);
@@ -842,8 +840,10 @@ bool MotionEstimator::poseOnlyBundleAdjustment(const PointVec& X, const PixelVec
         R01_true = T01_update.block<3,3>(0,0);
         t01_true = T01_update.block<3,1>(0,3);
     }
-    else
+    else{
+        std::cout << "!! WARNING !! poseonly BA yields NAN value!!" <<", T10_optimized: \n" << T10_optimized << "\n";
         is_success = false;  // if nan, do not update.
+    }
 
     return is_success;
 };
@@ -913,9 +913,9 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     float THRES_PARALLAX    = 0.5*D2R; // landmark의 최소 parallax
 
     // Optimization paraameters
-    int   MAX_ITER          = 7;
+    int   MAX_ITER          = 10;
 
-    float lam               = 1e-3;  // for Levenberg-Marquardt algorithm
+    float lam               = 1e-5;  // for Levenberg-Marquardt algorithm
     float MAX_LAM           = 1.0f;  // for Levenberg-Marquardt algorithm
     float MIN_LAM           = 1e-4f; // for Levenberg-Marquardt algorithm
 
@@ -932,8 +932,8 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     float THRES_DELTA_THETA = 1e-7;
     float THRES_ERROR       = 1e-7;
 
-    int NUM_MINIMUM_REQUIRED_KEYFRAMES = 4; // 최소 keyframe 갯수.
-    int NUM_FIX_KEYFRAMES_IN_WINDOW    = 3; // optimization에서 제외 할 keyframe 갯수. 과거 순.
+    int NUM_MINIMUM_REQUIRED_KEYFRAMES = 3; // 최소 keyframe 갯수.
+    int NUM_FIX_KEYFRAMES_IN_WINDOW    = 2; // optimization에서 제외 할 keyframe 갯수. 과거 순.
 
     // Check whether there are enough keyframes
     if(kfs_window->getCurrentNumOfKeyframes() < NUM_MINIMUM_REQUIRED_KEYFRAMES)
@@ -979,21 +979,24 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     sparse_ba_solver_->reset();
     // double dt_reset = timer::toc(0);
 
-    std::cout << "==== Show Translations: \n";
-    for(int j = 0; j < ba_params->getNumOfOptimizeFrames(); ++j)
-    {
-        const FramePtr& f = ba_params->getOptFramePtr(j);
+    if(0){
+        std::cout << "==== Show Translations: \n";
+        for(int j = 0; j < ba_params->getNumOfOptimizeFrames(); ++j)
+        {
+            const FramePtr& f = ba_params->getOptFramePtr(j);
 
-        std::cout << "[" << f->getID() << "] frame's trans: " << f->getPose().block<3,1>(0,3).transpose() << "\n";
+            std::cout << "[" << f->getID() << "] frame's trans: " << f->getPose().block<3,1>(0,3).transpose() << "\n";
+        }
+
+        std::cout << "==== Show Points: \n";
+        for(int i = 0; i < ba_params->getNumOfOptimizeLandmarks(); ++i)
+        {
+            const LandmarkPtr& lm = ba_params->getOptLandmarkPtr(i);
+
+            std::cout << "[" << lm->getID() << "] point: " << lm->get3DPoint().transpose() << "\n";
+        }
     }
-
-    std::cout << "==== Show Points: \n";
-    for(int i = 0; i < ba_params->getNumOfOptimizeLandmarks(); ++i)
-    {
-        const LandmarkPtr& lm = ba_params->getOptLandmarkPtr(i);
-
-        std::cout << "[" << lm->getID() << "] point: " << lm->get3DPoint().transpose() << "\n";
-    }
+    
     
     // Time analysis
     // std::cout << "== LBA time to prepare: " << dt_prepare << " [ms]\n";
