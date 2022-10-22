@@ -181,6 +181,7 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame)
                     << " ======================                                =====================\n"
                     << " ======================                                =====================\n";
                 
+                // TODO
                 // Calculate refined scales of 'frames_turn_curr_'
                 int n_Fcurr = frames_turn_curr_.size();
                 std::vector<float> trans_norm_t1; // translation norm
@@ -188,9 +189,9 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame)
                 for(const FramePtr& f : frames_turn_curr_)
                 {
                     // Pos3 t01 = f->
-                    const PoseSE3& Twp = f->getPreviousTurningFrame()->getPose();
+                    const PoseSE3& Tpw = f->getPreviousTurningFrame()->getPoseInv();
                     const PoseSE3& Twc = f->getPose();
-                    PoseSE3 Tpc = Twp.inverse()*Twc;
+                    PoseSE3 Tpc = Tpw*Twc;
 
                     const Pos3& tpc = Tpc.block<3,1>(0,3);
 
@@ -198,7 +199,7 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame)
                     float trans_norm = tpc.norm();
                     float scale_raw  = f->getScaleRaw();
                     trans_norm_t1.push_back(trans_norm);
-                    ratios_t1.push_back(scale_raw/trans_norm);
+                    ratios_t1.push_back( scale_raw / trans_norm );
                 }
 
                 // Get median ratio
@@ -245,7 +246,6 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame)
                     // Run the Absolute Scale Recovery (ASR) Module.
                     asr_module_->runASR(
                         frames_turn_prev_, frames_unconstrained_, frames_turn_curr_);
-
 
                 }
                                             
