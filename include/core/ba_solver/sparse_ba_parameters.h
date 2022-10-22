@@ -59,36 +59,39 @@ public:
 public:
     const _BA_PoseSE3& getPose(const FramePtr& frame) {
         if(posemap_all_.find(frame) == posemap_all_.end())
-            throw std::runtime_error("posemap_all_.find(frame) == posemap_all_.end()");
+            throw std::runtime_error("In 'getPose()', posemap_all_.find(frame) == posemap_all_.end()");
         return posemap_all_.at(frame);
     };
+
     _BA_Index getOptPoseIndex(const FramePtr& frame){
         if(indexmap_opt_.find(frame) == indexmap_opt_.end())
-            throw std::runtime_error("indexmap_opt_.find(frame) == indexmap_opt_.end()");
+            throw std::runtime_error("In 'getOptPoseIndex()', indexmap_opt_.find(frame) == indexmap_opt_.end()");
         return indexmap_opt_.at(frame);
     };
+
     const FramePtr& getOptFramePtr(_BA_Index j_opt){
         if( j_opt >= framemap_opt_.size())
-            throw std::runtime_error("j_opt >= framemap_opt_.size()");
+            throw std::runtime_error("In 'getOptFramePtr()', j_opt >= framemap_opt_.size()");
         return framemap_opt_.at(j_opt);
     };
 
     const LandmarkBA& getLandmarkBA(_BA_Index i){
         if( i >= lmbavec_all_.size())
-            throw std::runtime_error("i >= lmbavec_all_.size()");
+            throw std::runtime_error("In 'getLandmarkBA()', i >= lmbavec_all_.size()");
         return lmbavec_all_.at(i);
     };
 
     // Reference version
     LandmarkBA& getLandmarkBARef(_BA_Index i){
         if( i >= lmbavec_all_.size())
-            throw std::runtime_error("i >= lmbavec_all_.size()");
+            throw std::runtime_error("In 'getLandmarkBARef()', i >= lmbavec_all_.size()");
         return lmbavec_all_.at(i);
     };
 
     const std::set<FramePtr>& getAllFrameset(){
         return frameset_all_;
     };
+
     const std::set<LandmarkPtr>& getAllLandmarkset(){
         return landmarkset_all_;
     };
@@ -101,7 +104,7 @@ public:
 public:
     void updateOptPoint(_BA_Index i, const _BA_Point& X_update){
         if(i >= M_ || i < 0)
-            throw std::runtime_error("i >= M_ || i < 0");
+            throw std::runtime_error("In 'updateOptPoint()', i >= M_ || i < 0");
         lmbavec_all_[i].X(0) = X_update(0);
         lmbavec_all_[i].X(1) = X_update(1);
         lmbavec_all_[i].X(2) = X_update(2);
@@ -109,36 +112,36 @@ public:
     
     void updateOptPose(_BA_Index j_opt, const _BA_PoseSE3& Tjw_update){
         if(j_opt >= N_opt_ || j_opt < 0) 
-            throw std::runtime_error("j_opt >= N_opt_  || j_opt < 0");
+            throw std::runtime_error("In 'updateOptPose()', j_opt >= N_opt_  || j_opt < 0");
 
         const FramePtr& kf_opt = framemap_opt_.at(j_opt);
         posemap_all_.at(kf_opt) = Tjw_update;
         
         if(std::isnan(Tjw_update.norm()))
-            throw std::runtime_error("Tjw update nan!");
+            throw std::runtime_error("In 'updateOptPose()', Tjw update nan!");
     };
 
     const _BA_Point& getOptPoint(_BA_Index i){
         if(i >= M_ || i < 0)
-            throw std::runtime_error("i >= M_ || i < 0");
+            throw std::runtime_error("In 'getOptPoint()', i >= M_ || i < 0");
         return lmbavec_all_[i].X;
     };
 
     const LandmarkPtr& getOptLandmarkPtr(_BA_Index i){
         if(i >= M_ || i < 0)
-            throw std::runtime_error("i >= M_ || i < 0");
+            throw std::runtime_error("In 'getOptLandmarkPtr()', i >= M_ || i < 0");
         return lmbavec_all_[i].lm;
     };
 
     LandmarkPtr& getOptLandmarkPtrRef(_BA_Index i){
         if(i >= M_ || i < 0)
-            throw std::runtime_error("i >= M_ || i < 0");
+            throw std::runtime_error("In 'getOptLandmarkPtrRef()', i >= M_ || i < 0");
         return lmbavec_all_[i].lm;
     };
 
     const _BA_PoseSE3& getOptPose(_BA_Index j_opt){
         if(j_opt >= N_opt_ || j_opt < 0) 
-            throw std::runtime_error("j_opt >= N_opt_ || j_opt < 0");
+            throw std::runtime_error("In 'getOptPose()', j_opt >= N_opt_ || j_opt < 0");
         const FramePtr& kf_opt = framemap_opt_.at(j_opt);
         return posemap_all_.at(kf_opt);
     };
@@ -153,6 +156,7 @@ public:
         _BA_Point Xw = Tjw_ref_.block<3,3>(0,0)*X + Tjw_ref_.block<3,1>(0,3);
         return Xw;
     };
+
     _BA_Point warpToWorld(const _BA_Point& X){
         _BA_Point Xw = Twj_ref_.block<3,3>(0,0)*X + Twj_ref_.block<3,1>(0,3);
         return Xw;
@@ -162,6 +166,7 @@ public:
         _BA_PoseSE3 Tjref = Tjw*Twj_ref_;
         return Tjref;
     };
+
     _BA_PoseSE3 changeInvPoseRefToWorld(const _BA_PoseSE3& Tjref){
         _BA_PoseSE3 Tjw = Tjref*Tjw_ref_;
         return Tjw;
@@ -171,10 +176,12 @@ public:
         _BA_Point X_scaled = X*inv_pose_scale_;
         return X_scaled;
     };
+
     _BA_Point recoverOriginalScalePoint(const _BA_Point& X){
         _BA_Point X_recovered = X*pose_scale_;
         return X_recovered;  
     };
+
     _BA_PoseSE3 scalingPose(const _BA_PoseSE3& Tjw){
         _BA_PoseSE3 Tjw_scaled = Tjw;
         Tjw_scaled(0,3) *= inv_pose_scale_;
@@ -182,6 +189,7 @@ public:
         Tjw_scaled(2,3) *= inv_pose_scale_;
         return Tjw_scaled;
     };
+    
     _BA_PoseSE3 recoverOriginalScalePose(const _BA_PoseSE3& Tjw_scaled){
         _BA_PoseSE3 Tjw_org = Tjw_scaled;
         Tjw_org(0,3) *= pose_scale_;

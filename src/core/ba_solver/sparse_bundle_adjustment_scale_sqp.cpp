@@ -70,6 +70,7 @@ void SparseBundleAdjustmentScaleSQPSolver::setBAParametersAndConstraints(
     this->N_     = this->ba_params_->getNumOfAllFrames(); // Fixed frame == 0-th frame.
     this->N_opt_ = this->ba_params_->getNumOfOptimizeFrames(); // Opt. frames == all frames except for 0-th frame. Thus, N_opt == N - 1
     this->M_     = this->ba_params_->getNumOfOptimizeLandmarks(); // M
+    
     this->n_obs_ = this->ba_params_->getNumOfObservations(); // OK
 
     this->K_     = this->scale_const_->getNumOfConstraint(); // # of constraints
@@ -390,7 +391,7 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
                 } // END is_opt_frame
 
                 _BA_Numeric err_tmp = rij.transpose()*rij;
-                err_tmp *= weight;
+                // err_tmp *= weight;
                 err += err_tmp;
 
                 ++cnt;
@@ -661,9 +662,9 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
         constraint_error /= (double)K_;
 
         // Pixel error
-        _BA_Numeric average_error = 0.5*err/(_BA_Numeric)n_obs_;
+        _BA_Numeric average_error = std::sqrt(err/(_BA_Numeric)n_obs_);
             
-        std::cout << iter << "-th iter, error : " << average_error <<" [px], constraint error: " << constraint_error*100.0 << " [m]\n";
+        std::cout << "SQP/ " << iter << "-th itr, err: " << average_error <<" [px], constraint error: " << constraint_error*100.0 << " [m]\n";
 
         // Check extraordinary cases.
         // flag_nan_pass   = std::isnan(err) ? false : true;
@@ -894,9 +895,8 @@ void SparseBundleAdjustmentScaleSQPSolver::initializeLagrangeMultipliers()
                 a_[j].noalias() += -Qij_t_rij; // FILL STORAGE (4)
 
                 if(std::isnan(Qij_t_rij.norm()) )
-                {
                     throw std::runtime_error("In BASQP, pose becomes nan!");
-                }
+
             } // END is_opt_frame
         } // END jj of i-th point
     } // END i-th point

@@ -979,22 +979,23 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     sparse_ba_solver_->reset();
     // double dt_reset = timer::toc(0);
 
-    if(0){
+    if(1){
         std::cout << "==== Show Translations: \n";
         for(int j = 0; j < ba_params->getNumOfOptimizeFrames(); ++j)
         {
             const FramePtr& f = ba_params->getOptFramePtr(j);
 
-            std::cout << "[" << f->getID() << "] frame's trans: " << f->getPose().block<3,1>(0,3).transpose() << "\n";
+            std::cout << "[" << f->getID() << "] frame's trans: " 
+                             << f->getPose().block<3,1>(0,3).transpose() << "\n";
         }
 
-        std::cout << "==== Show Points: \n";
-        for(int i = 0; i < ba_params->getNumOfOptimizeLandmarks(); ++i)
-        {
-            const LandmarkPtr& lm = ba_params->getOptLandmarkPtr(i);
+        // std::cout << "==== Show Points: \n";
+        // for(int i = 0; i < ba_params->getNumOfOptimizeLandmarks(); ++i)
+        // {
+        //     const LandmarkPtr& lm = ba_params->getOptLandmarkPtr(i);
 
-            std::cout << "[" << lm->getID() << "] point: " << lm->get3DPoint().transpose() << "\n";
-        }
+        //     std::cout << "[" << lm->getID() << "] point: " << lm->get3DPoint().transpose() << "\n";
+        // }
     }
     
     

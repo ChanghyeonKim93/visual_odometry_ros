@@ -301,7 +301,8 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER)
                     //     throw std::runtime_error("In LBA, pose becomes nan!");
                     // }
                 } 
-                _BA_Numeric err_tmp = weight*rij.transpose()*rij;
+                _BA_Numeric err_tmp = rij.transpose()*rij;
+                // err_tmp *= weight;
                 err += err_tmp;
 
                 ++cnt;
@@ -465,9 +466,9 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER)
         this->getPosesPointsFromParameterVector();
 
 
-        _BA_Numeric average_error = 0.5*err/(_BA_Numeric)n_obs_;
+        _BA_Numeric average_error = std::sqrt(err/(_BA_Numeric)n_obs_);
             
-        std::cout << "LBA/ " << iter << "-th iter, error : " << average_error << "\n";
+        std::cout << "LBA/ " << iter << "-th itr, err: " << average_error << " [px]\n";
 
         // Check extraordinary cases.
         flag_nan_pass   = std::isnan(err) ? false : true;
@@ -498,6 +499,15 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER)
             }
             throw std::runtime_error("nan ......n.n,dgfmksermfoiaejrof");
     
+        }
+
+
+        std::cout << "==== Show Translations: \n";
+        for(int j = 0; j < ba_params_->getNumOfOptimizeFrames(); ++j)
+        {
+            const FramePtr& f = ba_params_->getOptFramePtr(j);
+
+            std::cout << "[" << f->getID() << "] frame's trans: " << f->getPose().block<3,1>(0,3).transpose() << "\n";
         }
 
     } // END iter
