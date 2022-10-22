@@ -502,7 +502,7 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER)
         }
 
 
-        std::cout << "==== Show Translations: \n";
+        std::cout << "   ==== Show Translations: \n";
         for(int j = 0; j < ba_params_->getNumOfOptimizeFrames(); ++j)
         {
             const FramePtr& f = ba_params_->getOptFramePtr(j);
@@ -686,6 +686,7 @@ void SparseBundleAdjustmentSolver::getPosesPointsFromParameterVector()
         _BA_PoseSE3 Tjw ;
         geometry::se3Exp(params_poses_[j_opt], Tjw);
         ba_params_->updateOptPose(j_opt,Tjw);
+        std::cout << j_opt << "-th trans: " << Tjw.block<3,1>(0,3).transpose() << std::endl;
     }
     // point part
     for(_BA_Index i = 0; i < M_; ++i)
