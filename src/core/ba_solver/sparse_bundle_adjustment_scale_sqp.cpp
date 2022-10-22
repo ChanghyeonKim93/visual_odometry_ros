@@ -283,8 +283,6 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
             const _BA_PixelVec& pts  = lmba.pts_on_kfs;
             const _BA_ErrorVec& err_on_kfs = lmba.err_on_kfs;
 
-            if( Xi.norm() > 1000) continue;
-
             // For j-th landmark
             for(_BA_Index jj = 0; jj < kfs.size(); ++jj)
             {
