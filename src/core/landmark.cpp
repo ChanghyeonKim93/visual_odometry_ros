@@ -63,7 +63,8 @@ void Landmark::set3DPoint(const Point& Xw) {
 };
 
 void Landmark::setBundled() { 
-    is_bundled_ = true; 
+    is_triangulated_ = true;
+    is_bundled_      = true; 
 };
 
 void Landmark::addObservationAndRelatedFrame(const Pixel& p, const FramePtr& frame) 

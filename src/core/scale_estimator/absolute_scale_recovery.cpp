@@ -57,7 +57,12 @@ void AbsoluteScaleRecovery::runASR(
     idx_fix.push_back(0); // Set the first frame fixed.
     for(int i = 1; i < N; ++i) idx_opt.push_back(i); // The others are in optimization.
 
-    std::cerr << " N : "<< N <<", frames_all.size(): " << frames_all.size() << ", idx_fix.size() + idx_opt.size() : " << idx_fix.size() + idx_opt.size() << std::endl;
+    std::cerr 
+        << " N : " << N 
+        << ", frames_all.size(): " << frames_all.size()
+        << ", idx_fix.size(): " << idx_fix.size() 
+        << ", idx_opt.size(): " << idx_opt.size() 
+        << ", idx_fix.size() + idx_opt.size() : " << idx_fix.size() + idx_opt.size() << std::endl;
 
     if( N != frames_all.size() || N != (idx_fix.size() + idx_opt.size()) )
         throw std::runtime_error("In 'runASR()', N != frames_all.size() || N != (idx_fix.size() + idx_opt.size()).");

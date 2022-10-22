@@ -243,8 +243,8 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame)
                 {
 
                     // Run the Absolute Scale Recovery (ASR) Module.
-                    // asr_module_->runASR(
-                    //     frames_turn_prev_, frames_unconstrained_, frames_turn_curr_);
+                    asr_module_->runASR(
+                        frames_turn_prev_, frames_unconstrained_, frames_turn_curr_);
 
 
                 }

@@ -2,10 +2,9 @@
 
 Keyframes::Keyframes()
 : THRES_OVERLAP_FEATURE_RATIO_(0.7),
-THRES_ROTATION_(4.0f*D2R),
-THRES_TRANSLATION_(2.0f),
+THRES_ROTATION_(3.0f*D2R), THRES_TRANSLATION_(1.0f),
 N_MAX_KEYFRAMES_IN_WINDOW_(7)
-{ 
+{
 
 };
 
@@ -40,27 +39,26 @@ bool Keyframes::checkUpdateRule(const FramePtr& frame_curr)
 
     if(!flag_addkeyframe)
     {   
+        // 1) Check overlapping ratio
         // 키프레임이 이미 있는 경우에 대한 고려임.
         // 각 키프레임에 얼마나 많은 landmarks가 추적되었는지 계산하기.
         std::vector<float> tracking_ratios;
         for(std::list<FramePtr>::iterator it = kfs_list_.begin(); it != kfs_list_.end(); ++it)
         {
+            // 과거 시점의 키프레임
             const FramePtr& kf = *it;
 
             // calculate tracking ratio
-            int cnt_tracked   = 0;
-            int cnt_total_lms = 0;
+            int cnt_tracked   = 0; // 과거 특정 키프레임에서 보였던 landmark 중 현재 프레임으로 추적 된 개수
+            int cnt_total_lms = 0; // 과거 특정 키프레임에서 보였던 모든 landmark갯수
+            int cnt_alive_lms = 0; // 과거 특정 키프레임에서 보였던 landmark중 살아있는 것 개수
             for(const auto& lm : kf->getRelatedLandmarkPtr())
             {
-                // if(lm->isAlive()){
-                    ++cnt_total_lms;
+                ++cnt_total_lms;
 
-                    if(lm->getRelatedFramePtr().back() == frame_curr) 
-                        ++cnt_tracked; // kf의 landmark가 현재 프레임으로 추적 되었는지.
-
-                // }
+                if(lm->getRelatedFramePtr().back() == frame_curr) 
+                    ++cnt_tracked; // kf의 landmark가 현재 프레임으로 추적 되었는지.
             }
-            
             float tracking_ratio = (float)cnt_tracked/(float)cnt_total_lms;
             tracking_ratios.push_back(tracking_ratio);
         }
@@ -75,14 +73,14 @@ bool Keyframes::checkUpdateRule(const FramePtr& frame_curr)
         if(tracking_ratios.back() <= THRES_OVERLAP_FEATURE_RATIO_) 
             flag_addkeyframe = true;
         
-        // Check rotation & translation
-        const PoseSE3& Twk_last = kfs_list_.back()->getPose();
+        // 2) Check rotation & translation
+        const PoseSE3& Tkw_last = kfs_list_.back()->getPoseInv();
         const PoseSE3& Twc = frame_curr->getPose();
-        PoseSE3 dT = Twk_last.inverse()*Twc;
+        PoseSE3 dT = Tkw_last * Twc;
         if(!flag_addkeyframe)
         {
             // rotation & translation
-            float costheta = (dT(0,0)+dT(1,1)+dT(2,2) - 1)*0.5f;
+            float costheta = (dT(0,0)+dT(1,1)+dT(2,2) - 1.0f)*0.5f;
             if(costheta >=  0.999999) costheta =  0.999999;
             if(costheta <= -0.999999) costheta = -0.999999;
             float rot = acos(costheta);
@@ -93,7 +91,7 @@ bool Keyframes::checkUpdateRule(const FramePtr& frame_curr)
         }
     }
 
-    // Visualization
+    // Visualization if new keyframe is needed.
     if( flag_addkeyframe ) 
     {
         std::cout << "       ADD NEW KEYFRAME. keyframe id: ";
@@ -103,7 +101,7 @@ bool Keyframes::checkUpdateRule(const FramePtr& frame_curr)
         }
         std::cout << "\n";
     }
-    else 
+    else // No need of new keyframe
         std::cout << "       Don't add keyframe.\n";
 
     return flag_addkeyframe;

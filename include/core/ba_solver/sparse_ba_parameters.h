@@ -217,6 +217,8 @@ public:
         N_fix_ = idx_fix.size();
         N_opt_ = idx_optimize.size();
 
+        std::cout << "In 'setPosesAndPoints()', N: " << N_ << ", N_fix: "<< N_fix_ << ", N_opt: " << N_opt_ << std::endl;
+
         if( N_ != N_fix_ + N_opt_ ) 
             throw std::runtime_error(" N != N_fix + N_opt ");
         
@@ -234,7 +236,7 @@ public:
             for(const auto& lm : kf->getRelatedLandmarkPtr())
             { 
                 // 현재 keyframe에서 보인 모든 landmark 순회
-                if( lm->isTriangulated() && lm->isAlive() ) // age > THRES, triangulate() == true 경우 포함.
+                if( lm->isTriangulated() ) // age > THRES, triangulate() == true 경우 포함.
                     lmset_window.insert(lm);
             }
         }
@@ -294,7 +296,7 @@ public:
         M_ = lmbavec_all_.size();
         N_ = frameset_all_.size(); 
         N_fix_ = N_ - N_opt_;
-        // std::cout << "Recomputed N: " << N_ <<", N_fix + N_opt: " << N_fix_ << "+" << N_opt_ << std::endl;
+        std::cout << "Recomputed N: " << N_ <<", N_fix + N_opt: " << N_fix_ << "+" << N_opt_ << std::endl;
 
         // 4) set poses for all frames
         for(const auto& kf : frameset_all_)
