@@ -183,6 +183,13 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame)
                 
                 // TODO
                 // Calculate refined scales of 'frames_turn_curr_'
+                 float scale_raw = this->calcScale(psi_pc, tpc, this->L_);
+                frame->makeThisTurningFrame(frame_prev_); // 이전 프레임을 함께 넣어줘야한다. 이전 프레임도 키프레임일텐데 ? 
+                frame->setSteeringAngle(psi_pc);        
+                frame->setScaleRaw(scale_raw);
+                // frame->setScale(); // It can be calculated.
+                
+                frames_turn_curr_.push_back(frame);
                 int n_Fcurr = frames_turn_curr_.size();
                 std::vector<float> trans_norm_t1; // translation norm
                 std::vector<float> ratios_t1; // ratio ( ==  scale_raw / trans.norm() )
@@ -258,7 +265,7 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame)
                 cnt_turn_ = 0;
 
                 // The current frame becomes a unconstrained frame.
-                frames_unconstrained_.push_back(frame);
+                // frames_unconstrained_.push_back(frame);
             }
             else
             {
