@@ -9,23 +9,23 @@ ScaleEstimator::ScaleEstimator(
 : frame_prev_(nullptr), L_(L), cnt_turn_(0)
 {
     // Setting camera
-    cam_ = cam;
+    this->cam_ = cam;
 
     // Generate SFP, ASR
-    sfp_module_ = std::make_shared<ScaleForwardPropagation>(cam);
-    asr_module_ = std::make_shared<AbsoluteScaleRecovery>(cam);
+    this->sfp_module_ = std::make_shared<ScaleForwardPropagation>(cam);
+    this->asr_module_ = std::make_shared<AbsoluteScaleRecovery>(cam);
 
     // Mutex from the outside
-    mut_         = mut;
-    cond_var_    = cond_var;
-    flag_do_ASR_ = flag_do_ASR;
+    this->mut_         = mut;
+    this->cond_var_    = cond_var;
+    this->flag_do_ASR_ = flag_do_ASR;
 
     // Detecting turn region variables
-    this->setTurnRegion_ThresPsi(2.0*M_PI/180.0);
+    this->setTurnRegion_ThresPsi(3.0*M_PI/180.0);
     this->setTurnRegion_ThresCountTurn(8);
 
     // Run process thread.
-    terminate_future_ = terminate_promise_.get_future();
+    this->terminate_future_ = terminate_promise_.get_future();
     this->runThread();
 
     printf(" - SCALE_ESTIMATOR is constructed.\n");

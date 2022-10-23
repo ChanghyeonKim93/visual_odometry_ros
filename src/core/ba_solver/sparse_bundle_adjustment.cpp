@@ -686,7 +686,7 @@ void SparseBundleAdjustmentSolver::getPosesPointsFromParameterVector()
         _BA_PoseSE3 Tjw ;
         geometry::se3Exp(params_poses_[j_opt], Tjw);
         ba_params_->updateOptPose(j_opt,Tjw);
-        std::cout << j_opt << "-th trans: " << Tjw.block<3,1>(0,3).transpose() << std::endl;
+        std::cout << j_opt << "-th trans: " << 10.0 * Tjw.block<3,1>(0,3).transpose() << std::endl;
     }
     // point part
     for(_BA_Index i = 0; i < M_; ++i)
@@ -760,8 +760,8 @@ inline void SparseBundleAdjustmentSolver::calc_Rij_t_Rij(const _BA_Mat23& Rij,
     Rij_t_Rij(2,0) = Rij_t_Rij(0,2);
 
     Rij_t_Rij(2,1) = Rij_t_Rij(1,2);
-
 };
+
 inline void SparseBundleAdjustmentSolver::calc_Rij_t_Rij_weight(const _BA_Numeric weight, const _BA_Mat23& Rij,
     _BA_Mat33& Rij_t_Rij)
 {
