@@ -332,7 +332,7 @@ void FeatureTracker::trackWithScale(
         }
     }
     n_elem = ind;
-    std::cout << "n_elem: " << n_elem << std::endl;
+    // std::cout << "n_elem: " << n_elem << std::endl;
 
     // containers
     std::vector<float> I0_patt(n_elem);

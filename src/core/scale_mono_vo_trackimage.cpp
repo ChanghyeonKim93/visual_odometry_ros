@@ -240,7 +240,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 		PoseSE3 Tcw_prev   = geometry::inverseSE3_f(Twc_prev);
 
 		PoseSE3 dT01_prior = frame_prev_->getPoseDiff01();
-		PoseSE3 Twc_prior  = Twc_prev*dT01_prior;
+		PoseSE3 Twc_prior  = Twc_prev * dT01_prior;
 		PoseSE3 Tcw_prior  = geometry::inverseSE3_f(Twc_prior);
 		
 		std::cout << " CURRENT REFERENCE KEYFRAME : " << keyframe_ref_->getID() << std::endl;
@@ -330,7 +330,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 		{
 			// Do Local BA
 			int n_pts_ba = index_ba.size();
-			std::cout << " DO pose-only Bundle Adjustment... with [" << n_pts_ba <<"] points.\n";
+			std::cout << colorcode::text_magenta << "DO pose-only Bundle Adjustment... with [" << n_pts_ba <<"] points.\n" << colorcode::cout_reset;
 
 			PixelVec pts1_ba(n_pts_ba);
 			PixelVec pts1_proj_ba(n_pts_ba);
@@ -494,29 +494,27 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 	}
 
 	// Check keyframe update rules.
-	bool flag_add_new_keyframe = keyframes_->checkUpdateRule(frame_curr);
+	bool flag_add_new_keyframe = this->keyframes_->checkUpdateRule(frame_curr);
 
 	if( flag_add_new_keyframe ) // 새로운 키프레임 추가.
 	{
 		// Add new keyframe
 		timer::tic();
 		this->saveKeyframe(frame_curr);
-		keyframes_->addNewKeyframe(frame_curr);
+		this->keyframes_->addNewKeyframe(frame_curr);
 		this->keyframe_ref_ = frame_curr;
 
-		// Reconstruct map points
-		// lms1_final 중, depth가 복원되지 않은 경우 복원해준다.
+		// Reconstruct map points. 새로 만들어진 keyframe에서 보인 landmarks 중 reconstruction이 되지 않은 경우, DLT로 초기화 해준다.
 		uint32_t cnt_recon = 0;
 		for(const auto& lm : frame_curr->getRelatedLandmarkPtr())
 		{
-			if( lm->isTracked() 
-			&& lm->isAlive()
+			if( lm->isAlive()
 			&& !lm->isTriangulated() 
 			&& lm->getLastParallax() >= THRES_PARALLAX )
 			{
 				if( lm->getObservationsOnKeyframes().size() > 2 )
 				{
-					// 2번 이상 keyframe에서 보였다.
+					// 3번 이상 keyframe에서 보였다.
 					const Pixel& pt0 = lm->getObservationsOnKeyframes().front();
 					const Pixel& pt1 = lm->getObservationsOnKeyframes().back();
 
@@ -533,18 +531,13 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 					// Check reprojection error for the first image
 					Pixel pt0_proj = cam_->projectToPixel(X0);
 					Pixel dpt0 = pt0 - pt0_proj;
-
 					float dpt0_norm2 = dpt0.x*dpt0.x + dpt0.y*dpt0.y;
-					if(dpt0_norm2 > 1.0) 
-						continue;
-
+					if(dpt0_norm2 > 1.0) continue;
 
 					Pixel pt1_proj = cam_->projectToPixel(X1);
 					Pixel dpt1 = pt1 - pt1_proj;
-
 					float dpt1_norm2 = dpt1.x*dpt1.x + dpt1.y*dpt1.y;
-					if(dpt1_norm2 > 1.0) 
-						continue;
+					if(dpt1_norm2 > 1.0) continue;
 
 					// Check the point in front of cameras
 					if(X0(2) > 0 && X1(2) > 0) 
@@ -556,11 +549,10 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 				}
 			}
 		}
-
-		// Local BA
-		motion_estimator_->localBundleAdjustmentSparseSolver(keyframes_, cam_);
-		
 		std::cout << "    # of newly reconstructed points: " << cnt_recon << std::endl;
+
+		// Local Bundle Adjustment
+		motion_estimator_->localBundleAdjustmentSparseSolver(keyframes_, cam_);
 		std::cout << colorcode::text_green << "Time [keyframe addition]: " << timer::toc(0) << " [ms]\n" << colorcode::cout_reset;
 
 		// Add this frame to the scale estimator
@@ -657,16 +649,15 @@ std::cout << colorcode::text_green << "Time [RECORD KEYFR STAT]: " << timer::toc
 	
 	// Replace the 'frame_prev_' with 'frame_curr'
 	this->frame_prev_ = frame_curr;
-	if(this->keyframe_ref_ == nullptr)
-		this->keyframe_ref_ = this->frame_prev_;
+	if(this->keyframe_ref_ == nullptr) this->keyframe_ref_ = this->frame_prev_;
 
 	// Visualization 3D points
 	PointVec X_world_recon;
 	X_world_recon.reserve(all_landmarks_.size());
-	for(const auto& lm : all_landmarks_){
+	for(const auto& lm : all_landmarks_)
 		if(lm->isTriangulated()) 
 			X_world_recon.push_back(lm->get3DPoint());
-	}
+	
 	std::cout << "# of all landmarks: " << X_world_recon.size() << std::endl;
 
 #ifdef RECORD_FRAME_STAT
@@ -679,9 +670,9 @@ statcurr_frame.mappoints = X_world_recon;
 	// stat_.stats_frame.resize(0);
 	stat_.stats_frame.push_back(statcurr_frame);
 	
-	for(int j = 0; j < this->all_frames_.size(); ++j){
+	for(int j = 0; j < this->all_frames_.size(); ++j)
 		stat_.stats_frame[j].Twc = all_frames_[j]->getPose();
-	}
+
 	stat_.stats_execution.push_back(statcurr_execution);
 	std::cout << "Statistics Updated. size: " << stat_.stats_landmark.size() << "\n";
 

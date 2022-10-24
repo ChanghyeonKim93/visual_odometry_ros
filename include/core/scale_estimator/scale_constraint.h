@@ -146,7 +146,7 @@ public:
             fmajor_to_fminor_map_.insert({f_major, f_minor});
             fminor_to_fmajor_map_.insert({f_minor, f_major});
 
-            std::cout << "scale const of " << k << "-th: " << scales[k] << ", raw: " << f_major->getScaleRaw() << std::endl;
+            std::cout << "scale const of " << k << "-th: " << scales[k] << ", raw: " << f_major->getScaleRaw() << ", psi: " << f_major->getSteeringAngle()*57.1 <<" [deg]" << std::endl;
         }
 
         // Check ! 
