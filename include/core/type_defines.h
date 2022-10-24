@@ -80,7 +80,9 @@ struct StereoFrame;
 typedef std::shared_ptr<StereoFrame>    StereoFramePtr;
 typedef std::vector<StereoFramePtr>     StereoFramePtrVec;
 
-// For large matrix
+
+
+// For large matrix (for SFP, depricated)
 typedef Eigen::SparseMatrix<float> SpMat;
 typedef Eigen::SparseVector<float> SpVec;
 typedef Eigen::SparseMatrix<float>::Scalar SpScalar;

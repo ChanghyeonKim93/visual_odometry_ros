@@ -47,7 +47,9 @@ class SparseBundleAdjustmentSolver;
 class SparseBundleAdjustmentSolver
 {
 private:
-    std::shared_ptr<Camera> cam_;
+    std::vector<std::shared_ptr<Camera>> cams_;
+    int n_cams_;
+    bool is_stereo_;
 
 private:
     // Storages to solve Schur Complement
@@ -100,7 +102,7 @@ private:
 
 public:
     /// @brief Constructor for BundleAdjustmentSolver ( se3 (6-DoF), 3D points (3-DoF) ). Sparse solver with 6x6 block diagonals, 3x3 block diagonals, 6x3 and 3x6 blocks.
-    SparseBundleAdjustmentSolver();
+    SparseBundleAdjustmentSolver(bool is_stereo);
 
     /// @brief Set connectivities, variables...
     /// @param ba_params bundle adjustment parameters
@@ -113,6 +115,11 @@ public:
     /// @brief Set camera pointer
     /// @param cam camera pointer
     void setCamera(const std::shared_ptr<Camera>& cam);
+
+    /// @brief Set stereo camera pointers. Before call this function, 'is_stereo' should be set to 'true'.
+    /// @param cam0 camera pointer (left)
+    /// @param cam1 camera pointer (right)
+    void setStereoCameras(const std::shared_ptr<Camera>& cam0, const std::shared_ptr<Camera>& cam1);
 
     /// @brief Solve the BA for fixed number of iterations
     /// @param MAX_ITER Maximum iterations

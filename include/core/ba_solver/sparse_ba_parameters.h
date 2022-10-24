@@ -19,11 +19,19 @@
 /// @brief parameter class for Sparse Bundle Adjustment
 class SparseBAParameters 
 {
+private:
+    bool is_stereo_;
+
 private: // Reference Pose and scaling factor for numerical stability
     _BA_PoseSE3 Twj_ref_;
     _BA_PoseSE3 Tjw_ref_;
     _BA_Numeric pose_scale_;
     _BA_Numeric inv_pose_scale_;
+
+
+    _BA_PoseSE3 T_stereo_; // Stereo pose from the left to right (the first to the second)
+    _BA_PoseSE3 T_stereo_inv_; // Stereo pose from the left to right (the first to the second)
+
 
 private: // all frames and landmarks used for BA.
     std::set<FramePtr>       frameset_all_;
@@ -32,7 +40,7 @@ private: // all frames and landmarks used for BA.
 private: 
     int N_; // total number of frames
     int N_opt_; // # of optimizable frames
-    int N_fix_; // # of fixed frames (to prevent gauge freedom)
+    int N_nonopt_; // # of non-optimizable frames (to prevent gauge freedom)
 
     int M_; // total number of landmarks (all landmarks is to be optimized if they satisty the conditions.) 
 
@@ -51,7 +59,7 @@ private:
 public:
     inline int getNumOfAllFrames()         const { return N_; };
     inline int getNumOfOptimizeFrames()    const { return N_opt_; };
-    inline int getNumOfFixedFrames()       const { return N_fix_; };
+    inline int getNumOfFixedFrames()       const { return N_nonopt_; };
     inline int getNumOfOptimizeLandmarks() const { return M_; };
     inline int getNumOfObservations()      const { return n_obs_; };
 
@@ -98,6 +106,10 @@ public:
 
     const std::map<FramePtr,_BA_PoseSE3>& getPosemap(){
         return posemap_all_;
+    };
+
+    const _BA_PoseSE3& getStereoPose(){
+        return T_stereo_;
     };
 
 // Update and get methods (Pose and Point)
@@ -150,6 +162,7 @@ public:
 public:
     bool isOptFrame(const FramePtr& f) {return (indexmap_opt_.find(f) != indexmap_opt_.end() ); };
     bool isFixFrame(const FramePtr& f) {return (indexmap_opt_.find(f) == indexmap_opt_.end() ); };
+    bool isStereoMode() const { return is_stereo_; };
 
 public:
     _BA_Point warpToRef(const _BA_Point& X){
@@ -201,10 +214,26 @@ public:
 // Set methods
 public:
     SparseBAParameters() 
-    : N_(0), N_opt_(0), N_fix_(0), M_(0), n_obs_(0),
-    pose_scale_(10.0), inv_pose_scale_(1.0/pose_scale_)
+    : N_(0), N_opt_(0), N_nonopt_(0), M_(0), n_obs_(0),
+    pose_scale_(10.0), inv_pose_scale_(1.0/pose_scale_), is_stereo_(false)
     { 
 
+    };
+
+    SparseBAParameters(bool is_stereo, const PoseSE3& T_stereo) 
+    : N_(0), N_opt_(0), N_nonopt_(0), M_(0), n_obs_(0),
+    pose_scale_(10.0), inv_pose_scale_(1.0/pose_scale_), is_stereo_(true)
+    { 
+        if(!is_stereo)
+            throw std::runtime_error("is_stereo should be set 'true' when T_stereo is given!");
+        
+        T_stereo_ << 
+            T_stereo(0,0), T_stereo(0,1), T_stereo(0,2), T_stereo(0,3),
+            T_stereo(1,0), T_stereo(1,1), T_stereo(1,2), T_stereo(1,3),
+            T_stereo(2,0), T_stereo(2,1), T_stereo(2,2), T_stereo(2,3),
+            T_stereo(3,0), T_stereo(3,1), T_stereo(3,2), T_stereo(3,3);
+
+        T_stereo_inv_ = geometry::inverseSE3(T_stereo_);
     };
 
     ~SparseBAParameters()
@@ -217,17 +246,31 @@ public:
         const _BA_IndexVec& idx_fix, 
         const _BA_IndexVec& idx_optimize)
     {
+        /*
+            - Note -
+            right image는 observation을 제공하지만, 해당 이미지의 포즈는 최적화 대상이 아님.
+            right image와 관련된 left image 의 pose만 최적화 함. 
+            
+            '모든 프레임 셋'에 left/right images 모두 포함.
+            '
+        */
+
+        if(is_stereo_){
+            T_stereo_     = this->scalingPose(T_stereo_);
+            T_stereo_inv_ = this->scalingPose(T_stereo_inv_);
+        }
+
         // Threshold
         int THRES_MINIMUM_SEEN = 2;
 
         N_     = frames.size();
 
-        N_fix_ = idx_fix.size();
+        N_nonopt_ = idx_fix.size();
         N_opt_ = idx_optimize.size();
 
-        std::cout << "In 'setPosesAndPoints()', N: " << N_ << ", N_fix: "<< N_fix_ << ", N_opt: " << N_opt_ << std::endl;
+        std::cout << "In 'setPosesAndPoints()', N: " << N_ << ", N_fix: "<< N_nonopt_ << ", N_opt: " << N_opt_ << std::endl;
 
-        if( N_ != N_fix_ + N_opt_ ) 
+        if( N_ != N_nonopt_ + N_opt_ ) 
             throw std::runtime_error(" N != N_fix + N_opt ");
         
 
@@ -303,23 +346,26 @@ public:
         // 3) re-initialize N, N_fix, M
         M_ = lmbavec_all_.size();
         N_ = frameset_all_.size(); 
-        N_fix_ = N_ - N_opt_;
-        std::cout << "Recomputed N: " << N_ <<", N_fix + N_opt: " << N_fix_ << "+" << N_opt_ << std::endl;
+        N_nonopt_ = N_ - N_opt_;
+        std::cout << "Recomputed N: " << N_ <<", N_fix + N_opt: " << N_nonopt_ << "+" << N_opt_ << std::endl;
 
         // 4) set poses for all frames
         for(const auto& kf : frameset_all_)
         {
-            _BA_PoseSE3 Tjw_tmp;
-            const PoseSE3& Tjw_float = kf->getPoseInv();
-            Tjw_tmp << Tjw_float(0,0), Tjw_float(0,1), Tjw_float(0,2), Tjw_float(0,3),
-                       Tjw_float(1,0), Tjw_float(1,1), Tjw_float(1,2), Tjw_float(1,3),
-                       Tjw_float(2,0), Tjw_float(2,1), Tjw_float(2,2), Tjw_float(2,3),
-                       0.0, 0.0, 0.0, 1.0;
-            
-            Tjw_tmp = this->changeInvPoseWorldToRef(Tjw_tmp);
-            Tjw_tmp = this->scalingPose(Tjw_tmp);
-            
-            posemap_all_.insert(std::pair<FramePtr,_BA_PoseSE3>(kf, Tjw_tmp));
+             if( !kf->isRightImage() )
+            {
+                _BA_PoseSE3 Tjw_tmp;
+                const PoseSE3& Tjw_float = kf->getPoseInv();
+                Tjw_tmp << Tjw_float(0,0), Tjw_float(0,1), Tjw_float(0,2), Tjw_float(0,3),
+                        Tjw_float(1,0), Tjw_float(1,1), Tjw_float(1,2), Tjw_float(1,3),
+                        Tjw_float(2,0), Tjw_float(2,1), Tjw_float(2,2), Tjw_float(2,3),
+                        0.0, 0.0, 0.0, 1.0;
+                
+                Tjw_tmp = this->changeInvPoseWorldToRef(Tjw_tmp);
+                Tjw_tmp = this->scalingPose(Tjw_tmp);
+                
+                posemap_all_.insert(std::pair<FramePtr,_BA_PoseSE3>(kf, Tjw_tmp));
+            }
         }
         
         // 5) set optimizable keyframes (posemap, indexmap, framemap)
@@ -328,9 +374,12 @@ public:
         for(int jj = 0; jj < idx_optimize.size(); ++jj)
         {
             int j = idx_optimize.at(jj);
-            indexmap_opt_.insert({frames[j],cnt_idx});
-            framemap_opt_.push_back(frames[j]);
-            ++cnt_idx;
+            if( !frames[j]->isRightImage())
+            {
+                indexmap_opt_.insert({frames[j],cnt_idx});
+                framemap_opt_.push_back(frames[j]);
+                ++cnt_idx;
+            }
         }
 
         // 6) set optimization values 
@@ -346,7 +395,7 @@ public:
         printf("| Bundle Adjustment Statistics:\n");
         printf("|  -        # of total images: %d images \n", N_);
         printf("|  -           -  opt. images: %d images \n", N_opt_);
-        printf("|  -           -  fix  images: %d images \n", N_fix_);
+        printf("|  -           -  fix  images: %d images \n", N_nonopt_);
         printf("|  -        # of opti. points: %d landmarks \n", M_);
         printf("|  -        # of observations: %d \n", n_obs_);
         printf("|  -            Jacobian size: %d rows x %d cols\n", len_residual, len_parameter);

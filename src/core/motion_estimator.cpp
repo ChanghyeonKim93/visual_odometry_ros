@@ -5,7 +5,7 @@ MotionEstimator::MotionEstimator()
     this->thres_1p_ = 10.0; // pixels
     this->thres_5p_ = 1.5; // pixels
 
-    this->sparse_ba_solver_ = std::make_shared<SparseBundleAdjustmentSolver>();
+    this->sparse_ba_solver_ = std::make_shared<SparseBundleAdjustmentSolver>(false);
 };
 
 MotionEstimator::~MotionEstimator()

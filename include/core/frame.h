@@ -135,19 +135,21 @@ public:
 };
 
 /// @brief Stereo frame structure. (not used now.)
-struct StereoFrame
+class StereoFrame
 {
-    FramePtr lower; // frame pointr to lower frame (same as left frame)
-    FramePtr upper; // frame pointr to upper frame (same as right frame)
+private:
+    FramePtr left_; // frame pointr to lower frame (same as left frame)
+    FramePtr right_; // frame pointr to upper frame (same as right frame)
 
+public:
     /// @brief Constructor of StereoFrame structure.
     /// @param f_l frame pointer to lower frame.
     /// @param f_u frame pointer to upper frame.
-    StereoFrame(const FramePtr& f_l, const FramePtr& f_u)
-    {
-        lower = f_l;
-        upper = f_u;
-    };
+    StereoFrame(const FramePtr& f_l, const FramePtr& f_r);
+
+public:
+    const FramePtr& getLeftFramePtr() const;
+    const FramePtr& getRightFramePtr() const;
 };
 
 #endif

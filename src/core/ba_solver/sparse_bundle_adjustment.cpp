@@ -17,20 +17,32 @@
 
 
 
-SparseBundleAdjustmentSolver::SparseBundleAdjustmentSolver() 
-: N_(0), N_opt_(0), M_(0), n_obs_(0), THRES_EPS_(0), THRES_HUBER_(0)
+SparseBundleAdjustmentSolver::SparseBundleAdjustmentSolver(bool is_stereo = false) 
+: N_(0), N_opt_(0), M_(0), n_obs_(0), THRES_EPS_(0), THRES_HUBER_(0),
+n_cams_(0), is_stereo_(is_stereo)
 {
-    this->cam_       = nullptr;
+    cams_.resize(0);
+    // this->cam_       = nullptr;
     this->ba_params_ = nullptr;
 
     A_.reserve(500); // reserve expected # of optimizable poses (N_opt)
     B_.reserve(500); // 
     Bt_.reserve(5000);
     C_.reserve(5000); // reserve expected # of optimizable landmarks (M)
+
+    if(is_stereo_) 
+        std::cout << "SparseBundleAdjustmentSolver() - set to 'stereo' mode.\n";
+    else 
+        std::cout << "SparseBundleAdjustmentSolver() - set to 'monocular' mode.\n";
 };
 
 void SparseBundleAdjustmentSolver::setBAParameters(const std::shared_ptr<SparseBAParameters>& ba_params)
 {
+    if(is_stereo_){
+        if(!ba_params->isStereoMode())
+            throw std::runtime_error("In SparseBundleAdjustmentSolver::setBAParameters(), 'ba_params' is not in stereo mode while 'is_stereo' of this module is set to 'true'.");
+    }
+
     this->ba_params_ = ba_params;
     
     this->N_     = this->ba_params_->getNumOfAllFrames();
@@ -46,8 +58,29 @@ void SparseBundleAdjustmentSolver::setHuberThreshold(_BA_Numeric thres_huber){
 };
 
 void SparseBundleAdjustmentSolver::setCamera(const std::shared_ptr<Camera>& cam){
-    cam_ = cam;
+     if( !is_stereo_ ){
+        cams_.resize(1);
+        cams_[0] = cam;
+
+        std::cout << "Sparse BA solver is in 'monocular mode'\n";   
+    }
+    else
+        throw std::runtime_error("In 'SparseBundleAdjustmentSolver::setCamera()': Before call this function, 'is_stereo' should be set to 'false'.");
 };
+
+void SparseBundleAdjustmentSolver::setStereoCameras(const std::shared_ptr<Camera>& cam0, const std::shared_ptr<Camera>& cam1)
+{
+    if( is_stereo_ ){
+        cams_.resize(2);
+        cams_[0] = cam0;
+        cams_[1] = cam1;
+        
+        std::cout << "Sparse BA solver is in 'stereo mode'\n";
+    }
+    else
+        throw std::runtime_error("In 'SparseBundleAdjustmentSolver::setStereoCameras()': Before call this function, 'is_stereo' should be set to 'true'.");
+};
+
 
 void SparseBundleAdjustmentSolver::setProblemSize(int N, int N_opt, int M, int n_obs){ 
     // Set sizes
@@ -126,6 +159,22 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER)
     _BA_Numeric MAX_LAMBDA = 20.0;
     _BA_Numeric MIN_LAMBDA = 1e-6;
 
+    // For stereo extrinsics
+    _BA_Numeric fx_r, fy_r, cx_r, cy_r;
+    _BA_PoseSE3 T_lr, T_rl;
+    _BA_Rot3 R_rl, R_lr;
+    _BA_Pos3 t_rl, t_lr;
+    if(is_stereo_)
+    { 
+        fx_r = cams_[1]->fx(); fy_r = cams_[1]->fy();
+        cx_r = cams_[1]->cx(); cy_r = cams_[1]->cy();
+
+        T_lr = ba_params_->getStereoPose(); // left to right pose
+        T_rl = geometry::inverseSE3(T_lr);
+        R_lr = T_lr.block<3,3>(0,0); t_lr = T_lr.block<3,1>(0,3);
+        R_rl = T_rl.block<3,3>(0,0); t_rl = T_rl.block<3,1>(0,3);
+    }
+
     // Set the Parameter Vector.
     this->setParameterVectorFromPosesPoints();
 
@@ -156,103 +205,217 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER)
             for(_BA_Index jj = 0; jj < kfs.size(); ++jj) 
             {
                 const _BA_Pixel& pij = pts.at(jj);
-                const FramePtr&   kf = kfs.at(jj);
+                FramePtr          kf = kfs.at(jj);
 
-                // 0) check whether it is optimizable keyframe
-                _BA_Index j = -1;
-                bool is_opt_frame = ba_params_->isOptFrame(kf);
-                if(is_opt_frame)
-                    j = ba_params_->getOptPoseIndex(kf);
-
-                // Get current camera parameters
-                const _BA_Numeric& fx = cam_->fx(), fy = cam_->fy() ,cx = cam_->cx(), cy = cam_->cy();
-
-                // Current poses
-                const _BA_PoseSE3& T_jw = ba_params_->getPose(kf);
-                const _BA_Rot3& R_jw = T_jw.block<3,3>(0,0);
-                const _BA_Pos3& t_jw = T_jw.block<3,1>(0,3);
-                
-                _BA_Point Xij = R_jw*Xi + t_jw; // transform a 3D point.
-            
-                // 1) Qij and Rij calculation.
-                const _BA_Numeric& xj = Xij(0), yj = Xij(1), zj = Xij(2);
-                _BA_Numeric invz = 1.0f/zj; _BA_Numeric invz2 = invz*invz;
-                
-                _BA_Numeric fxinvz      = fx*invz;      _BA_Numeric fyinvz      = fy*invz;
-                _BA_Numeric xinvz       = xj*invz;      _BA_Numeric yinvz       = yj*invz;
-                _BA_Numeric fx_xinvz2   = fxinvz*xinvz; _BA_Numeric fy_yinvz2   = fyinvz*yinvz;
-                _BA_Numeric xinvz_yinvz = xinvz*yinvz;
-
-                // 1) residual calculation
-                _BA_Pixel ptw;
-                ptw << fx*xinvz + cx, fy*yinvz + cy;
-                _BA_Vec2 rij;
-                rij = ptw - pij;
-
-                // 2) HUBER weight calculation (Manhattan distance)
-                _BA_Numeric absrxry = abs(rij(0)) + abs(rij(1));
-                
-                r_prev[cnt] = absrxry;
-                
-                _BA_Numeric weight = 1.0;
-                bool flag_weight = false;
-                if(absrxry > THRES_HUBER_) {
-                    weight = (THRES_HUBER_/absrxry);
-                    flag_weight = true;
-                }
-
-                // 3) Rij calculation (Jacobian w.r.t. Xi)
-                _BA_Mat23 Rij;
-                const _BA_Numeric& r11 = R_jw(0,0), r12 = R_jw(0,1), r13 = R_jw(0,2);
-                const _BA_Numeric& r21 = R_jw(1,0), r22 = R_jw(1,1), r23 = R_jw(1,2);
-                const _BA_Numeric& r31 = R_jw(2,0), r32 = R_jw(2,1), r33 = R_jw(2,2);
-                Rij << fxinvz*r11-fx_xinvz2*r31, fxinvz*r12-fx_xinvz2*r32, fxinvz*r13-fx_xinvz2*r33, 
-                       fyinvz*r21-fy_yinvz2*r31, fyinvz*r22-fy_yinvz2*r32, fyinvz*r23-fy_yinvz2*r33;
-                
-                _BA_Mat32 Rij_t = Rij.transpose();
-
-                _BA_Mat33 Rij_t_Rij;
-                _BA_Vec3  Rij_t_rij;
-
-                this->calc_Rij_t_Rij_weight(weight, Rij, Rij_t_Rij);
-                Rij_t_rij = weight * (Rij_t*rij);
-
-                
-                C_[i].noalias() +=  Rij_t_Rij; // FILL STORAGE (3)
-                b_[i].noalias() += -Rij_t_rij; // FILL STORAGE (5)
-
-                if(is_opt_frame) 
+                if( kf->isRightImage() )
                 {
-                    // Optimizable keyframe.
-                    _BA_Mat26 Qij;
-                    Qij << fxinvz,0,-fx_xinvz2,-fx*xinvz_yinvz,fx*(1.0+xinvz*xinvz), -fx*yinvz,
-                           0,fyinvz,-fy_yinvz2,-fy*(1.0+yinvz*yinvz),fy*xinvz_yinvz,  fy*xinvz;
+                    // In case of stereo second image, 
+                    // get related major image pointer
+                    kf = kf->getLeftFramePtr();
 
-                    _BA_Mat62 Qij_t = Qij.transpose();
+                    // Current major pose
+                    const _BA_PoseSE3& T_jw = ba_params_->getPose(kf);
+                    const _BA_Rot3& R_jw = T_jw.block<3,3>(0,0);
+                    const _BA_Pos3& t_jw = T_jw.block<3,1>(0,3);
+                    _BA_Rot3 R_rl_R_jw = R_rl*R_jw;
 
-                    _BA_Mat66 Qij_t_Qij; Qij_t_Qij.setZero();
-                    _BA_Mat63 Qij_t_Rij; Qij_t_Rij.setZero();
-                    _BA_Vec6 Qij_t_rij; Qij_t_rij.setZero();
-                                        
-                    this->calc_Qij_t_Qij_weight(weight, Qij, Qij_t_Qij);
-                    Qij_t_Rij = weight * (Qij_t*Rij);
-                    Qij_t_rij = weight * (Qij_t*rij);
+                    _BA_Point Xij = R_jw*Xi + t_jw; // transform a 3D point.
+                    _BA_Point Xijr = R_rl*Xij + t_rl;
+                    
 
+                    
+                    // 0) check whether it is optimizable keyframe
+                    bool is_opt_keyframe = false;
+                    _BA_Index j = -1;
+                    if(ba_params_->isOptFrame(kf))
+                    {
+                        is_opt_keyframe = true;
+                        j = ba_params_->getOptPoseIndex(kf);
+                    }
 
-                    A_[j].noalias() +=  Qij_t_Qij; // FILL STORAGE (1)
-                    B_[j][i]         =  Qij_t_Rij; // FILL STORAGE (2)
-                    Bt_[i][j]        =  Qij_t_Rij.transpose().eval(); // FILL STORAGE (2-1)
-                    a_[j].noalias() += -Qij_t_rij; // FILL STORAGE (4)
-
-                    if(std::isnan(Qij_t_Qij.norm()) || std::isnan(Qij_t_Rij.norm()) || std::isnan(Qij_t_rij.norm()) )
-                        throw std::runtime_error("In   LBA, pose becomes nan!");
-
-                } // END is_opt_frame
                 
-                _BA_Numeric err_tmp = rij.transpose()*rij;
-                err += err_tmp;
+                    // 1) Qij and Rij calculation.
+                    const _BA_Numeric& xjr = Xijr(0), yjr = Xijr(1), zjr = Xijr(2);
+                    _BA_Numeric invzr = 1.0f/zjr; _BA_Numeric invzr2 = invzr*invzr;
+                    
+                    _BA_Numeric fxinvz      = fx_r*invzr;   _BA_Numeric fyinvz    = fy_r*invzr;
+                    _BA_Numeric xinvz       = xjr*invzr;    _BA_Numeric yinvz     = yjr*invzr;
+                    _BA_Numeric fx_xinvz2   = fxinvz*xinvz; _BA_Numeric fy_yinvz2 = fyinvz*yinvz;
+                    _BA_Numeric xinvz_yinvz = xinvz*yinvz;
 
-                ++cnt;
+                    // 1) residual calculation
+                    _BA_Pixel ptw;
+                    ptw << fx_r*xinvz + cx_r, fy_r*yinvz + cy_r;
+                    _BA_Vec2 rij;
+                    rij = ptw - pij;
+
+                    // 2) HUBER weight calculation (Manhattan distance)
+                    _BA_Numeric absrxry = abs(rij(0)) + abs(rij(1));
+                    
+                    r_prev[cnt] = absrxry;
+                    
+                    _BA_Numeric weight = 1.0;
+                    bool flag_weight = false;
+                    if(absrxry > THRES_HUBER_) {
+                        weight = (THRES_HUBER_/absrxry);
+                        flag_weight = true;
+                    }
+
+                    // 3) Rij calculation (Jacobian w.r.t. Xi)
+                    _BA_Mat23 Rij;
+                    const _BA_Numeric& r11 = R_rl_R_jw(0,0), r12 = R_rl_R_jw(0,1), r13 = R_rl_R_jw(0,2);
+                    const _BA_Numeric& r21 = R_rl_R_jw(1,0), r22 = R_rl_R_jw(1,1), r23 = R_rl_R_jw(1,2);
+                    const _BA_Numeric& r31 = R_rl_R_jw(2,0), r32 = R_rl_R_jw(2,1), r33 = R_rl_R_jw(2,2);
+                    Rij << fxinvz*r11-fx_xinvz2*r31, fxinvz*r12-fx_xinvz2*r32, fxinvz*r13-fx_xinvz2*r33, 
+                           fyinvz*r21-fy_yinvz2*r31, fyinvz*r22-fy_yinvz2*r32, fyinvz*r23-fy_yinvz2*r33;
+                    
+                    _BA_Mat32 Rij_t = Rij.transpose();
+
+                    _BA_Mat33 Rij_t_Rij;
+                    _BA_Vec3  Rij_t_rij;
+
+                    this->calc_Rij_t_Rij_weight(weight, Rij, Rij_t_Rij);
+                    Rij_t_rij = weight * (Rij_t*rij);
+
+                    
+                    C_[i].noalias() +=  Rij_t_Rij; // FILL STORAGE (3)
+                    b_[i].noalias() += -Rij_t_rij; // FILL STORAGE (5)
+
+                    if(is_opt_keyframe) 
+                    {
+                        _BA_Mat23 dp_dX;
+                        dp_dX << fxinvz, 0, -fx_xinvz2, 0, fyinvz, -fy_yinvz2;
+                        _BA_Mat33 Xij_skew; Xij_skew << 0, -Xij(2), Xij(1), Xij(2), 0, -Xij(0), -Xij(1), Xij(0), 0;
+
+                        // Optimizable keyframe.
+                        _BA_Mat26 Qij;
+                        Qij << dp_dX*R_rl, -dp_dX*R_rl*Xij_skew;
+                            
+                        _BA_Mat62 Qij_t = Qij.transpose();
+
+                        _BA_Mat66 Qij_t_Qij; Qij_t_Qij.setZero();
+                        _BA_Mat63 Qij_t_Rij; Qij_t_Rij.setZero();
+                        _BA_Vec6 Qij_t_rij; Qij_t_rij.setZero();
+                                            
+                        this->calc_Qij_t_Qij_weight(weight, Qij, Qij_t_Qij);
+                        Qij_t_Rij = weight * (Qij_t*Rij);
+                        Qij_t_rij = weight * (Qij_t*rij);
+
+
+                        A_[j].noalias() +=  Qij_t_Qij; // FILL STORAGE (1)
+                        B_[j][i]         =  Qij_t_Rij; // FILL STORAGE (2)
+                        Bt_[i][j]        =  Qij_t_Rij.transpose().eval(); // FILL STORAGE (2-1)
+                        a_[j].noalias() += -Qij_t_rij; // FILL STORAGE (4)
+
+                        if(std::isnan(Qij_t_Qij.norm()) || std::isnan(Qij_t_Rij.norm()) || std::isnan(Qij_t_rij.norm()) )
+                            throw std::runtime_error("In   LBA, pose becomes nan!");
+
+                    } // END is_opt_frame
+
+                   _BA_Numeric err_tmp = rij.transpose()*rij;
+                    err += err_tmp;
+
+                    ++cnt;
+                } // END  if( kf->isRightImage() == true )
+                else
+                {
+                    // 0) check whether it is optimizable keyframe
+                    _BA_Index j = -1;
+                    bool is_opt_frame = ba_params_->isOptFrame(kf);
+                    if(is_opt_frame)
+                        j = ba_params_->getOptPoseIndex(kf);
+
+                    // Get current camera parameters
+                    const _BA_Numeric& fx = cams_[0]->fx(), fy = cams_[0]->fy() ,cx = cams_[0]->cx(), cy = cams_[0]->cy();
+
+                    // Current poses
+                    const _BA_PoseSE3& T_jw = ba_params_->getPose(kf);
+                    const _BA_Rot3& R_jw = T_jw.block<3,3>(0,0);
+                    const _BA_Pos3& t_jw = T_jw.block<3,1>(0,3);
+                    
+                    _BA_Point Xij = R_jw*Xi + t_jw; // transform a 3D point.
+                
+                    // 1) Qij and Rij calculation.
+                    const _BA_Numeric& xj = Xij(0), yj = Xij(1), zj = Xij(2);
+                    _BA_Numeric invz = 1.0f/zj; _BA_Numeric invz2 = invz*invz;
+                    
+                    _BA_Numeric fxinvz      = fx*invz;      _BA_Numeric fyinvz      = fy*invz;
+                    _BA_Numeric xinvz       = xj*invz;      _BA_Numeric yinvz       = yj*invz;
+                    _BA_Numeric fx_xinvz2   = fxinvz*xinvz; _BA_Numeric fy_yinvz2   = fyinvz*yinvz;
+                    _BA_Numeric xinvz_yinvz = xinvz*yinvz;
+
+                    // 1) residual calculation
+                    _BA_Pixel ptw;
+                    ptw << fx*xinvz + cx, fy*yinvz + cy;
+                    _BA_Vec2 rij;
+                    rij = ptw - pij;
+
+                    // 2) HUBER weight calculation (Manhattan distance)
+                    _BA_Numeric absrxry = abs(rij(0)) + abs(rij(1));
+                    
+                    r_prev[cnt] = absrxry;
+                    
+                    _BA_Numeric weight = 1.0;
+                    bool flag_weight = false;
+                    if(absrxry > THRES_HUBER_) {
+                        weight = (THRES_HUBER_/absrxry);
+                        flag_weight = true;
+                    }
+
+                    // 3) Rij calculation (Jacobian w.r.t. Xi)
+                    _BA_Mat23 Rij;
+                    const _BA_Numeric& r11 = R_jw(0,0), r12 = R_jw(0,1), r13 = R_jw(0,2);
+                    const _BA_Numeric& r21 = R_jw(1,0), r22 = R_jw(1,1), r23 = R_jw(1,2);
+                    const _BA_Numeric& r31 = R_jw(2,0), r32 = R_jw(2,1), r33 = R_jw(2,2);
+                    Rij << fxinvz*r11-fx_xinvz2*r31, fxinvz*r12-fx_xinvz2*r32, fxinvz*r13-fx_xinvz2*r33, 
+                        fyinvz*r21-fy_yinvz2*r31, fyinvz*r22-fy_yinvz2*r32, fyinvz*r23-fy_yinvz2*r33;
+                    
+                    _BA_Mat32 Rij_t = Rij.transpose();
+
+                    _BA_Mat33 Rij_t_Rij;
+                    _BA_Vec3  Rij_t_rij;
+
+                    this->calc_Rij_t_Rij_weight(weight, Rij, Rij_t_Rij);
+                    Rij_t_rij = weight * (Rij_t*rij);
+
+                    
+                    C_[i].noalias() +=  Rij_t_Rij; // FILL STORAGE (3)
+                    b_[i].noalias() += -Rij_t_rij; // FILL STORAGE (5)
+
+                    if(is_opt_frame) 
+                    {
+                        // Optimizable keyframe.
+                        _BA_Mat26 Qij;
+                        Qij << fxinvz,0,-fx_xinvz2,-fx*xinvz_yinvz,fx*(1.0+xinvz*xinvz), -fx*yinvz,
+                            0,fyinvz,-fy_yinvz2,-fy*(1.0+yinvz*yinvz),fy*xinvz_yinvz,  fy*xinvz;
+
+                        _BA_Mat62 Qij_t = Qij.transpose();
+
+                        _BA_Mat66 Qij_t_Qij; Qij_t_Qij.setZero();
+                        _BA_Mat63 Qij_t_Rij; Qij_t_Rij.setZero();
+                        _BA_Vec6 Qij_t_rij; Qij_t_rij.setZero();
+                                            
+                        this->calc_Qij_t_Qij_weight(weight, Qij, Qij_t_Qij);
+                        Qij_t_Rij = weight * (Qij_t*Rij);
+                        Qij_t_rij = weight * (Qij_t*rij);
+
+
+                        A_[j].noalias() +=  Qij_t_Qij; // FILL STORAGE (1)
+                        B_[j][i]         =  Qij_t_Rij; // FILL STORAGE (2)
+                        Bt_[i][j]        =  Qij_t_Rij.transpose().eval(); // FILL STORAGE (2-1)
+                        a_[j].noalias() += -Qij_t_rij; // FILL STORAGE (4)
+
+                        if(std::isnan(Qij_t_Qij.norm()) || std::isnan(Qij_t_Rij.norm()) || std::isnan(Qij_t_rij.norm()) )
+                            throw std::runtime_error("In   LBA, pose becomes nan!");
+
+                    } // END is_opt_frame
+
+                    _BA_Numeric err_tmp = rij.transpose()*rij;
+                    err += err_tmp;
+
+                    ++cnt;
+                } // END  if( kf->isRightImage() == FALSE ) // (left image)
+                
             } // END jj of i-th point
         } // END i-th point
   
@@ -291,6 +454,9 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER)
                 // For j-th keyframe
                 const FramePtr& kf = kfs[jj];
 
+                if(kf->isRightImage())
+                    continue; // skip the right image
+
                 // 0) check whether it is optimizable keyframe
                 bool is_optimizable_keyframe_j = false;
                 _BA_Index j = -1;
@@ -307,6 +473,10 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER)
                     {
                         // For k-th keyframe
                         const FramePtr& kf2 = kfs[kk];
+
+                        if(kf2->isRightImage()) 
+                            continue; // skip the second image
+
                         bool is_optimizable_keyframe_k = false;
                         _BA_Index k = -1;
                         if(ba_params_->isOptFrame(kf2))
@@ -366,6 +536,10 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER)
             for(_BA_Index jj = 0; jj < kfs.size(); ++jj)
             {
                 const FramePtr& kf = kfs[jj];
+
+                if( kf->isRightImage() ) 
+                    continue; // skip the second image.
+
 
                 if(ba_params_->isOptFrame(kf))
                 {
@@ -439,6 +613,8 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER)
     if(flag_nan_pass)
     {
         bool flag_large_update = false;
+
+        // 1. Update optimizable 'major (left)' poses.
         for(_BA_Index j_opt = 0; j_opt < N_opt_; ++j_opt)
         {
             const FramePtr& kf = ba_params_->getOptFramePtr(j_opt);
@@ -465,6 +641,27 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER)
                                 Tjw_update(2,0),Tjw_update(2,1),Tjw_update(2,2),Tjw_update(2,3),
                                 0.0, 0.0, 0.0, 1.0; 
             kf->setPose(geometry::inverseSE3_f(Tjw_update_float));
+        }
+        
+        if(is_stereo_)
+        {            
+            _BA_PoseSE3 T_lr_scaled = ba_params_->getStereoPose();
+            T_lr_scaled = ba_params_->recoverOriginalScalePose(T_lr_scaled);
+
+            PoseSE3 T_lr_f = T_lr.cast<float>();
+
+            // 2. Update the second (right) poses. 
+            // The related poses are already updated above.
+            for(const auto& f : ba_params_->getAllFrameset())
+            {
+                if(f->isRightImage())
+                {
+                    const FramePtr& f_left = f->getLeftFramePtr();
+                    const PoseSE3& T_wj = f->getPoseInv();
+
+                    f->setPose(T_wj*T_lr_f);
+                }
+            }
         }
         
         for(_BA_Index i = 0; i < M_; ++i)
@@ -538,7 +735,8 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER)
 void SparseBundleAdjustmentSolver::reset()
 {
     ba_params_ = nullptr;
-    cam_       = nullptr;
+    cams_.resize(0);
+
     N_ = 0;
     N_opt_ = 0;
     M_ = 0;

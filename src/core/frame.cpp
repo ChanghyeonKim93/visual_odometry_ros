@@ -188,3 +188,26 @@ void Frame::setPoseOnlyFailed()
 {
     is_poseonlyBA_success_ = false;
 };
+
+
+
+
+
+
+// stereo frame
+
+StereoFrame::StereoFrame(const FramePtr& f_l, const FramePtr& f_r)
+{
+    left_ = f_l;
+    right_ = f_r;
+};
+
+const FramePtr& StereoFrame::getLeftFramePtr() const
+{
+    return left_;
+};
+
+const FramePtr& StereoFrame::getRightFramePtr() const
+{
+    return right_;
+};
