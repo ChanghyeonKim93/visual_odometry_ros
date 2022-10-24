@@ -242,6 +242,8 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 		PoseSE3 dT01_prior = frame_prev_->getPoseDiff01();
 		PoseSE3 Twc_prior  = Twc_prev*dT01_prior;
 		PoseSE3 Tcw_prior  = geometry::inverseSE3_f(Twc_prior);
+		
+		std::cout << " CURRENT REFERENCE KEYFRAME : " << keyframe_ref_->getID() << std::endl;
 
 		// Make tracking prior & estimated scale
 		for(int i = 0; i < lmtrack_prev.n_pts; ++i)
@@ -394,6 +396,8 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 		// If pose-only BA is failed, do 5-point algorithm.
 		if( !poseonlyBA_success ) 
 		{ 
+			frame_curr->setPoseOnlyFailed();
+
 			// do 5 point algorihtm (scale is of the previous frame)
 			std::cout << colorcode::text_red;
 			std::cout << "\n\n\n";
@@ -492,98 +496,53 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 	// Check keyframe update rules.
 	bool flag_add_new_keyframe = keyframes_->checkUpdateRule(frame_curr);
 
-	if( flag_add_new_keyframe )
+	if( flag_add_new_keyframe ) // 새로운 키프레임 추가.
 	{
-		timer::tic();
 		// Add new keyframe
+		timer::tic();
 		this->saveKeyframe(frame_curr);
 		keyframes_->addNewKeyframe(frame_curr);
-
-		// Add this frame to the scale estimator
-		scale_estimator_->insertNewFrame(frame_curr);
-
-		
-		// Make variables for refine tracking
-		const LandmarkPtrVec& lms_final = frame_curr->getRelatedLandmarkPtr();
-		FloatVec scale_estimated(lms_final.size(), 1.0f);
-		MaskVec mask_final(lms_final.size(), true);
-		PixelVec pts_refine(lms_final.size());
-
-		for(int i = 0; i < lms_final.size(); ++i){
-			// Estimate current image-patch-scale...
-			const LandmarkPtr& lm = lms_final[i];
-			if(lm->isTriangulated()) {
-				const Point& Xw = lm->get3DPoint();
-
-				const PoseSE3& T0w = lm->getRelatedFramePtr().front()->getPoseInv();
-				const PoseSE3& T1w = lm->getRelatedFramePtr().back()->getPoseInv();
-
-				Point X0  = T0w.block<3,3>(0,0)*Xw + T0w.block<3,1>(0,3);
-				Point X1  = T1w.block<3,3>(0,0)*Xw + T1w.block<3,1>(0,3);
-
-				float d0 = X0(2), d1 = X1(2);
-				float scale = d0/d1;
-
-				mask_final[i]      = true;
-				scale_estimated[i] = scale;
-				pts_refine[i]      = lm->getObservations().back();
-
-				// std::cout << i << "-th point:" << Xw.transpose() << " scale: " << scale << std::endl;
-			}
-			else 
-				mask_final[i] = false;
-		}
-		std::cout << colorcode::text_green << "Time [keyframe addition]: " << timer::toc(0) << " [ms]\n" << colorcode::cout_reset;
-		
-
-		// Refine the tracking results
-		timer::tic();
-		tracker_->refineTrackWithScale(I1, lms_final, scale_estimated, pts_refine, mask_final);
-		std::cout << colorcode::text_green << "Time [trackWithScale   ]: " << timer::toc(0) << " [ms]\n" << colorcode::cout_reset;
-
-		// Update points
-		for(int i = 0; i < lms_final.size(); ++i)
-		{
-			const LandmarkPtr& lm = lms_final[i];
-			if(mask_final[i])
-				lm->changeLastObservation(pts_refine[i]);
-		}
+		this->keyframe_ref_ = frame_curr;
 
 		// Reconstruct map points
 		// lms1_final 중, depth가 복원되지 않은 경우 복원해준다.
-		timer::tic();
 		uint32_t cnt_recon = 0;
 		for(const auto& lm : frame_curr->getRelatedLandmarkPtr())
 		{
-			if( !lm->isTriangulated() && lm->getLastParallax() >= THRES_PARALLAX )
+			if( lm->isTracked() 
+			&& lm->isAlive()
+			&& !lm->isTriangulated() 
+			&& lm->getLastParallax() >= THRES_PARALLAX )
 			{
-				if( lm->getObservationsOnKeyframes().size() > 1 )
+				if( lm->getObservationsOnKeyframes().size() > 2 )
 				{
 					// 2번 이상 keyframe에서 보였다.
 					const Pixel& pt0 = lm->getObservationsOnKeyframes().front();
 					const Pixel& pt1 = lm->getObservationsOnKeyframes().back();
 
 					const PoseSE3& Tw0 = lm->getRelatedKeyframePtr().front()->getPose();
-					const PoseSE3& Tw1 = lm->getRelatedKeyframePtr().back()->getPose();
-					PoseSE3 T10_tmp = geometry::inverseSE3_f(Tw1) * Tw0;
+					const PoseSE3& T1w = lm->getRelatedKeyframePtr().back()->getPoseInv();
+					PoseSE3 T10_tmp = T1w * Tw0;
+					const Rot3& R10_tmp = T10_tmp.block<3,3>(0,0);
+					const Pos3& t10_tmp = T10_tmp.block<3,1>(0,3);
 
 					// Reconstruct points
 					Point X0, X1;
-					Mapping::triangulateDLT(pt0, pt1, T10_tmp.block<3,3>(0,0), T10_tmp.block<3,1>(0,3), cam_, X0, X1);
+					Mapping::triangulateDLT(pt0, pt1, R10_tmp, t10_tmp, cam_, X0, X1);
 
 					// Check reprojection error for the first image
 					Pixel pt0_proj = cam_->projectToPixel(X0);
 					Pixel dpt0 = pt0 - pt0_proj;
+
 					float dpt0_norm2 = dpt0.x*dpt0.x + dpt0.y*dpt0.y;
-					
 					if(dpt0_norm2 > 1.0) 
 						continue;
 
 
 					Pixel pt1_proj = cam_->projectToPixel(X1);
 					Pixel dpt1 = pt1 - pt1_proj;
+
 					float dpt1_norm2 = dpt1.x*dpt1.x + dpt1.y*dpt1.y;
-					
 					if(dpt1_norm2 > 1.0) 
 						continue;
 
@@ -598,11 +557,70 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			}
 		}
 
-		// Do local bundle adjustment for keyframes.
+		// Local BA
 		motion_estimator_->localBundleAdjustmentSparseSolver(keyframes_, cam_);
-		std::cout << colorcode::text_green << "Time [LBA              ]: " << timer::toc(0) << " [ms]\n" << colorcode::cout_reset;
 		
+		std::cout << "    # of newly reconstructed points: " << cnt_recon << std::endl;
+		std::cout << colorcode::text_green << "Time [keyframe addition]: " << timer::toc(0) << " [ms]\n" << colorcode::cout_reset;
 
+		// Add this frame to the scale estimator
+		timer::tic();
+		bool flag_turn_detected = scale_estimator_->insertNewFrame(frame_curr);
+		std::cout << colorcode::text_green << "Time [Turning frame add]: " << timer::toc(0) << " [ms]\n" << colorcode::cout_reset;
+		
+		// Make variables for refine tracking
+		// const LandmarkPtrVec& lms_final = frame_curr->getRelatedLandmarkPtr();
+		// FloatVec scale_estimated(lms_final.size(), 1.0f);
+		// MaskVec mask_final(lms_final.size(), true);
+		// PixelVec pts_refine(lms_final.size());
+
+		// for(int i = 0; i < lms_final.size(); ++i){
+		// 	// Estimate current image-patch-scale...
+		// 	const LandmarkPtr& lm = lms_final[i];
+		// 	if(lm->isTriangulated()) {
+		// 		const Point& Xw = lm->get3DPoint();
+
+		// 		const PoseSE3& T0w = lm->getRelatedFramePtr().front()->getPoseInv();
+		// 		const PoseSE3& T1w = lm->getRelatedFramePtr().back()->getPoseInv();
+
+		// 		Point X0  = T0w.block<3,3>(0,0)*Xw + T0w.block<3,1>(0,3);
+		// 		Point X1  = T1w.block<3,3>(0,0)*Xw + T1w.block<3,1>(0,3);
+
+		// 		float d0 = X0(2), d1 = X1(2);
+		// 		float scale = d0/d1;
+
+		// 		mask_final[i]      = true;
+		// 		scale_estimated[i] = scale;
+		// 		pts_refine[i]      = lm->getObservations().back();
+
+		// 		// std::cout << i << "-th point:" << Xw.transpose() << " scale: " << scale << std::endl;
+		// 	}
+		// 	else 
+		// 		mask_final[i] = false;
+		// }
+
+		// Refine the tracking results
+		// timer::tic();
+		// tracker_->refineTrackWithScale(I1, lms_final, scale_estimated, pts_refine, mask_final);
+		// std::cout << colorcode::text_green << "Time [trackWithScale   ]: " << timer::toc(0) << " [ms]\n" << colorcode::cout_reset;
+
+		// // Update points
+		// for(int i = 0; i < lms_final.size(); ++i)
+		// {
+		// 	const LandmarkPtr& lm = lms_final[i];
+		// 	if(mask_final[i])
+		// 		lm->changeLastObservation(pts_refine[i]);
+		// }
+
+
+		// Do local bundle adjustment for keyframes.
+		if(flag_turn_detected)
+		{
+			timer::tic();
+			motion_estimator_->localBundleAdjustmentSparseSolver(keyframes_, cam_);
+			std::cout << colorcode::text_green << "Time [LBA              ]: " << timer::toc(0) << " [ms]\n" << colorcode::cout_reset;
+		}
+		
 
 #ifdef RECORD_KEYFRAME_STAT
 timer::tic();
@@ -639,6 +657,8 @@ std::cout << colorcode::text_green << "Time [RECORD KEYFR STAT]: " << timer::toc
 	
 	// Replace the 'frame_prev_' with 'frame_curr'
 	this->frame_prev_ = frame_curr;
+	if(this->keyframe_ref_ == nullptr)
+		this->keyframe_ref_ = this->frame_prev_;
 
 	// Visualization 3D points
 	PointVec X_world_recon;

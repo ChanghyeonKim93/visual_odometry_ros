@@ -2,7 +2,7 @@
 
 Keyframes::Keyframes()
 : THRES_OVERLAP_FEATURE_RATIO_(0.7),
-THRES_ROTATION_(3.0f*D2R), THRES_TRANSLATION_(1.0f),
+THRES_ROTATION_(4.0f*D2R), THRES_TRANSLATION_(1.0f),
 N_MAX_KEYFRAMES_IN_WINDOW_(7)
 {
 
@@ -37,7 +37,7 @@ bool Keyframes::checkUpdateRule(const FramePtr& frame_curr)
     if(kfs_list_.empty()) 
         flag_addkeyframe = true; // Keyframe이 없으면 무조건 추가한다.
 
-    if(!flag_addkeyframe)
+    if( !flag_addkeyframe )
     {   
         // 1) Check overlapping ratio
         // 키프레임이 이미 있는 경우에 대한 고려임.
@@ -59,7 +59,8 @@ bool Keyframes::checkUpdateRule(const FramePtr& frame_curr)
                 if(lm->getRelatedFramePtr().back() == frame_curr) 
                     ++cnt_tracked; // kf의 landmark가 현재 프레임으로 추적 되었는지.
             }
-            float tracking_ratio = (float)cnt_tracked/(float)cnt_total_lms;
+
+            float tracking_ratio = (float)cnt_tracked / (float)cnt_total_lms;
             tracking_ratios.push_back(tracking_ratio);
         }
         
@@ -77,7 +78,7 @@ bool Keyframes::checkUpdateRule(const FramePtr& frame_curr)
         const PoseSE3& Tkw_last = kfs_list_.back()->getPoseInv();
         const PoseSE3& Twc = frame_curr->getPose();
         PoseSE3 dT = Tkw_last * Twc;
-        if(!flag_addkeyframe)
+        if( !flag_addkeyframe )
         {
             // rotation & translation
             float costheta = (dT(0,0)+dT(1,1)+dT(2,2) - 1.0f)*0.5f;

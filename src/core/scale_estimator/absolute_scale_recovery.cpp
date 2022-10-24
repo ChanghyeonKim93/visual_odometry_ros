@@ -26,7 +26,7 @@ void AbsoluteScaleRecovery::runASR(
     << "\n====================== Run Absolute Scale Recovery ...  ======================\n";
 
     // Optimization parameters
-    int   MAX_ITER    = 6; // Maximum allowable iterations
+    int   MAX_ITER    = 10; // Maximum allowable iterations
     float THRES_HUBER = 0.5f; // huber threshold
 
     // The number of frames
@@ -112,6 +112,12 @@ void AbsoluteScaleRecovery::runASR(
     //         std::cout << "[" << lm->getID() << "] point: " << lm->get3DPoint().transpose() << "\n";
     // }
 
+    for(const auto& f : ba_params->getAllFrameset())
+    {
+        std::cout << f->getID() << "-th frame is " << 
+        (f->isPoseOnlySuccess() ? "TRUE" : "FALSE") << std::endl;
+    }
+    
     // Time analysis
     std::cout << "==== SQP time to prepare: " << dt_prepare << " [ms]\n";
     std::cout << "==== SQP time to solve: "   << dt_solve   << " [ms]\n";

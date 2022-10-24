@@ -478,10 +478,10 @@ float MotionEstimator::findInliers1PointHistogram(const PixelVec& pts0, const Pi
 
     maskvec_inlier.resize(n_pts,false);
 
-    float invfx = cam->fxinv();
-    float invfy = cam->fyinv();
-    float cx = cam->cx();
-    float cy = cam->cy();
+    const float& invfx = cam->fxinv();
+    const float& invfy = cam->fyinv();
+    const float& cx = cam->cx();
+    const float& cy = cam->cy();
 
     std::vector<float> theta(n_pts);
     for(int i = 0; i < n_pts; ++i)
@@ -507,7 +507,6 @@ float MotionEstimator::findInliers1PointHistogram(const PixelVec& pts0, const Pi
     float th_opt = histogram::medianHistogram(hist_centers, hist_counts);
 
     // std::cout << "theta_optimal: " << th_opt << " rad\n";
-
     Rot3 R10;
     Pos3 t10;
     float costh = cos(th_opt);
@@ -527,7 +526,6 @@ float MotionEstimator::findInliers1PointHistogram(const PixelVec& pts0, const Pi
         else maskvec_inlier[i] = false;
         // std::cout << i << " -th sampson dist: " << sampson_dist[i] << " px\n";
     }
-
 
     return th_opt;
 };
@@ -745,7 +743,7 @@ bool MotionEstimator::poseOnlyBundleAdjustment(const PointVec& X, const PixelVec
                 mask_inlier[i] = true;
 
             // JtWJ, JtWr for x
-            Eigen::Matrix<float,6,1> Jt;
+            Eigen::Matrix<float,6,1> Jt; Jt.setZero();
             Eigen::Matrix<float,6,6> JtJ_tmp; JtJ_tmp.setZero();
             
             Jt(0) = fx*iz;
@@ -764,7 +762,7 @@ bool MotionEstimator::poseOnlyBundleAdjustment(const PointVec& X, const PixelVec
                 this->calcJtWJ_x(weight, Jt, JtJ_tmp);
                 JtWJ.noalias()  += JtJ_tmp;
                 mJtWr.noalias() -= (w_rx)*Jt;
-                err_curr += err;
+                err_curr += rx*rx;
             }
             else 
             {
@@ -792,7 +790,7 @@ bool MotionEstimator::poseOnlyBundleAdjustment(const PointVec& X, const PixelVec
                 this->calcJtWJ_y(weight, Jt, JtJ_tmp);
                 JtWJ.noalias()  += JtJ_tmp;
                 mJtWr.noalias() -= w_ry*Jt;
-                err_curr += err;
+                err_curr += ry*ry;
             }
             else 
             {
@@ -908,12 +906,8 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     std::cout << colorcode::text_cyan;
     std::cout << "===============     Local Bundle adjustment (Sparse Solver)     ===============\n";
 
-    int THRES_AGE           = 2; // landmark의 최소 age
-    int THRES_MINIMUM_SEEN  = 2; // landmark의 최소 관측 keyframes
-    float THRES_PARALLAX    = 0.5*D2R; // landmark의 최소 parallax
-
     // Optimization paraameters
-    int   MAX_ITER          = 10;
+    int   MAX_ITER          = 15;
 
     float lam               = 1e-5;  // for Levenberg-Marquardt algorithm
     float MAX_LAM           = 1.0f;  // for Levenberg-Marquardt algorithm
@@ -938,7 +932,7 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     // Check whether there are enough keyframes
     if(kfs_window->getCurrentNumOfKeyframes() < NUM_MINIMUM_REQUIRED_KEYFRAMES)
     {
-        std::cout << "  -- Not enough keyframes... at least four keyframes are needed. local BA is skipped.\n";
+        std::cout << "  ---- Not enough keyframes... at least four keyframes are needed. local BA is skipped.\n";
         return false;
     }
 
@@ -996,6 +990,12 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
 
             std::cout << "[" << lm->getID() << "] point: " << lm->get3DPoint().transpose() << "\n";
         }
+    }
+
+    for(const auto& f : ba_params->getAllFrameset())
+    {
+        std::cout << f->getID() << "-th frame is " << 
+        (f->isPoseOnlySuccess() ? "TRUE" : "FALSE") << std::endl;
     }
     
     

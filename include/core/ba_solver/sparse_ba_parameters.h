@@ -189,7 +189,7 @@ public:
         Tjw_scaled(2,3) *= inv_pose_scale_;
         return Tjw_scaled;
     };
-    
+
     _BA_PoseSE3 recoverOriginalScalePose(const _BA_PoseSE3& Tjw_scaled){
         _BA_PoseSE3 Tjw_org = Tjw_scaled;
         Tjw_org(0,3) *= pose_scale_;

@@ -232,7 +232,8 @@ private:
 // For tracker
 private:
 	FramePtr frame_prev_;
-
+	FramePtr keyframe_ref_; // reference keyframe for pose-only BA
+	
 // For keyframes
 private:
 	std::shared_ptr<Keyframes> keyframes_;

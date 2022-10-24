@@ -9,7 +9,7 @@
  * @date 10-July-2022
  */
 ScaleMonoVO::ScaleMonoVO(std::string mode, std::string directory_intrinsic)
-: cam_(nullptr), system_flags_(), frame_prev_(nullptr) 
+: cam_(nullptr), system_flags_(), frame_prev_(nullptr), keyframe_ref_(nullptr)
 {
 	std::cout << "Scale mono VO starts\n";
 		

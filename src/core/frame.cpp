@@ -1,7 +1,7 @@
 #include "core/frame.h"
 
 Frame::Frame(const std::shared_ptr<Camera>& cam, bool is_right_image = false, const FramePtr& frame_left = nullptr)
-: is_keyframe_(false), is_keyframe_in_window_(false), is_turning_frame_(false) 
+: is_keyframe_(false), is_keyframe_in_window_(false), is_turning_frame_(false), is_poseonlyBA_success_(true)
 {
     cam_ = cam;
 
@@ -177,4 +177,14 @@ void Frame::cancelThisTurningFrame()
     steering_angle_         = 0.0;
     scale_raw_              = 0.0;
     scale_                  = 0.0;
+};
+
+
+bool Frame::isPoseOnlySuccess() const
+{
+    return is_poseonlyBA_success_;
+};
+void Frame::setPoseOnlyFailed()
+{
+    is_poseonlyBA_success_ = false;
 };

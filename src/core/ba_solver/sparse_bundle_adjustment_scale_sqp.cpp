@@ -70,7 +70,7 @@ void SparseBundleAdjustmentScaleSQPSolver::setBAParametersAndConstraints(
     this->N_     = this->ba_params_->getNumOfAllFrames(); // Fixed frame == 0-th frame.
     this->N_opt_ = this->ba_params_->getNumOfOptimizeFrames(); // Opt. frames == all frames except for 0-th frame. Thus, N_opt == N - 1
     this->M_     = this->ba_params_->getNumOfOptimizeLandmarks(); // M
-    
+
     this->n_obs_ = this->ba_params_->getNumOfObservations(); // OK
 
     this->K_     = this->scale_const_->getNumOfConstraint(); // # of constraints
@@ -327,10 +327,10 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
 
                 _BA_Numeric weight = 1.0;
                 bool flag_weight = false;
-                if(absrxry > THRES_HUBER_){
+                if(absrxry > THRES_HUBER_) {
                     weight = (THRES_HUBER_/absrxry);
                     flag_weight = true;
-                }                
+                }
                 // std::cout << cnt << "-th point: " << absrxry << " [px]\n";
 
                 /*
@@ -351,7 +351,6 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
                 _BA_Mat33 Rij_t_Rij; // fixed pose
                 _BA_Vec3  Rij_t_rij; // fixed pose
                 
-                // Rij_t_Rij = weight * (Rij.transpose()*Rij);
                 this->calc_Rij_t_Rij_weight(weight, Rij, Rij_t_Rij);
                 Rij_t_rij = weight * (Rij_t*rij);
                
@@ -373,7 +372,6 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
                     _BA_Mat33 Qij_t_Rij; // fixed pose, opt. pose
                     _BA_Vec3  Qij_t_rij; // fixed pose, opt. pose
                     
-                    // Qij_t_Qij = weight * (Qij.transpose()*Qij );
                     this->calc_Qij_t_Qij_weight(weight, Qij, Qij_t_Qij);
                     Qij_t_Rij = weight * (Qij_t*Rij);
                     Qij_t_rij = weight * (Qij_t*rij);
@@ -415,15 +413,11 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
 
             bool is_major_optimizable = ba_params_->isOptFrame(f_major);
             if(is_major_optimizable)
-            {
                 j1 = ba_params_->getOptPoseIndex(f_major);
-            }
 
             bool is_minor_optimizable = ba_params_->isOptFrame(f_minor);
             if(is_minor_optimizable)
-            {
                 j0 = ba_params_->getOptPoseIndex(f_minor);
-            }
 
             // std::cout << k << "-th const. has frames: "
             //     << j1 <<"(" << f_major->getID() << ")" << "(" << (is_major_optimizable ? "O" : "X") << "), "
@@ -554,9 +548,7 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
             ap_mat.block(idx0,0,3,1) = ap_[j];
             _BA_Index idx1 = 0;
             for(_BA_Index u = 0; u < N_opt_; ++u, idx1 += 3)
-            {
                 Ap_mat.block(idx0,idx1,3,3) = Ap_[j][u];
-            }
         }
 
         _BA_MatX& Apinv_ap_mat = Apinv_ap_mat_;
@@ -581,10 +573,8 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
         Apinv_Dt_mat = Ap_mat.ldlt().solve(Dt_mat);
         idx0 = 0;
         for(_BA_Index j = 0; j < N_opt_; ++j, idx0 += 3)
-        {
             for(_BA_Index k = 0; k < K_; ++k)
                Apinv_Dt_[j][k] = Apinv_Dt_mat.block<3,1>(idx0,k);
-        }
 
         // 6) Solve 'D_Apinv_ap_' and 'D_Apinv_Dt_'
         for(_BA_Index k = 0; k < K_; ++k )
@@ -630,15 +620,6 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
 
             y_[i] = Cinv_[i] * (b_[i] - Btx_tmp);
         }
-
-        // std::cout << "Pose update:\n";
-        // for(int j = 0; j < N_opt_; ++j)
-        //     std::cout << x_[j].transpose() << std::endl;
-        // std::cout << "Lagrangian update:\n";
-        // for(int k = 0; k < K_; ++k)
-        //     std::cout << z_[k] << std::endl;
-        // std::cout << "Constraint value:\n";
-
 
         // Update step
         for(_BA_Index j = 0; j < N_opt_; ++j)
@@ -716,7 +697,7 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
             }
         }
 
-        std::cout << "# of diverged landmarks : " << cnt_invalid_lms << " / " << M_ << std::endl;
+        std::cout << "         # of diverged landmarks : " << cnt_invalid_lms << " / " << M_ << std::endl;
     }
 
     std::cout << "\nEnd of SQP optimization.\n";

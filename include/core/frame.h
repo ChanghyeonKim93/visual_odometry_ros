@@ -52,6 +52,8 @@ private:
 // Flags
     bool is_keyframe_;
     bool is_keyframe_in_window_;
+    bool is_poseonlyBA_success_; // 
+
 
 // For scale estimator
 private:
@@ -125,6 +127,11 @@ public:
 public:
     bool isRightImage() const;
     const FramePtr& getLeftFramePtr() const;
+
+// For motion update flags
+public:
+    bool isPoseOnlySuccess() const;
+    void setPoseOnlyFailed();
 };
 
 /// @brief Stereo frame structure. (not used now.)

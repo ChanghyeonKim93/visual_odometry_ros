@@ -21,7 +21,7 @@ ScaleEstimator::ScaleEstimator(
     this->flag_do_ASR_ = flag_do_ASR;
 
     // Detecting turn region variables
-    this->setTurnRegion_ThresPsi(3.0*M_PI/180.0);
+    this->setTurnRegion_ThresPsi(2.5*M_PI/180.0);
     this->setTurnRegion_ThresCountTurn(8);
 
     // Run process thread.
@@ -95,13 +95,15 @@ void ScaleEstimator::setTurnRegion_ThresCountTurn(uint32_t thres_cnt_turn){
 };
 
 
-void ScaleEstimator::insertNewFrame(const FramePtr& frame)
+bool ScaleEstimator::insertNewFrame(const FramePtr& frame)
 {
     // Insert the frame.
     frames_all_.push_back(frame);
     
     // Check whether this is a turning frame or not
     bool flag_turn_detected = this->detectTurnRegions(frame);
+
+    return flag_turn_detected;
 };
 
 
@@ -251,8 +253,8 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame)
                 {
 
                     // Run the Absolute Scale Recovery (ASR) Module.
-                    asr_module_->runASR(
-                        frames_turn_prev_, frames_unconstrained_, frames_turn_curr_);
+                    // asr_module_->runASR(
+                    //     frames_turn_prev_, frames_unconstrained_, frames_turn_curr_);
 
                 }
                                             

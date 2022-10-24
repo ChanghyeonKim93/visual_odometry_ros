@@ -128,7 +128,8 @@ public:
 
     /// @brief Insert new frame. In this function, scale is estimated via kinematics if this frame has sufficient rotation motion.
     /// @param frame New frame (might be a keyframe)
-    void insertNewFrame(const FramePtr& frame);
+    /// @return true: turn detected, false: unconstrained frame.
+    bool insertNewFrame(const FramePtr& frame);
 
 // Public get methods.
 public:
