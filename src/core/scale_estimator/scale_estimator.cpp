@@ -21,7 +21,7 @@ ScaleEstimator::ScaleEstimator(
     this->flag_do_ASR_ = flag_do_ASR;
 
     // Detecting turn region variables
-    this->setTurnRegion_ThresPsi(2.5*M_PI/180.0);
+    this->setTurnRegion_ThresPsi(3.0*M_PI/180.0);
     this->setTurnRegion_ThresCountTurn(8);
 
     // Run process thread.

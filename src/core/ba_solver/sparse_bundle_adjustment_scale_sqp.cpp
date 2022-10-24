@@ -263,7 +263,7 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
     // Initialize parameters
     std::vector<_BA_Numeric> r_prev(n_obs_, 0.0f);
     _BA_Numeric err_prev = 1e10f;
-    _BA_Numeric lambda   = 0.00000001;
+    _BA_Numeric lambda   = 0.000001;
     std::cout << "start iteration\n";
     for(_BA_Index iter = 0; iter < MAX_ITER; ++iter)
     {
@@ -293,7 +293,7 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
                 // 0) check whether it is optimizable frame
                 _BA_Index j = -1; // optimization index
                 bool is_opt_frame = ba_params_->isOptFrame(kf);
-                if(is_opt_frame) 
+                if(is_opt_frame)
                     j = ba_params_->getOptPoseIndex(kf);
                 
                 // Get current camera parameters
@@ -304,7 +304,7 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
                 const _BA_Rot3&    R_jw = T_jw.block<3,3>(0,0);
                 const _BA_Pos3&    t_jw = T_jw.block<3,1>(0,3);
 
-                _BA_Point Xij = R_jw*Xi + t_jw;
+                _BA_Point Xij = R_jw * Xi + t_jw;
 
                 const _BA_Numeric& xj = Xij(0), yj = Xij(1), zj = Xij(2);
                 _BA_Numeric invz = 1.0/zj; _BA_Numeric invz2 = invz*invz;
@@ -352,16 +352,15 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
                 _BA_Vec3  Rij_t_rij; // fixed pose
                 
                 this->calc_Rij_t_Rij_weight(weight, Rij, Rij_t_Rij);
-                Rij_t_rij = weight * (Rij_t*rij);
-               
-
+                Rij_t_rij  = weight * (Rij_t*rij);
+                
                 C_[i].noalias() +=  Rij_t_Rij; // FILL STORAGE (3)
                 b_[i].noalias() += -Rij_t_rij; // FILL STORAGE (5)      
                 // 4) Qij calculation (Jacobian w.r.t. pose (trans))
                 // 5) Add (or fill) data (JtWJ & mJtWr & err).
                 // d{p_ij}/d{t_jw} = dp/dw * R_jw  \in R^{2x3}
                 if(is_opt_frame)
-                { 
+                {
                     // Optimizable keyframe.
                     _BA_Mat23 Qij;
                     Qij << fxinvz,0,-fx_xinvz2,
@@ -369,13 +368,13 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
                     _BA_Mat32 Qij_t = Qij.transpose();
 
                     _BA_Mat33 Qij_t_Qij; // fixed pose, opt. pose
-                    _BA_Mat33 Qij_t_Rij; // fixed pose, opt. pose
-                    _BA_Vec3  Qij_t_rij; // fixed pose, opt. pose
-                    
                     this->calc_Qij_t_Qij_weight(weight, Qij, Qij_t_Qij);
+
+                    _BA_Mat33 Qij_t_Rij; // fixed pose, opt. pose
                     Qij_t_Rij = weight * (Qij_t*Rij);
+
+                    _BA_Vec3  Qij_t_rij; // fixed pose, opt. pose
                     Qij_t_rij = weight * (Qij_t*rij);
-                    
 
                     A_[j].noalias() +=  Qij_t_Qij; // FILL STORAGE (1)
                     B_[j][i]         =  Qij_t_Rij; // FILL STORAGE (2)
@@ -383,21 +382,17 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
                     a_[j].noalias() += -Qij_t_rij; // FILL STORAGE (4)
 
                     if(std::isnan(Qij_t_Qij.norm()) || std::isnan(Qij_t_Rij.norm()) || std::isnan(Qij_t_rij.norm()) )
-                    {
                         throw std::runtime_error("In BASQP, pose becomes nan!");
-                    }
+
                 } // END is_opt_frame
 
                 _BA_Numeric err_tmp = rij.transpose()*rij;
-                // err_tmp *= weight;
                 err += err_tmp;
 
                 ++cnt;
             } // END jj of i-th point
         } // END i-th point
         // From now, A, B, Bt, C, b are fully filled, and a is partially filled.
-
-        // std::cout << "From now, A, B, Bt, C, b are fully filled, and a is partially filled.\n";
 
         // Manipulate constraints (D, Dt, a, c should be filled.)
         for(_BA_Index k = 0; k < K_; ++k)
@@ -487,7 +482,6 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
             Cinv_[i]  = C_tmp.ldlt().solve(_BA_Mat33::Identity()); // inverse by ldlt
             Cinvb_[i] = Cinv_[i]*b_[i];  // FILL STORAGE (10)
         } 
-        // std::cout << "C damping Cinv Cinvb done\n";
 
         // 3) Calculate 'BCinv_', 'BCinvb_',' BCinvBt_'
         for(_BA_Index i = 0; i < M_; ++i)
@@ -497,11 +491,11 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
             {
                 const FramePtr& kf = kfs[jj];
 
-                bool is_optimizable_keyframe_j = false;
+                bool is_opt_keyframe_j = false;
                 _BA_Index j = -1;
                 if(ba_params_->isOptFrame(kf))
                 {
-                    is_optimizable_keyframe_j = true;
+                    is_opt_keyframe_j = true;
                     j = ba_params_->getOptPoseIndex(kf);
 
                     BCinv_[j][i]  = B_[j][i]*Cinv_[i];
@@ -511,11 +505,11 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
                     {
                         // For k-th keyframe
                         const FramePtr& kf2 = kfs[kk];
-                        bool is_optimizable_keyframe_k = false;
+                        bool is_opt_keyframe_k = false;
                         _BA_Index k = -1;
                         if(ba_params_->isOptFrame(kf2))
                         {
-                            is_optimizable_keyframe_k = true;
+                            is_opt_keyframe_k = true;
                             k = ba_params_->getOptPoseIndex(kf2);
                             BCinvBt_[j][k].noalias() += BCinv_[j][i]*Bt_[i][k];  // FILL STORAGE (7)
                         }
@@ -530,13 +524,15 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
         // 4) Calculate 'Ap_' and 'ap_'
         for(_BA_Index j = 0; j < N_opt_; ++j)
         {
-            ap_[j] = a_[j] - BCinvb_[j];
             for(_BA_Index u = 0; u < N_opt_; ++u)
             {
                 if(j == u) Ap_[j][j] = A_[j] - BCinvBt_[j][j];
                 else       Ap_[j][u] =       - BCinvBt_[j][u];
             }
         }
+
+        for(_BA_Index j = 0; j < N_opt_; ++j)
+            ap_[j] = a_[j] - BCinvb_[j];
 
         // 5) Solve 'Apinv_ap_' and 'Apinv_Dt_'
         // solve 'Apinv_ap_'
