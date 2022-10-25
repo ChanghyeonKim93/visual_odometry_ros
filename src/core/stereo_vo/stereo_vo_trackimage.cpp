@@ -149,6 +149,12 @@ void StereoVO::trackStereoImages(
         // }
 
 
+        // TODO
+        // [7-9] Motion Estimation via pose-only BA (stereo version)
+        // Using landmarks with 3D point, stereo pose-only BA.
+        // pts_left_1 , pts_right_1 , Xw , T_cw_prior    : needed.
+
+
         // [7-9] Extract new points from empty bins.
         PixelVec pts_left_1_new;
         // this->extractor_->updateWeightBin(lmtrack_l1u1.pts_l1);
@@ -196,7 +202,7 @@ void StereoVO::trackStereoImages(
 
         // Keyframe?
 
-        
+
     }
     else 
     {
