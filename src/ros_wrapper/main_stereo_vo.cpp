@@ -7,7 +7,7 @@
 
 #include "util/signal_handler_linux.h"
 
-// #include "ros_wrapper/stereonode.h"
+#include "ros_wrapper/stereonode.h"
 
 int main(int argc, char **argv) {
     ros::init(argc, argv, "stereo_vo_node");
@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
     ROS_INFO_STREAM("stereo_vo_node - starts.");
    
     try {  
-        // MonoNode node(nh);
+        StereoNode node(nh);
     }
     catch (std::exception& e) {
         ROS_ERROR(e.what());

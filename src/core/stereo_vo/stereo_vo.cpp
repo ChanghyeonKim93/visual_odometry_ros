@@ -43,6 +43,11 @@ StereoVO::StereoVO(std::string mode, std::string directory_intrinsic)
 	stkeyframes_ = std::make_shared<StereoKeyframes>();
 };
 
+StereoVO::~StereoVO()
+{
+
+};
+
 void StereoVO::loadStereoCameraIntrinsicAndUserParameters(const std::string& dir)
 {
     cv::FileStorage fs(dir, cv::FileStorage::READ);
@@ -79,6 +84,7 @@ void StereoVO::loadStereoCameraIntrinsicAndUserParameters(const std::string& dir
 
 	cam_left_->initParams(cols, rows, cvK_tmp, cvD_tmp);
 
+	std::cout <<"LEFT  CAMERA PARAMETERS:\n";
 	std::cout << "fx_l: " << cam_left_->fx() <<", "
 			  << "fy_l: " << cam_left_->fy() <<", "
 			  << "cx_l: " << cam_left_->cx() <<", "
@@ -111,12 +117,25 @@ void StereoVO::loadStereoCameraIntrinsicAndUserParameters(const std::string& dir
 
 	cam_right_->initParams(cols, rows, cvK_tmp, cvD_tmp);
 
+	std::cout <<"RIGHT CAMERA PARAMETERS:\n";
 	std::cout << "fx_r: " << cam_right_->fx() <<", "
 			  << "fy_r: " << cam_right_->fy() <<", "
 			  << "cx_r: " << cam_right_->cx() <<", "
 			  << "cy_r: " << cam_right_->cy() <<", "
 			  << "cols_r: " << cam_right_->cols() <<", "
 			  << "rows_r: " << cam_right_->rows() <<"\n";
+
+
+	cv::Mat cvT_lr_tmp = cv::Mat(4,4,CV_32FC1);
+    fs["T_lr"] >> cvT_lr_tmp;
+	for(int i = 0; i < 4; ++i)
+		for(int j = 0; j < 4; ++j)
+			T_lr_(i,j) = cvT_lr_tmp.at<float>(i,j);
+
+	std::cout <<"Stereo pose (left to right) T_lr:\n" << T_lr_ << std::endl;
+
+	// Do undistortion or not.
+	system_flags_.flagDoUndistortion = (int)fs["flagDoUndistortion"];
 
 	// Load user setting parameters
 	// Feature tracker
@@ -125,6 +144,10 @@ void StereoVO::loadStereoCameraIntrinsicAndUserParameters(const std::string& dir
 	params_.feature_tracker.thres_sampson          = fs["feature_tracker.thres_sampson"];
 	params_.feature_tracker.window_size            = (int)fs["feature_tracker.window_size"];
 	params_.feature_tracker.max_level              = (int)fs["feature_tracker.max_level"];
+
+	// Map update
+	params_.map_update.thres_parallax              = fs["map_update.thres_parallax"];
+	params_.map_update.thres_parallax *= D2R;
 
 	// Feature extractor
 	params_.feature_extractor.n_features           = (int)fs["feature_extractor.n_features"];
@@ -141,13 +164,8 @@ void StereoVO::loadStereoCameraIntrinsicAndUserParameters(const std::string& dir
 	// Keyframe update
 	params_.keyframe_update.thres_alive_ratio      = fs["keyframe_update.thres_alive_ratio"];
 	params_.keyframe_update.thres_mean_parallax    = fs["keyframe_update.thres_mean_parallax"];
-	
-	// Map update
-	params_.map_update.thres_parallax = fs["map_update.thres_parallax"];
-	params_.map_update.thres_parallax *= D2R;
-
-	// Do undistortion or not.
-	system_flags_.flagDoUndistortion = (int)fs["flagDoUndistortion"];
+	params_.keyframe_update.thres_trans            = fs["keyframe_update.thres_trans"];
+	params_.keyframe_update.thres_rotation         = fs["keyframe_update.thres_rotation"];
 
 	std::cout << " - 'loadStereoCameraIntrinsicAndUserParameters()' - loaded.\n";
 };
@@ -190,6 +208,10 @@ void StereoVO::saveStereoKeyframe(const StereoFramePtr& stframe, bool verbose)
 		std::cout << "# of all accumulated stereo keyframes   : " << all_stkeyframes_.size() << std::endl;	
 };
 
+const StereoVO::AlgorithmStatistics& StereoVO::getStatistics() const{
+	return stat_;
+};
+
 const cv::Mat& StereoVO::getDebugImage()
 {
     return img_debug_;
@@ -198,7 +220,53 @@ const cv::Mat& StereoVO::getDebugImage()
 
 void StereoVO::trackStereoImages(const cv::Mat& img_left, const cv::Mat& img_right, const double& timestamp)
 {
-    // Algorithm implementation
+	float THRES_SAMPSON  = params_.feature_tracker.thres_sampson;
+	float THRES_PARALLAX = params_.map_update.thres_parallax;
 
-    
+	// Generate statistics
+	AlgorithmStatistics::LandmarkStatistics  statcurr_landmark;
+	AlgorithmStatistics::FrameStatistics     statcurr_frame;
+	AlgorithmStatistics::KeyframeStatistics  statcurr_keyframe;
+	AlgorithmStatistics::ExecutionStatistics statcurr_execution;
+			
+	// 이미지 undistort (KITTI라서 할 필요 X)
+	cv::Mat img_left_undist, img_right_undist;
+	if(system_flags_.flagDoUndistortion)
+	{
+		cam_left_->undistortImage(img_left, img_left_undist);
+		cam_right_->undistortImage(img_right, img_right_undist);
+
+		img_left_undist.convertTo(img_left_undist, CV_8UC1);
+		img_right_undist.convertTo(img_right_undist, CV_8UC1);
+	}
+	else 
+	{
+		img_left.copyTo(img_left_undist);
+		img_right.copyTo(img_right_undist);
+	}
+
+    // Algorithm implementation
+	FramePtr frame_left_curr = std::make_shared<Frame>(cam_left_, false, nullptr);
+	FramePtr frame_right_curr = std::make_shared<Frame>(cam_right_, true, frame_left_curr);
+	frame_left_curr->setImageAndTimestamp(img_left_undist, timestamp); 	// frame_curr에 img_undist와 시간 부여 (gradient image도 함께 사용)
+	frame_right_curr->setImageAndTimestamp(img_right_undist, timestamp); 	// frame_curr에 img_undist와 시간 부여 (gradient image도 함께 사용)
+	StereoFramePtr stframe_curr = std::make_shared<StereoFrame>(frame_left_curr, frame_right_curr);
+	
+	this->saveStereoFrame(stframe_curr);   
+
+	// Get previous and current images
+	// const cv::Mat& I0_l = stframe_prev_->getLeftFramePtr()->getImage();
+	// const cv::Mat& I0_r = stframe_prev_->getRightFramePtr()->getImage();
+
+	const cv::Mat& I1_l = stframe_curr->getLeftFramePtr()->getImage();
+	const cv::Mat& I1_r = stframe_curr->getRightFramePtr()->getImage();
+
+
+
+
+
+
+
+
+	this->stframe_prev_ = stframe_curr;	
 };

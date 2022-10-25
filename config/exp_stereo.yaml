@@ -8,37 +8,40 @@ flagDoUndistortion: 1 # 0: do not undistort an image (KITTI), 1: undistort an im
 
 # Camera calibration and distortion parameters (OpenCV) 
 # Left camera
-Camera.left.fx: 667.59708
-Camera.left.fy: 667.40554
-Camera.left.cx: 545.66678
-Camera.left.cy: 395.18554
+Camera.left.fx: 667.959809653146
+Camera.left.fy: 667.713938545685
+Camera.left.cx: 545.634424235588
+Camera.left.cy: 395.629849906665
 
-Camera.left.k1: -0.296981
-Camera.left.k2: 0.097228
-Camera.left.k3: 0.000187
-Camera.left.p1: -0.000192
+Camera.left.k1: -0.321306365737294
+Camera.left.k2: 0.168216630982978
+Camera.left.k3: 0.0583388111983407
+Camera.left.p1: 0.0
 Camera.left.p2: 0.0
 
 Camera.left.width: 1032
 Camera.left.height: 772
 
 # Right camera
-Camera.right.fx: 670.61223
-Camera.right.fy: 670.67012
-Camera.right.cx: 518.80535
-Camera.right.cy: 408.5724
+Camera.right.fx: 668.237173199852
+Camera.right.fy: 668.199813476523
+Camera.right.cx: 522.375134461151
+Camera.right.cy: 409.972277738036
 
-Camera.right.k1: -0.286807
-Camera.right.k2: 0.082322
-Camera.right.k3: 0.000202
-Camera.right.p1: -0.000111
+Camera.right.k1: -0.319454818441647
+Camera.right.k2: 0.160425305072180
+Camera.right.k3: -0.0506131487392573
+Camera.right.p1: 0.0
 Camera.right.p2: 0.0
 
 Camera.right.width: 1032
 Camera.right.height: 772
 
-
-# T_lr: 
+T_lr: !!opencv-matrix # this statement is necessary.
+  rows: 4
+  cols: 4
+  dt: f
+  data: [0.999999025791103, -0.00137955561858292, -0.000212704348221640, 0.254740180977306, 0.00137997239354495, 0.999997103690113, 0.00197187412818722, 8.59566308727688e-05, 0.000209983422131205, -0.00197216573329844, 0.999998033232707, -0.000641735851620330, 0, 0, 0, 1]
 
 #--------------------------------------------------------------------------------------------
 # User setting Parameters

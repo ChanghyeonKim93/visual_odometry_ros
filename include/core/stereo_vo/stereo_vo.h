@@ -71,6 +71,8 @@ private:
 		struct KeyframeUpdateParameters{
 			float thres_alive_ratio     = 0.7;
 			float thres_mean_parallax   = 3.0*D2R;
+			float thres_trans           = 1.0; //meter
+			float thres_rotation        = 3.0*D2R; // radian
 		};
 		struct MappingParameters{
 			float thres_parallax      = 1.0*D2R;
@@ -177,6 +179,7 @@ private:
 private:
 	std::shared_ptr<Camera> cam_left_;
 	std::shared_ptr<Camera> cam_right_;
+	PoseSE3 T_lr_;
 
 // Modules
 private:
@@ -208,6 +211,8 @@ public:
 	~StereoVO();
 
     void trackStereoImages(const cv::Mat& img_left, const cv::Mat& img_right, const double& timestamp);
+
+	const AlgorithmStatistics& getStatistics() const;
 
 private:
 	void saveLandmark(const LandmarkPtr& lm, bool verbose = false);

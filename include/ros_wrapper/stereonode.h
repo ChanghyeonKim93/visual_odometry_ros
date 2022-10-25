@@ -1,5 +1,5 @@
-#ifndef _NODE_H_
-#define _NODE_H_
+#ifndef _STEREO_NODE_H_
+#define _STEREO_NODE_H_
 
 #include <iostream>
 #include <algorithm>
@@ -23,10 +23,11 @@
 #include <message_filters/sync_policies/approximate_time.h>
 
 
+
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/core/core.hpp>
 
-#include "core/scale_mono_vo/scale_mono_vo.h"
+#include "core/stereo_vo/stereo_vo.h"
 
 #include "util/timer.h"
 
@@ -35,16 +36,18 @@
 
 #include "ros_wrapper/ros_print_in_color.h"
 
-class MonoNode{
+typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> MySyncPolicy;
+
+class StereoNode{
 public:
-    MonoNode(ros::NodeHandle& nh);
-    ~MonoNode();
+    StereoNode(ros::NodeHandle& nh);
+    ~StereoNode();
 
 private:
     void getParameters();
 
 private:
-    void imageCallback(const sensor_msgs::ImageConstPtr& msg);
+    void imageStereoCallback(const sensor_msgs::ImageConstPtr &msg_left, const sensor_msgs::ImageConstPtr &msg_right);
     void groundtruthCallback(const geometry_msgs::PoseStampedConstPtr& msg);
     void run();
 
@@ -53,15 +56,20 @@ private:
 
 private:
     ros::NodeHandle nh_;
-    
-    // subscriber
-    ros::Subscriber img_sub_;
-    std::string topicname_image_;
 
+// Subscribes
+    message_filters::Subscriber<sensor_msgs::Image> *left_img_sub_;
+    message_filters::Subscriber<sensor_msgs::Image> *right_img_sub_;
+    message_filters::Synchronizer<MySyncPolicy> *sync_stereo_;
+    
+    std::string topicname_image_left_;
+    std::string topicname_image_right_;
+    
     ros::Subscriber gt_sub_;
     std::string topicname_gt_;
 
-    // publishers
+
+// Publishes
     ros::Publisher pub_pose_;
     std::string topicname_pose_;
 
@@ -70,38 +78,26 @@ private:
     std::string topicname_trajectory_;
 
     ros::Publisher pub_map_points_;
-    PointVec mappoints_;
     std::string topicname_map_points_;
+    PointVec mappoints_;    
 
     ros::Publisher pub_statistics_;
     std::string topicname_statistics_;
 
-    // Publishers for turn region detections
-    ros::Publisher pub_turns_;
-    sensor_msgs::PointCloud2 msg_turns_;
-    std::string topicname_turns_;
-
-    // Publishers for ground truth
     ros::Publisher pub_trajectory_gt_;
     nav_msgs::Path msg_trajectory_gt_;
     std::string topicname_trajectory_gt_;
 
-    // Publisher for debug image
     ros::Publisher pub_debug_image_;
     sensor_msgs::Image msg_debug_image_;
-    
 
-
-    // Publishers for scales
-    Vec3 trans_prev_gt_;
-    Vec3 trans_curr_gt_;
-    float scale_gt_;
-    
 private:
     std::string directory_intrinsic_;
 
+// stereo VO algorithm
 private:
-    std::unique_ptr<ScaleMonoVO> scale_mono_vo_;
+    std::unique_ptr<StereoVO> stereo_vo_;
+
 };
 
 #endif
