@@ -14,6 +14,11 @@
 #include "core/camera.h"
 #include "util/geometry_library.h"
 
+
+class Frame;
+class StereoFrame;
+
+
 /// @brief Image frame class
 class Frame 
 {
@@ -134,6 +139,8 @@ public:
     void setPoseOnlyFailed();
 };
 
+
+
 /// @brief Stereo frame structure. (not used now.)
 class StereoFrame
 {
@@ -143,9 +150,9 @@ private:
 
 public:
     /// @brief Constructor of StereoFrame structure.
-    /// @param f_l frame pointer to lower frame.
-    /// @param f_u frame pointer to upper frame.
-    StereoFrame(const FramePtr& f_l, const FramePtr& f_r);
+    /// @param frame_left frame pointer to left frame.
+    /// @param frame_right frame pointer to right frame.
+    StereoFrame(const FramePtr& frame_left, const FramePtr& frame_right);
 
 public:
     const FramePtr& getLeftFramePtr() const;

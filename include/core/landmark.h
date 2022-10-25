@@ -13,6 +13,11 @@
 #include "core/frame.h"
 #include "core/camera.h"
 
+
+class Landmark;
+class LandmarkTracking;
+class StereoLandmarkTracking;
+
 // 2d pixel point hisotry over image
 // Address of fraems where the landmark was seen.
 // 3D coordinate of the landmark represented in the global frame. It can be obtained by scale propagation and recovery modules.
@@ -148,13 +153,13 @@ public:
 class StereoLandmarkTracking 
 {
 public:
-    // lower camera prev. and current.
+    //  left camera prev. and current.
     PixelVec pts_l0;
     PixelVec pts_l1;
 
-    // upper camera prev. and current.
-    PixelVec pts_u0;
-    PixelVec pts_u1;
+    // right camera prev. and current.
+    PixelVec pts_r0;
+    PixelVec pts_r1;
 
     // LandmarkPtr vector.
     LandmarkPtrVec lms;

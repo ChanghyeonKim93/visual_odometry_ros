@@ -1,4 +1,4 @@
-#include "core/scale_mono_vo.h"
+#include "core/scale_mono_vo/scale_mono_vo.h"
 
 void ScaleMonoVO::trackImageFeatureOnly(const cv::Mat& img, const double& timestamp)
 {

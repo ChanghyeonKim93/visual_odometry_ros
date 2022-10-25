@@ -34,7 +34,6 @@
 
 // Scale Forward Propagation
 #include "core/scale_estimator/scale_forward_propagation.h"
-#include "core/scale_estimator/absolute_scale_recovery.h"
 
 // Absolute Scale Recovery
 #include "core/scale_estimator/scale_constraint.h"

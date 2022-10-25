@@ -1,0 +1,75 @@
+%YAML:1.0
+#--------------------------------------------------------------------------------------------
+# Camera Parameters
+#--------------------------------------------------------------------------------------------
+
+# Flag do undistortion
+flagDoUndistortion: 1 # 0: do not undistort an image (KITTI), 1: undistort an image
+
+# Camera calibration and distortion parameters (OpenCV) 
+# Left camera
+Camera.left.fx: 667.59708
+Camera.left.fy: 667.40554
+Camera.left.cx: 545.66678
+Camera.left.cy: 395.18554
+
+Camera.left.k1: -0.296981
+Camera.left.k2: 0.097228
+Camera.left.k3: 0.000187
+Camera.left.p1: -0.000192
+Camera.left.p2: 0.0
+
+Camera.left.width: 1032
+Camera.left.height: 772
+
+# Right camera
+Camera.right.fx: 670.61223
+Camera.right.fy: 670.67012
+Camera.right.cx: 518.80535
+Camera.right.cy: 408.5724
+
+Camera.right.k1: -0.286807
+Camera.right.k2: 0.082322
+Camera.right.k3: 0.000202
+Camera.right.p1: -0.000111
+Camera.right.p2: 0.0
+
+Camera.right.width: 1032
+Camera.right.height: 772
+
+
+# T_lr: 
+
+#--------------------------------------------------------------------------------------------
+# User setting Parameters
+#--------------------------------------------------------------------------------------------
+
+# Parameters of feature tracker
+feature_tracker.thres_error: 40.0      
+feature_tracker.thres_bidirection: 0.5
+feature_tracker.thres_sampson: 0.5
+feature_tracker.window_size: 15
+feature_tracker.max_level: 6
+
+# Parameters of map update
+map_update.thres_parallax: 1.0
+
+# Parameters of feature extractor
+feature_extractor.n_features: 5000
+feature_extractor.n_bins_u: 32
+feature_extractor.n_bins_v: 20
+feature_extractor.thres_fastscore: 15.0
+feature_extractor.radius: 5.0
+
+# Parameters of motion estimator
+motion_estimator.thres_1p_error: 120.0 # pixels
+motion_estimator.thres_5p_error: 1.0 # pixels
+motion_estimator.thres_poseba_error: 5.0 # pixels
+
+motion_estimator.lba.max_iter: 6
+
+# Parameters of keyframe update
+keyframe_update.thres_alive_ratio: 0.7
+keyframe_update.thres_mean_parallax: 1.0
+keyframe_update.thres_trans: 1.0 # meters
+keyframe_update.thres_rotation: 4.0 # degrees

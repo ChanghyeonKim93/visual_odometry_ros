@@ -17,7 +17,7 @@
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/core/core.hpp>
 
-#include "core/scale_mono_vo.h"
+#include "core/scale_mono_vo/scale_mono_vo.h"
 
 #include "util/timer.h"
 

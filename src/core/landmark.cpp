@@ -287,7 +287,7 @@ LandmarkTracking::LandmarkTracking(const PixelVec& pts0_in, const PixelVec& pts1
 StereoLandmarkTracking::StereoLandmarkTracking()
 {
     pts_l0.reserve(1000); pts_l1.reserve(1000);
-    pts_u0.reserve(1000); pts_u1.reserve(1000);
+    pts_r0.reserve(1000); pts_r1.reserve(1000);
 
     lms.reserve(1000);
 };
