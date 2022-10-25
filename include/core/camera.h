@@ -72,6 +72,8 @@ public:
 	/// @return 3D point reprojected from the 2D pixel
 	Point reprojectToNormalizedPoint(const Pixel& pt);
 
+	inline bool inImage(const Pixel& pt);
+
 	/// @brief Get # of image pixel columns of this camera.
 	/// @return # of image pixel columns 
 	const int cols() const { return n_cols_; };

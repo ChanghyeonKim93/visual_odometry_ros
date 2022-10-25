@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5.1)
 project(scale_mono_vo_ros)
-set(CMAKE_BUILD_TYPE RelWithDebInfo) # Release, RelWithDebInfo
+set(CMAKE_BUILD_TYPE Release) # Release, RelWithDebInfo
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -O2 -pthread -pg")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}) 
 find_package(catkin REQUIRED cmake_modules)
@@ -133,7 +133,7 @@ target_link_libraries (stereo_vo_node ${catkin_LIBRARIES} ${Eigen_LIBRARIES})
 
 
 
-# Additional modules
+# executable for the additional modules
 add_executable(image_cropper 
   src/image_cropper/main_cropper.cpp
   src/image_cropper/image_cropper.cpp)

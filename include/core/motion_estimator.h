@@ -35,6 +35,9 @@
 class MotionEstimator 
 {
 private:
+    bool is_stereo_mode_;
+
+private:
     float thres_1p_;
     float thres_5p_;
 
@@ -42,7 +45,7 @@ private:
     std::shared_ptr<SparseBundleAdjustmentSolver> sparse_ba_solver_;
     
 public:
-    MotionEstimator();
+    MotionEstimator(bool is_stereo_mode = false);
     ~MotionEstimator();
 
     bool calcPose5PointsAlgorithm(const PixelVec& pts0, const PixelVec& pts1, const std::shared_ptr<Camera>& cam, 

@@ -196,6 +196,16 @@ Point Camera::reprojectToNormalizedPoint(const Pixel& pt){
 };
 
 
+inline bool Camera::inImage(const Pixel& pt)
+{
+	bool is_in_image = true;
+	float offset = 3.0f;
+
+	if(pt.x < offset || pt.y < offset || pt.x >= n_cols_-offset || pt.y >= n_rows_-offset)
+		is_in_image = false;
+
+	return is_in_image;
+};
 
 
 /*

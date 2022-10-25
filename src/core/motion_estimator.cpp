@@ -1,11 +1,17 @@
 #include "core/motion_estimator.h"
 
-MotionEstimator::MotionEstimator()
+MotionEstimator::MotionEstimator(bool is_stereo_mode)
+:is_stereo_mode_(is_stereo_mode)
 {
     this->thres_1p_ = 10.0; // pixels
     this->thres_5p_ = 1.5; // pixels
 
-    this->sparse_ba_solver_ = std::make_shared<SparseBundleAdjustmentSolver>(false);
+    this->sparse_ba_solver_ = std::make_shared<SparseBundleAdjustmentSolver>(is_stereo_mode_);
+
+    if(is_stereo_mode_)
+        std::cout << "Motion Estimator is set to 'stereo' mode.\n";
+    else
+        std::cout << "Motion Estimator is set to 'monocular' mode.\n";
 };
 
 MotionEstimator::~MotionEstimator()

@@ -55,12 +55,13 @@ namespace Mapping{
     {
         const float& fx = cam->fx(); const float& fy = cam->fy();
         const float& cx = cam->cx(); const float& cy = cam->cy();
+        const Mat33& K = cam->K();
 
         Eigen::Matrix<float,3,4> P00;
         Eigen::Matrix<float,3,4> P10;
         
-        P00 << cam->K(),Eigen::Vector3f::Zero();
-        P10 << cam->K()*R10, cam->K()*t10;
+        P00 << K,Eigen::Vector3f::Zero();
+        P10 << K*R10, K*t10;
 
         Eigen::Matrix4f M;  M.setZero();
         // Constant elements

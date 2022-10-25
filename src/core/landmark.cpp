@@ -60,7 +60,7 @@ is_bundled_(false)
 };  
 
 Landmark::~Landmark(){
-    std::cout << "Landmark destructor called.\n";  
+    std::cout << "Landmark destructor called, ID [" << id_ << "]\n";  
 };
 
 void Landmark::set3DPoint(const Point& Xw) { 
