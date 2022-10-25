@@ -104,6 +104,7 @@ set(SRC_STEREO ${SRC_STEREO}
   src/util/trigonometry_fast.cpp
 
   src/core/stereo_vo/stereo_vo.cpp
+  src/core/stereo_vo/stereo_vo_trackimage.cpp
 )
 
 set(includeDirs ${includeDirs} ${CMAKE_CURRENT_BINARY_DIR})

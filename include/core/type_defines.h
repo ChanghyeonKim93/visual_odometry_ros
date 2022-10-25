@@ -31,6 +31,10 @@ typedef std::shared_ptr<Frame>    FramePtr;
 typedef std::shared_ptr<Landmark> LandmarkPtr;
 typedef std::shared_ptr<Camera>   CameraPtr;
 
+typedef const std::shared_ptr<Frame>    FrameConstPtr;
+typedef const std::shared_ptr<Landmark> LandmarkConstPtr;
+typedef const std::shared_ptr<Camera>   CameraConstPtr;
+
 
 typedef std::vector<bool>         BoolVec;
 typedef std::vector<int>          IntVec;
@@ -76,9 +80,15 @@ typedef Eigen::Matrix<float,6,1>  Vec6;
 typedef Eigen::Matrix<float,6,1>    PoseSE3Tangent;
 typedef std::vector<PoseSE3Tangent> PoseSE3TangentVec;
 
+//For stereo
 struct StereoFrame;
+class StereoCamera;
+
 typedef std::shared_ptr<StereoFrame>    StereoFramePtr;
 typedef std::vector<StereoFramePtr>     StereoFramePtrVec;
+
+typedef std::shared_ptr<StereoCamera>  StereoCameraPtr;
+typedef const std::shared_ptr<StereoFrame> StereoFrameConstPtr;
 
 
 

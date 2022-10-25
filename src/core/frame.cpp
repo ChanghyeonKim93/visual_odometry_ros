@@ -1,6 +1,6 @@
 #include "core/frame.h"
 
-Frame::Frame(const std::shared_ptr<Camera>& cam, bool is_right_image = false, const FramePtr& frame_left = nullptr)
+Frame::Frame(const std::shared_ptr<Camera>& cam, bool is_right_image, const FramePtr& frame_left)
 : is_keyframe_(false), is_keyframe_in_window_(false), is_turning_frame_(false), is_poseonlyBA_success_(true)
 {
     cam_ = cam;
@@ -16,6 +16,28 @@ Frame::Frame(const std::shared_ptr<Camera>& cam, bool is_right_image = false, co
     is_right_image_ = is_right_image;
     frame_left_     = frame_left;
 };
+
+Frame::Frame(const std::shared_ptr<Camera>& cam, const cv::Mat& img, const double& timestamp,
+         bool is_right_image, const FramePtr& frame_left)
+: is_keyframe_(false), is_keyframe_in_window_(false), is_turning_frame_(false), is_poseonlyBA_success_(true)
+{
+    cam_ = cam;
+
+    Twc_ = PoseSE3::Identity();
+    Tcw_ = PoseSE3::Identity();
+    steering_angle_ = 0.0f;
+    scale_          = 0.0f;
+    timestamp_      = 0.0;
+    id_             = frame_counter_++;
+
+    this->setImageAndTimestamp(img, timestamp);
+
+// Stereo right image only.
+    is_right_image_ = is_right_image;
+    frame_left_     = frame_left;
+
+};
+
 
 void Frame::setPose(const PoseSE3& Twc) { 
     Twc_ = Twc; 
@@ -194,6 +216,14 @@ void Frame::setPoseOnlyFailed()
 
 
 
+/*
+====================================================================================
+====================================================================================
+=============================  StereoFrame  =============================
+====================================================================================
+====================================================================================
+*/
+
 // stereo frame
 
 StereoFrame::StereoFrame(const FramePtr& f_l, const FramePtr& f_r)
@@ -202,12 +232,12 @@ StereoFrame::StereoFrame(const FramePtr& f_l, const FramePtr& f_r)
     right_ = f_r;
 };
 
-const FramePtr& StereoFrame::getLeftFramePtr() const
+FrameConstPtr& StereoFrame::getLeftFrame() const
 {
     return left_;
 };
 
-const FramePtr& StereoFrame::getRightFramePtr() const
+FrameConstPtr& StereoFrame::getRightFrame() const
 {
     return right_;
 };

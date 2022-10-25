@@ -18,6 +18,10 @@ namespace Mapping{
                         const Rot3& R10, const Pos3& t10, const std::shared_ptr<Camera>& cam, 
                         Point& X0, Point& X1);
 
+    void triangulateDLT(const Pixel& pt0, const Pixel& pt1, 
+                        const Rot3& R10, const Pos3& t10, const std::shared_ptr<Camera>& cam0, const std::shared_ptr<Camera>& cam1, 
+                        Point& X0, Point& X1);
+
     Eigen::Matrix3f skew(const Eigen::Vector3f& vec);
 };
 

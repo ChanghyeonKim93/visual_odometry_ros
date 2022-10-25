@@ -194,3 +194,283 @@ Pixel Camera::projectToPixel(const Point& X){
 Point Camera::reprojectToNormalizedPoint(const Pixel& pt){
 	return Point(fxinv_*(pt.x-cx_), fyinv_*(pt.y-cy_), 1.0f);
 };
+
+
+
+
+/*
+====================================================================================
+====================================================================================
+=============================  StereoCamera  =============================
+====================================================================================
+====================================================================================
+*/
+StereoCamera::StereoCamera()
+: cam_left_(nullptr), cam_right_(nullptr), 
+is_initialized_to_stereo_rectify_(false)
+{
+	cam_left_  = std::make_shared<Camera>();
+	cam_right_ = std::make_shared<Camera>();
+};
+
+StereoCamera::~StereoCamera()
+{
+
+};
+
+CameraConstPtr& StereoCamera::getLeftCamera() const
+{
+	return cam_left_;
+};
+
+CameraConstPtr& StereoCamera::getRightCamera() const
+{
+	return cam_right_;
+};
+
+CameraConstPtr& StereoCamera::getRectifiedCamera() const
+{
+	return cam_rect_;
+};
+
+void StereoCamera::setStereoPoseLeft2Right(const PoseSE3& T_lr)
+{
+	T_lr_ = T_lr;
+	T_rl_ = T_lr_.inverse();
+};
+
+void StereoCamera::initStereoCameraToRectify()
+{
+	this->generateStereoImagesUndistortAndRectifyMaps();
+	is_initialized_to_stereo_rectify_ = true;
+}
+
+void StereoCamera::undistortImageByLeftCamera(const cv::Mat& img_left, cv::Mat& img_left_undist)
+{
+	cam_left_->undistortImage(img_left,img_left_undist);
+};
+
+void StereoCamera::undistortImageByRightCamera(const cv::Mat& img_right, cv::Mat& img_right_undist)
+{
+	cam_right_->undistortImage(img_right,img_right_undist);
+};
+
+void StereoCamera::rectifyStereoImages(
+	const cv::Mat& img_left, const cv::Mat& img_right,
+	cv::Mat& img_left_rect, cv::Mat& img_right_rect)
+{
+	// LEFT IMAGE
+	if (img_left.empty() || img_left.cols != cam_rect_->cols() || img_left.rows != cam_rect_->rows())
+		throw std::runtime_error("In 'rectifyStereoImages()': provided image has not the same size as the camera model!\n");
+
+	cv::Mat img_left_float;
+	if(img_left.channels() == 3)
+		cv::cvtColor(img_left, img_left_float, cv::COLOR_RGB2GRAY);
+	else img_left.copyTo(img_left_float);
+
+	if(img_left_float.type() != CV_32FC1 )
+		img_left_float.convertTo(img_left_float, CV_32FC1);
+
+	cv::remap(img_left_float, img_left_rect, rectify_map_left_u_, rectify_map_left_v_, cv::INTER_LINEAR);
+	
+	// RIGHT IMAGE
+	if (img_right.empty() || img_right.cols != cam_rect_->cols() || img_right.rows != cam_rect_->rows())
+		throw std::runtime_error("In 'rectifyStereoImages()': provided image has not the same size as the camera model!\n");
+	
+	cv::Mat img_right_float;
+	if(img_right.channels() == 3)
+		cv::cvtColor(img_right, img_right_float, cv::COLOR_RGB2GRAY);
+	else img_right.copyTo(img_right_float);
+
+	if(img_right_float.type() != CV_32FC1 )
+		img_right_float.convertTo(img_right_float, CV_32FC1);
+
+	cv::remap(img_right_float, img_right_rect, rectify_map_right_u_, rectify_map_right_v_, cv::INTER_LINEAR);
+};
+
+const PoseSE3& StereoCamera::getStereoPoseLeft2Right() const
+{
+	return T_lr_;
+};
+
+const PoseSE3& StereoCamera::getStereoPoseRight2Left() const
+{
+	return T_rl_;
+};
+
+
+const PoseSE3& StereoCamera::getRectifiedStereoPoseLeft2Right() const
+{
+	return T_lr_rect_;	
+};
+
+const PoseSE3& StereoCamera::getRectifiedStereoPoseRight2Left() const
+{
+	return T_rl_rect_;	
+};
+
+
+void StereoCamera::generateStereoImagesUndistortAndRectifyMaps()
+{
+	float scale = 1.8f;
+	float invscale = 1.0f/scale;
+
+    PoseSE3 T_0l = PoseSE3::Identity();
+    PoseSE3 T_0r = T_lr_;
+    const Rot3& R_0l = T_0l.block<3, 3>(0, 0);
+    const Rot3& R_0r = T_0r.block<3, 3>(0, 0);
+
+	// Generate Reference rotation matrix
+    Vec3 k_l = R_0l.block<3, 1>(0, 2);
+    Vec3 k_r = R_0r.block<3, 1>(0, 2);
+    Vec3 k_n = (k_l + k_r)*0.5;
+    k_n /= k_n.norm();
+
+	Vec3 i_n = T_lr_.block<3, 1>(0, 3);
+    i_n /= i_n.norm();
+
+    Vec3 j_n = k_n.cross(i_n);
+    j_n /= j_n.norm();
+
+	k_n = i_n.cross(j_n);
+	k_n /= k_n.norm();
+	
+    Rot3 R_0n; // left to rectified camera
+	R_0n << i_n, j_n, k_n;
+
+	// New intrinsic parameter
+    float f_n = 
+		(cam_left_->fx() + cam_left_->fy() + cam_right_->fx() + cam_right_->fy()) * 0.5f * invscale;
+
+    float centu = (float)cam_left_->cols()*0.5f;
+    float centv = (float)cam_left_->rows()*0.5f;
+    
+	Mat33 K_rect;
+    K_rect << f_n,   0, centu, 
+			    0, f_n, centv,
+				0,   0,     1;
+
+	Mat33 K_rect_inv;
+    K_rect_inv = K_rect.inverse();
+
+	Eigen::Matrix<float,1,5> D_rect;
+	D_rect << 0,0,0,0,0;
+
+	cv::Mat cvK_rect;
+	cv::Mat cvD_rect;
+    cv::eigen2cv(K_rect, cvK_rect);
+    cv::eigen2cv(D_rect, cvD_rect);
+
+	// Generate rectified camera
+	cam_rect_ = std::make_shared<Camera>();
+	cam_rect_->initParams(cam_left_->cols(), cam_left_->rows(), cvK_rect, cvD_rect);
+
+	int n_cols = cam_rect_->cols();
+	int n_rows = cam_rect_->rows();
+	rectify_map_left_u_  = cv::Mat::zeros(n_rows, n_cols, CV_32FC1);
+	rectify_map_left_v_  = cv::Mat::zeros(n_rows, n_cols, CV_32FC1);
+	rectify_map_right_u_ = cv::Mat::zeros(n_rows, n_cols, CV_32FC1);
+	rectify_map_right_v_ = cv::Mat::zeros(n_rows, n_cols, CV_32FC1);
+
+    // interpolation grid calculations.
+    float* ptr_map_left_u = nullptr;
+	float* ptr_map_left_v = nullptr;
+    float* ptr_map_right_u = nullptr;
+	float* ptr_map_right_v = nullptr;
+
+	Vec3 p_n;
+    Vec3 P_0, x_l, x_r;
+
+    float k1, k2, k3, p1, p2;
+    float x, y, xy, r2, r4, r6, r_radial, x_dist, y_dist;
+
+
+	const float& fx_l = cam_left_->fx();
+	const float& fy_l = cam_left_->fy();
+	const float& invfx_l = cam_left_->fxinv();
+	const float& invfy_l = cam_left_->fyinv();
+	const float& cx_l = cam_left_->cx();
+	const float& cy_l = cam_left_->cy();
+
+	const float& fx_r = cam_right_->fx();
+	const float& fy_r = cam_right_->fy();
+	const float& invfx_r = cam_right_->fxinv();
+	const float& invfy_r = cam_right_->fyinv();
+	const float& cx_r = cam_right_->cx();
+	const float& cy_r = cam_right_->cy();
+
+
+    for (int v = 0; v < n_rows; ++v)
+    {
+        ptr_map_left_u = this->rectify_map_left_u_.ptr<float>(v);
+        ptr_map_left_v = this->rectify_map_left_v_.ptr<float>(v);
+
+        ptr_map_right_u = this->rectify_map_right_u_.ptr<float>(v);
+        ptr_map_right_v = this->rectify_map_right_v_.ptr<float>(v);
+
+        for (int u = 0; u < n_cols; ++u)
+        {
+			p_n << (float)u, (float)v, 1.0f;
+            P_0 = R_0n*K_rect_inv*p_n;
+
+            x_l = R_0l.transpose()*P_0;
+            x_l /= x_l(2); // left normalized coordinate
+
+            x_r = R_0r.transpose()*P_0;
+            x_r /= x_r(2);// right normalized coordinate
+
+            // left
+
+            k1 = cam_left_->k1();
+            k2 = cam_left_->k2();
+            k3 = cam_left_->k3();
+            p1 = cam_left_->p1();
+            p2 = cam_left_->p2();
+
+            x = x_l(0);
+            y = x_l(1);
+
+			xy = x*y;
+            r2 = x*x + y*y;
+            r4 = r2*r2;
+            r6 = r4*r2;
+
+            r_radial = 1.0f + k1*r2 + k2*r4 + k3*r6;
+            x_dist = x*r_radial + 2.0f * p1*xy + p2*(r2 + 2.0f * x*x);
+            y_dist = y*r_radial + p1*(r2 + 2.0f * y*y) + 2.0f * p2*xy;
+            *(ptr_map_left_u + u) = cx_l + x_dist * fx_l;
+            *(ptr_map_left_v + u) = cy_l + y_dist * fy_l;
+
+            // right
+            k1 = cam_right_->k1();
+            k2 = cam_right_->k2();
+            k3 = cam_right_->k3();
+            p1 = cam_right_->p1();
+            p2 = cam_right_->p2();
+
+            x = x_r(0);
+            y = x_r(1);
+
+			xy = x*y;
+            r2 = x*x + y*y;
+            r4 = r2*r2;
+            r6 = r4*r2;
+
+            r_radial = 1.0f + k1*r2 + k2*r4 + k3*r6;
+            x_dist = x*r_radial + 2.0f * p1*xy + p2*(r2 + 2.0f * x*x);
+            y_dist = y*r_radial + p1*(r2 + 2.0f * y*y) + 2.0f * p2*xy;
+            *(ptr_map_right_u + u) = cx_r + x_dist * fx_r;
+            *(ptr_map_right_v + u) = cy_r + y_dist * fy_r;
+        }
+    }
+
+    // Rectified stereo extrinsic parameters (T_nlnr)
+    Rot3 R_ln = R_0l.transpose()*R_0n;
+    Rot3 R_rn = R_0r.transpose()*R_0n;
+    Pos3 t_clcr = T_lr_.block<3, 1>(0, 3);
+    this->T_lr_rect_ << Rot3::Identity(), R_ln.transpose()*t_clcr, 0, 0, 0, 1;
+    this->T_rl_rect_ = this->T_lr_rect_.inverse();
+
+	std::cout << "T_lr_rect_:\n" << T_lr_rect_ << std::endl;
+    std::cout << "[** INFO **] StereoCamera: stereo rectification maps are generated.\n";
+};

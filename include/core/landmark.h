@@ -154,19 +154,22 @@ class StereoLandmarkTracking
 {
 public:
     //  left camera prev. and current.
-    PixelVec pts_l0;
-    PixelVec pts_l1;
+    PixelVec pts_left_0;
+    PixelVec pts_left_1;
 
     // right camera prev. and current.
-    PixelVec pts_r0;
-    PixelVec pts_r1;
+    PixelVec pts_right_0;
+    PixelVec pts_right_1;
 
     // LandmarkPtr vector.
     LandmarkPtrVec lms;
 
+    int n_pts;
+
 public:
     /// @brief Constructor of StereoLandmarkTracking
     StereoLandmarkTracking();
+    StereoLandmarkTracking(const StereoLandmarkTracking& slmtrack, const MaskVec& mask);
 };
 
 #endif

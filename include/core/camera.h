@@ -104,6 +104,12 @@ public:
 	/// @return inverse of focal length y (1.0/fy)
 	const float fyinv() const { return fyinv_; };
 
+	const float k1() const { return k1_; };
+	const float k2() const { return k2_; };
+	const float k3() const { return k3_; };
+	const float p1() const { return p1_; };
+	const float p2() const { return p2_; };
+
 	/// @brief Get 3x3 intrinsic matrix of this camera
 	/// @return 3x3 intrinsic matrix (in Eigen Matrix)
 	const Eigen::Matrix3f K() const { return K_; };
@@ -122,6 +128,62 @@ private:
 
 	/// @brief Generate pre-calculated pixel undistortion maps (It can be considered as inverse mapping of image undistortion maps.)
 	void generatePixelUndistortMaps();
+};
+
+
+class StereoCamera
+{
+private:
+	CameraPtr cam_left_;
+	CameraPtr cam_right_;
+
+	PoseSE3 T_lr_;
+	PoseSE3 T_rl_;
+
+private:
+	CameraPtr cam_rect_; // Rectified camera
+	PoseSE3 T_lr_rect_; // Rectified left to right pose (Rotation: Identity)
+	PoseSE3 T_rl_rect_; // Rectified right to left pose (Rotation: Identity)
+
+	// stereo rectification maps
+	cv::Mat rectify_map_left_u_; // CV_32FC1
+	cv::Mat rectify_map_left_v_; // CV_32FC1
+	cv::Mat rectify_map_right_u_; // CV_32FC1
+	cv::Mat rectify_map_right_v_; // CV_32FC1
+
+	bool is_initialized_to_stereo_rectify_;
+
+public:
+	StereoCamera();
+	~StereoCamera();
+
+	void setStereoPoseLeft2Right(const PoseSE3& T_lr);
+
+	void initStereoCameraToRectify();
+
+public:
+	void undistortImageByLeftCamera(const cv::Mat& img_left, cv::Mat& img_left_undist);
+	void undistortImageByRightCamera(const cv::Mat& img_right, cv::Mat& img_right_undist);
+	void rectifyStereoImages(
+		const cv::Mat& img_left, const cv::Mat& img_right,
+		cv::Mat& img_left_rect, cv::Mat& img_right_rect); // todo
+
+// Get methods
+public:
+	CameraConstPtr& getLeftCamera() const; 
+	CameraConstPtr& getRightCamera() const; 
+
+	const PoseSE3& getStereoPoseLeft2Right() const;
+	const PoseSE3& getStereoPoseRight2Left() const;
+
+public:
+	CameraConstPtr& getRectifiedCamera() const; 
+	const PoseSE3& getRectifiedStereoPoseLeft2Right() const;
+	const PoseSE3& getRectifiedStereoPoseRight2Left() const;
+
+
+private:
+	void generateStereoImagesUndistortAndRectifyMaps();
 };
 
 #endif

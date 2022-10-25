@@ -79,7 +79,8 @@ void StereoNode::getParameters(){
 };
 
 
-void StereoNode::imageStereoCallback(const sensor_msgs::ImageConstPtr &msg_left, const sensor_msgs::ImageConstPtr &msg_right)
+void StereoNode::imageStereoCallback(
+    const sensor_msgs::ImageConstPtr &msg_left, const sensor_msgs::ImageConstPtr &msg_right)
 {
     ros::Time t_callback_start = ros::Time::now();
 
@@ -104,7 +105,6 @@ void StereoNode::imageStereoCallback(const sensor_msgs::ImageConstPtr &msg_left,
 
 
     // Show statistics & get odometry results
-
     const StereoVO::AlgorithmStatistics& stat = stereo_vo_->getStatistics();
     
     scale_mono_vo_ros::statisticsStamped msg_stats;
@@ -114,7 +114,6 @@ void StereoNode::imageStereoCallback(const sensor_msgs::ImageConstPtr &msg_left,
     msg_stats.time_5p            = stat.stats_execution.back().time_5p;
     msg_stats.time_new           = stat.stats_execution.back().time_new;
 
-
     msg_stats.n_initial          = stat.stats_landmark.back().n_initial;
     msg_stats.n_pass_bidirection = stat.stats_landmark.back().n_pass_bidirection;
     msg_stats.n_pass_1p          = stat.stats_landmark.back().n_pass_1p;
@@ -122,7 +121,6 @@ void StereoNode::imageStereoCallback(const sensor_msgs::ImageConstPtr &msg_left,
     msg_stats.n_new              = stat.stats_landmark.back().n_new;
     msg_stats.n_final            = stat.stats_landmark.back().n_final;
     msg_stats.n_ok_parallax      = stat.stats_landmark.back().n_ok_parallax;
-
 
     msg_stats.avg_parallax       = stat.stats_landmark.back().avg_parallax;
     msg_stats.avg_age            = stat.stats_landmark.back().avg_age;
@@ -206,11 +204,6 @@ void StereoNode::imageStereoCallback(const sensor_msgs::ImageConstPtr &msg_left,
     msg_img_debug.image           = img_debug; // Your cv::Mat
 
     pub_debug_image_.publish(msg_img_debug.toImageMsg());
-
-
-
-
-
 
 
     ros::Time t_callback_end = ros::Time::now();

@@ -29,6 +29,10 @@
 #include "core/feature_tracker.h"
 #include "core/motion_estimator.h"
 
+
+#include "core/ba_solver/sparse_bundle_adjustment.h"
+
+
 #include "core/image_processing.h"
 #include "core/mapping.h"
 
@@ -177,15 +181,15 @@ private:
 
 // Cameras (left, right)
 private:
-	std::shared_ptr<Camera> cam_left_;
-	std::shared_ptr<Camera> cam_right_;
-	PoseSE3 T_lr_;
+	StereoCameraPtr stereo_cam_;
 
 // Modules
 private:
 	std::shared_ptr<FeatureExtractor> extractor_;
 	std::shared_ptr<FeatureTracker>   tracker_;
 	std::shared_ptr<MotionEstimator>  motion_estimator_;
+
+    std::shared_ptr<SparseBundleAdjustmentSolver> ba_solver_; // bundle adjustment solver
 
 // For tracker
 private:

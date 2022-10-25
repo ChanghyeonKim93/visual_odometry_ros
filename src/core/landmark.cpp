@@ -80,7 +80,9 @@ void Landmark::setBundled() {
 void Landmark::addObservationAndRelatedFrame(const Pixel& p, const FramePtr& frame) 
 {
     // push observation.
-    ++age_;
+    if( !frame->isRightImage() )
+        ++age_;
+
     observations_.push_back(p);
     related_frames_.push_back(frame);
     
@@ -286,8 +288,57 @@ LandmarkTracking::LandmarkTracking(const PixelVec& pts0_in, const PixelVec& pts1
 */
 StereoLandmarkTracking::StereoLandmarkTracking()
 {
-    pts_l0.reserve(1000); pts_l1.reserve(1000);
-    pts_r0.reserve(1000); pts_r1.reserve(1000);
+    pts_left_0.reserve(1000); pts_left_1.reserve(1000);
+    pts_right_0.reserve(1000); pts_right_1.reserve(1000);
 
     lms.reserve(1000);
+    
+    n_pts = 0;
+};
+
+StereoLandmarkTracking::StereoLandmarkTracking(const StereoLandmarkTracking& slmtrack, const MaskVec& mask)
+{
+    
+    if(slmtrack.pts_left_0.size() != slmtrack.pts_left_1.size() 
+    || slmtrack.pts_left_0.size() != slmtrack.pts_right_0.size()
+    || slmtrack.pts_left_0.size() != slmtrack.pts_right_1.size()
+    || slmtrack.pts_left_0.size() != slmtrack.lms.size()
+    || slmtrack.pts_left_0.size() != mask.size())
+        throw std::runtime_error("slmtrack.pts_left_0.size() != slmtrack.pts_left_1.size() || slmtrack.pts_left_0.size() != slmtrack.pts_right_0.size() || slmtrack.pts_left_0.size() != slmtrack.pts_right_1.size() || slmtrack.pts_left_0.size() != slmtrack.lms.size() || slmtrack.pts_left_0.size() != mask.size()");
+
+    int n_pts_input = slmtrack.pts_left_0.size();
+
+    std::vector<int> index_valid;
+    index_valid.reserve(n_pts_input);
+    int cnt_alive = 0;
+    for(int i = 0; i < n_pts_input; ++i)
+    {
+        if( mask[i] && slmtrack.lms[i]->isAlive() && slmtrack.lms[i]->isTracked() )
+        {
+            index_valid.push_back(i);
+            ++cnt_alive;
+        }
+        else
+            slmtrack.lms[i]->setUntracked();
+    }
+
+    // set
+    n_pts = cnt_alive;
+
+    pts_left_0.resize(n_pts);
+    pts_left_1.resize(n_pts);
+    pts_right_0.resize(n_pts);
+    pts_right_1.resize(n_pts);
+    lms.resize(n_pts);
+
+    for(int i = 0; i < cnt_alive; ++i)
+    {
+        const int& idx  = index_valid[i];
+        
+        pts_left_0[i]  = slmtrack.pts_left_0[idx];
+        pts_left_1[i]  = slmtrack.pts_left_1[idx];
+        pts_right_0[i] = slmtrack.pts_right_0[idx];
+        pts_right_1[i] = slmtrack.pts_right_1[idx];
+        lms[i]         = slmtrack.lms[idx];
+    }
 };

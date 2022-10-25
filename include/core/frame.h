@@ -83,7 +83,9 @@ public: // static counter.
 
 
 public:
-    Frame(const std::shared_ptr<Camera>& cam, bool is_right_image, const FramePtr& frame_left);
+    Frame(const std::shared_ptr<Camera>& cam, bool is_right_image = false, const FramePtr& frame_left = nullptr);
+    Frame(const std::shared_ptr<Camera>& cam, const cv::Mat& img, const double& timestamp,
+         bool is_right_image = false, const FramePtr& frame_left = nullptr);
 
     // Set
     void setPose(const PoseSE3& Twc);
@@ -155,8 +157,8 @@ public:
     StereoFrame(const FramePtr& frame_left, const FramePtr& frame_right);
 
 public:
-    const FramePtr& getLeftFramePtr() const;
-    const FramePtr& getRightFramePtr() const;
+    FrameConstPtr& getLeftFrame() const;
+    FrameConstPtr& getRightFrame() const;
 };
 
 #endif
