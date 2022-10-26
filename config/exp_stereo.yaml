@@ -35,6 +35,12 @@ Camera.right.cx: 521.995134461151 # good for 220
 Camera.right.cy: 411.95277738036 # good for 220
 
 
+# Camera.right.fx: 668.237173199852 # good for 220
+# Camera.right.fy: 668.199813476523 # good for 220
+# Camera.right.cx: 521.995134461151 # good for 220
+# Camera.right.cy: 411.95277738036 # good for 220
+
+
 Camera.right.k1: -0.319454818441647
 Camera.right.k2: 0.160425305072180
 Camera.right.k3: -0.0506131487392573
