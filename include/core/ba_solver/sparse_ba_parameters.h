@@ -280,7 +280,7 @@ public:
         }
 
         // Threshold for landmark usage
-        int THRES_MINIMUM_SEEN = 2; // landmark should be seen on at least two stereo frames.
+        int THRES_MINIMUM_SEEN = 4; // landmark should be seen on at least two stereo frames.
 
         N_        = frames.size();
         N_nonopt_ = idx_fix.size();

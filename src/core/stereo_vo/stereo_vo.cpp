@@ -226,3 +226,53 @@ const cv::Mat& StereoVO::getDebugImage()
 {
     return img_debug_;
 };
+
+
+void StereoVO::showTracking(const std::string& window_name, const cv::Mat& img, const PixelVec& pts0, const PixelVec& pts1, const PixelVec& pts1_new)
+{
+	cv::namedWindow(window_name);
+	img.copyTo(img_debug_);
+	cv::cvtColor(img_debug_, img_debug_, CV_GRAY2RGB);
+	for(int i = 0; i < pts1.size(); ++i){
+		cv::line(img_debug_,pts0[i],pts1[i], cv::Scalar(0,255,255),1);
+	}
+	for(int i = 0; i < pts0.size(); ++i) {
+		cv::circle(img_debug_, pts0[i], 3.0, cv::Scalar(0,0,0),2); // alived magenta
+		cv::circle(img_debug_, pts0[i], 2.0, cv::Scalar(255,0,255),1); // alived magenta
+	}
+	for(int i = 0; i < pts1.size(); ++i){
+		cv::circle(img_debug_, pts1[i], 3.0, cv::Scalar(0,0,0),2); // green tracked points
+		cv::circle(img_debug_, pts1[i], 2.0, cv::Scalar(0,255,0),1); // green tracked points
+	}
+	for(int i = 0; i < pts1_new.size(); ++i){
+		cv::circle(img_debug_, pts1_new[i], 3.0, cv::Scalar(0,0,0), 2); // blue new points
+		cv::circle(img_debug_, pts1_new[i], 2.0, cv::Scalar(255,0,0),1); // blue new points
+	}
+	
+	cv::imshow(window_name, img_debug_);
+	cv::waitKey(2);
+};
+
+void StereoVO::showTrackingBA(const std::string& window_name, const cv::Mat& img, const PixelVec& pts1, const PixelVec& pts1_project)
+{
+	int rect_half     = 6;
+	int circle_radius = 4;
+
+	cv::Scalar color_red   = cv::Scalar(0,0,255);
+	cv::Scalar color_green = cv::Scalar(0,255,0);
+
+	cv::namedWindow(window_name);
+	img.copyTo(img_debug_);
+	cv::cvtColor(img_debug_, img_debug_, CV_GRAY2RGB);
+	for(int i = 0; i < pts1.size(); ++i) {
+		cv::circle(img_debug_, pts1[i], 1.0, color_red, circle_radius); // alived magenta
+	}
+	for(int i = 0; i < pts1_project.size(); ++i){
+		cv::rectangle(img_debug_, cv::Point2f(pts1_project[i].x-rect_half,pts1_project[i].y-rect_half),cv::Point2f(pts1_project[i].x+rect_half,pts1_project[i].y+rect_half), 
+			color_green, 2);
+	}
+	
+	cv::imshow(window_name, img_debug_);
+	cv::waitKey(2);
+};
+

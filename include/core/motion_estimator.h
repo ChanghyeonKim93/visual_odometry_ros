@@ -77,7 +77,7 @@ public:
 
     void calcSymmetricEpipolarDistance(const PixelVec& pts0, const PixelVec& pts1, const std::shared_ptr<Camera>& cam, 
                             const Rot3& R10, const Pos3& t10, std::vector<float>& sym_epi_dist);
-
+    
 public:
     void setThres1p(float thres_1p);
     void setThres5p(float thres_5p);

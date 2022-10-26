@@ -226,7 +226,10 @@ public:
 public:
 	const AlgorithmStatistics& getStatistics() const;
 
-
+private:
+	void showTracking(const std::string& window_name, const cv::Mat& img, const PixelVec& pts0, const PixelVec& pts1, const PixelVec& pts1_new);
+	void showTrackingBA(const std::string& window_name, const cv::Mat& img, const PixelVec& pts1, const PixelVec& pts1_project);
+	
 public:
 	const cv::Mat& getDebugImage();
 

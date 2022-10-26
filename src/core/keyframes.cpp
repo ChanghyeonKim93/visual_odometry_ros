@@ -132,7 +132,7 @@ int Keyframes::getMaxNumOfKeyframes() const {
 
 StereoKeyframes::StereoKeyframes()
 : THRES_OVERLAP_FEATURE_RATIO_(0.7),
-THRES_ROTATION_(4.0f*D2R), THRES_TRANSLATION_(0.5f),
+THRES_ROTATION_(4.0f*D2R), THRES_TRANSLATION_(2.0f),
 N_MAX_KEYFRAMES_IN_WINDOW_(9)
 {
 

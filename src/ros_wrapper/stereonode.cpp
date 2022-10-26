@@ -29,12 +29,12 @@ StereoNode::StereoNode(ros::NodeHandle& nh) : nh_(nh)
     topicname_trajectory_gt_ = "/kitti_odometry/groundtruth_path";
     pub_trajectory_gt_ = nh_.advertise<nav_msgs::Path>(topicname_trajectory_gt_,1);
 
-    topicname_statistics_ = "/scale_mono_vo/statistics";
+    topicname_statistics_ = "/stereo_vo/statistics";
     pub_statistics_ = nh_.advertise<scale_mono_vo_ros::statisticsStamped>(topicname_statistics_,1);
 
-    pub_debug_image_ = nh_.advertise<sensor_msgs::Image>("/scale_mono_vo/debug_image",1);
+    pub_debug_image_ = nh_.advertise<sensor_msgs::Image>("/stereo_vo/debug_image",1);
         
-    ROS_INFO_STREAM("MonoNode - generate Scale Mono VO object. Starts.");
+    ROS_INFO_STREAM("StereoNode - generate Stereo VO object. Starts.");
 
     // Set static
     int half_win_sz = 7;

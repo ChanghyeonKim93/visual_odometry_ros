@@ -340,7 +340,7 @@ const PoseSE3& StereoCamera::getRectifiedStereoPoseRight2Left() const
 
 void StereoCamera::generateStereoImagesUndistortAndRectifyMaps()
 {
-	float scale = 1.8f;
+	float scale = 2.0f;
 	float invscale = 1.0f/scale;
 
     PoseSE3 T_0l = PoseSE3::Identity();

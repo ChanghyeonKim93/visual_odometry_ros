@@ -346,7 +346,7 @@ void ScaleMonoVO::showTracking(const std::string& window_name, const cv::Mat& im
 	}
 	
 	cv::imshow(window_name, img_debug_);
-	cv::waitKey(3);
+	cv::waitKey(2);
 };
 
 void ScaleMonoVO::showTrackingBA(const std::string& window_name, const cv::Mat& img, const PixelVec& pts1, const PixelVec& pts1_project){	
@@ -362,7 +362,7 @@ void ScaleMonoVO::showTrackingBA(const std::string& window_name, const cv::Mat& 
 	for(int i = 0; i < pts1.size(); ++i) {
 		cv::circle(img_debug_, pts1[i], 1.0, color_red, circle_radius); // alived magenta
 	}
-	for(int i = 0; i < pts1.size(); ++i){
+	for(int i = 0; i < pts1_project.size(); ++i){
 		cv::rectangle(img_debug_, cv::Point2f(pts1_project[i].x-rect_half,pts1_project[i].y-rect_half),cv::Point2f(pts1_project[i].x+rect_half,pts1_project[i].y+rect_half), 
 			color_green, 2);
 	}

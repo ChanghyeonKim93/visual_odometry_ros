@@ -23,21 +23,15 @@ Camera.left.width: 1032
 Camera.left.height: 772
 
 # Right camera
-Camera.right.fx: 668.237173199852 # truth 1
-Camera.right.fy: 668.199813476523 # truth 1
-# Camera.right.cx: 522.375134461151 # truth 1
-# Camera.right.cy: 409.972277738036 # truth 1
-# Camera.right.cx: 521.975134461151 # good for 39_2
-# Camera.right.cy: 412.232277738036 # good for 39_2
-# Camera.right.cx: 521.995134461151 # good for 39_2
-# Camera.right.cy: 412.15277738036 # good for 39_2
-Camera.right.cx: 521.995134461151 # good for 220
-Camera.right.cy: 411.95277738036 # good for 220
+Camera.right.fx: 666.4674 # truth 1
+Camera.right.fy: 666.302 # truth 1
+Camera.right.cx: 513.13357 # good for 39_2
+Camera.right.cy: 413.16925 # good for 39_2
 
 
-Camera.right.k1: -0.319454818441647
-Camera.right.k2: 0.160425305072180
-Camera.right.k3: -0.0506131487392573
+Camera.right.k1: -0.288519
+Camera.right.k2: 0.084903
+Camera.right.k3: -0.000074
 Camera.right.p1: 0.0
 Camera.right.p2: 0.0
 
@@ -66,8 +60,8 @@ map_update.thres_parallax: 1.0
 
 # Parameters of feature extractor
 feature_extractor.n_features: 4000
-feature_extractor.n_bins_u: 32
-feature_extractor.n_bins_v: 20
+feature_extractor.n_bins_u: 24
+feature_extractor.n_bins_v: 14
 feature_extractor.thres_fastscore: 15.0
 feature_extractor.radius: 5.0
 

@@ -139,10 +139,10 @@ void StereoVO::trackStereoImages(
         // [4-1] track with scale
         timer::tic();
 		MaskVec mask_refine(lmtrack_l0l1_notrefine.pts_l0.size(), true);
-		const cv::Mat& du0 = stframe_prev_->getLeft()->getImageDu();
-		const cv::Mat& dv0 = stframe_prev_->getLeft()->getImageDv();
+		const cv::Mat& du0_left = stframe_prev_->getLeft()->getImageDu();
+		const cv::Mat& dv0_left = stframe_prev_->getLeft()->getImageDv();
 		tracker_->trackWithScale(
-			I0_left, du0, dv0, I1_left, 
+			I0_left, du0_left, dv0_left, I1_left, 
 			lmtrack_l0l1_notrefine.pts_l0, patch_scale_prior, lmtrack_l0l1_notrefine.pts_l1,
 			mask_refine); 
 
@@ -165,8 +165,16 @@ void StereoVO::trackStereoImages(
         // [6] Check sampson distance 0.01 ms
         timer::tic();
         std::vector<float> symm_epi_dist;
-        motion_estimator_->calcSampsonDistance(lmtrack_kltok.pts_l1, lmtrack_kltok.pts_r1, cam_rect, T_rl.block<3,3>(0,0), T_rl.block<3,1>(0,3), symm_epi_dist);
-        
+        // motion_estimator_->calcSampsonDistance(lmtrack_kltok.pts_l1, lmtrack_kltok.pts_r1, cam_rect, T_rl.block<3,3>(0,0), T_rl.block<3,1>(0,3), symm_epi_dist);
+        for(int i = 0; i < lmtrack_kltok.pts_l1.size(); ++i)
+        {
+            float dv = lmtrack_kltok.pts_l1[i].y - lmtrack_kltok.pts_r1[i].y;
+            if( lmtrack_kltok.pts_l1[i].y > 680)
+                symm_epi_dist.push_back(abs(dv)*100);
+            else
+                symm_epi_dist.push_back(abs(dv)*0);
+        }
+
         MaskVec mask_sampson(lmtrack_kltok.pts_l1.size(), true);
         for(int i = 0; i < mask_sampson.size(); ++i)
             mask_sampson[i] = (symm_epi_dist[i] < THRES_SAMPSON);
@@ -251,42 +259,6 @@ void StereoVO::trackStereoImages(
         StereoLandmarkTracking lmtrack_motion_ok(lmtrack_sampson, mask_motion);
 		std::cout << colorcode::text_green << "Time [motion est]: " << timer::toc(0) << " [ms]\n" << colorcode::cout_reset;
 
-        // [8] Reconstruction
-        int cnt_recon = 0;
-        const Rot3& R_rl = T_rl.block<3,3>(0,0);
-        const Pos3& t_rl = T_rl.block<3,1>(0,3);
-        for(int i = 0; i < lmtrack_motion_ok.n_pts; ++i)
-        {
-            const Pixel&      pt0 = lmtrack_motion_ok.pts_l1[i];
-            const Pixel&      pt1 = lmtrack_motion_ok.pts_r1[i];
-            const LandmarkPtr& lm = lmtrack_motion_ok.lms[i];
-            
-            // Reconstruct points
-            Point Xl, Xr;
-            Mapping::triangulateDLT(pt0, pt1, R_rl, t_rl, cam_rect, Xl, Xr);
-
-            // Check reprojection error for the first image
-            Pixel pt0_proj = cam_rect->projectToPixel(Xl);
-            Pixel dpt0 = pt0 - pt0_proj;
-            float dpt0_norm2 = dpt0.x*dpt0.x + dpt0.y*dpt0.y;
-            if(dpt0_norm2 > 1.0) continue;
-
-            Pixel pt1_proj = cam_rect->projectToPixel(Xr);
-            Pixel dpt1 = pt1 - pt1_proj;
-            float dpt1_norm2 = dpt1.x*dpt1.x + dpt1.y*dpt1.y;
-            if(dpt1_norm2 > 1.0) continue;
-
-            // Check the point in front of cameras
-            if(Xl(2) > 0 && Xr(2) > 0) 
-            {
-                Point Xworld = T_wc.block<3,3>(0,0)* Xl  + T_wc.block<3,1>(0,3);
-                lm->set3DPoint(Xworld);
-                ++cnt_recon;
-            }
-        }
-        std::cout << "# of reconstructed points: " << cnt_recon << " / " << lmtrack_motion_ok.n_pts << std::endl;
-        
-
         // [9] Update observations for surviving landmarks
         for(int i = 0; i < lmtrack_motion_ok.pts_l1.size(); ++i)
         {
@@ -295,39 +267,17 @@ void StereoVO::trackStereoImages(
             lm->addObservationAndRelatedFrame(lmtrack_motion_ok.pts_r1[i], stframe_curr->getRight());
         }  
 
-        if(0) 
+        if(1)
         {
-            cv::Mat img_color;
-            I1_right.convertTo(img_color, CV_8UC1);
-            cv::cvtColor(img_color, img_color, CV_GRAY2RGB);
-            for(const auto& pt : lmtrack_motion_ok.pts_r1)
-                cv::circle(img_color, pt, 5, cv::Scalar(0,255,0));
-            
-            std::stringstream ss;
-            ss << "track r1";
-            cv::namedWindow(ss.str());
-            cv::imshow(ss.str(), img_color);
-
-
-            I1_left.convertTo(img_color, CV_8UC1);
-            cv::cvtColor(img_color, img_color, CV_GRAY2RGB);
-            for(const auto& pt : lmtrack_motion_ok.pts_l1)
-                cv::circle(img_color, pt, 5, cv::Scalar(0,255,0));
-            
-            ss.clear();
-            ss.flush();
-            ss << "track l1";
-            cv::namedWindow(ss.str());
-            cv::imshow(ss.str(), img_color);
-            cv::waitKey(0);
+            this->showTrackingBA( "stereo_tracking", I1_left, PixelVec(), lmtrack_motion_ok.pts_l1);
         }
 
         // [10] Extract new points from empty bins.
         PixelVec pts_l1_new;
         extractor_->updateWeightBin(lmtrack_motion_ok.pts_l1);
         extractor_->extractORBwithBinning_fast(I1_left, pts_l1_new, true);
-        int n_pts_new = pts_l1_new.size();
 
+        int n_pts_new = pts_l1_new.size();
         std::cout << "# of newly extracted pts on empty space: " << n_pts_new << std::endl; 
 
         if(n_pts_new > 0)
@@ -357,7 +307,7 @@ void StereoVO::trackStereoImages(
 
                     if( Xl(2) > 0 && Xr(2) > 0)
                     {
-                        Point Xw = T_wc.block<3,3>(0,0) * Xl + T_wc.block<3,1>(0,3);
+                        // Point Xw = T_wc.block<3,3>(0,0) * Xl + T_wc.block<3,1>(0,3);
                     
                         LandmarkPtr lmptr = std::make_shared<Landmark>(pt_l1_new, stframe_curr->getLeft(), cam_rect);
                         lmptr->addObservationAndRelatedFrame(pt_r1_new, stframe_curr->getRight());
@@ -366,7 +316,7 @@ void StereoVO::trackStereoImages(
                         lmtrack_motion_ok.pts_r1.push_back(pt_r1_new);
                         lmtrack_motion_ok.lms.push_back(lmptr);
 
-                        lmptr->set3DPoint(Xw);
+                        // lmptr->set3DPoint(Xw);
                     }
                     
                 }
@@ -387,7 +337,43 @@ void StereoVO::trackStereoImages(
         {
             // Add keyframe
             this->saveStereoKeyframe(stframe_curr);
-            this->stkeyframes_->addNewStereoKeyframe(stframe_curr);          
+            this->stkeyframes_->addNewStereoKeyframe(stframe_curr);     
+
+            // Reconstruction new features.
+            int cnt_recon = 0;
+            const Rot3& R_rl = T_rl.block<3,3>(0,0);
+            const Pos3& t_rl = T_rl.block<3,1>(0,3);
+            for(int i = 0; i < lmtrack_motion_ok.n_pts; ++i)
+            {
+                const Pixel&      pt0 = lmtrack_motion_ok.pts_l1[i];
+                const Pixel&      pt1 = lmtrack_motion_ok.pts_r1[i];
+                const LandmarkPtr& lm = lmtrack_motion_ok.lms[i];
+                
+                // Reconstruct points
+                Point Xl, Xr;
+                Mapping::triangulateDLT(pt0, pt1, R_rl, t_rl, cam_rect, Xl, Xr);
+
+                // Check reprojection error for the first image
+                Pixel pt0_proj = cam_rect->projectToPixel(Xl);
+                Pixel dpt0 = pt0 - pt0_proj;
+                float dpt0_norm2 = dpt0.x*dpt0.x + dpt0.y*dpt0.y;
+                if(dpt0_norm2 > 1.0) continue;
+
+                Pixel pt1_proj = cam_rect->projectToPixel(Xr);
+                Pixel dpt1 = pt1 - pt1_proj;
+                float dpt1_norm2 = dpt1.x*dpt1.x + dpt1.y*dpt1.y;
+                if(dpt1_norm2 > 1.0) continue;
+
+                // Check the point in front of cameras
+                if(Xl(2) > 0 && Xr(2) > 0) 
+                {
+                    Point Xworld = T_wc.block<3,3>(0,0)* Xl  + T_wc.block<3,1>(0,3);
+                    lm->set3DPoint(Xworld);
+                    ++cnt_recon;
+                }
+            }
+            std::cout << "# of reconstructed points: " << cnt_recon << " / " << lmtrack_motion_ok.n_pts << std::endl;
+            
 
             // Local Bundle Adjustment
             motion_estimator_->localBundleAdjustmentSparseSolver_Stereo(stkeyframes_, stereo_cam_);
@@ -554,6 +540,7 @@ std::cout << colorcode::text_green << "Time [RECORD KEYFR STAT]: " << timer::toc
             cv::imshow(ss.str(), img_color);
             cv::waitKey(0);
         }
+        
 
     }
 
