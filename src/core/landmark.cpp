@@ -74,6 +74,7 @@ void Landmark::setUntracked() {
 
 void Landmark::setBundled() { 
     is_triangulated_ = true;
+    
     is_bundled_      = true; 
 };
 

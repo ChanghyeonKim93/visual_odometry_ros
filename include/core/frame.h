@@ -152,7 +152,8 @@ private:
 
 public:
     StereoFrame(const FramePtr& frame_left, const FramePtr& frame_right);
-    StereoFrame(const cv::Mat& img_left, const cv::Mat& img_right, CameraConstPtr& cam_left, CameraConstPtr& cam_right, double timestamp);
+    StereoFrame(const cv::Mat& img_left, const cv::Mat& img_right, 
+        CameraConstPtr& cam_left, CameraConstPtr& cam_right, double timestamp);
 
 public:
     FrameConstPtr& getLeft() const;

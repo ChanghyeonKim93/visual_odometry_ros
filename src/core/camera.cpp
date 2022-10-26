@@ -345,16 +345,24 @@ void StereoCamera::generateStereoImagesUndistortAndRectifyMaps()
 
     PoseSE3 T_0l = PoseSE3::Identity();
     PoseSE3 T_0r = T_lr_;
+
     const Rot3& R_0l = T_0l.block<3, 3>(0, 0);
     const Rot3& R_0r = T_0r.block<3, 3>(0, 0);
+	const Pos3& t_0r = T_0r.block<3, 1>(0, 3);
+
+    Rot3 R_l0 = R_0l.transpose();
+    Rot3 R_r0 = R_0r.transpose();
 
 	// Generate Reference rotation matrix
     Vec3 k_l = R_0l.block<3, 1>(0, 2);
     Vec3 k_r = R_0r.block<3, 1>(0, 2);
     Vec3 k_n = (k_l + k_r)*0.5;
     k_n /= k_n.norm();
-
-	Vec3 i_n = T_lr_.block<3, 1>(0, 3);
+	
+	int n_cols = cam_left_->cols();
+	int n_rows = cam_left_->rows();
+	
+	Vec3 i_n = t_0r;
     i_n /= i_n.norm();
 
     Vec3 j_n = k_n.cross(i_n);
@@ -362,13 +370,17 @@ void StereoCamera::generateStereoImagesUndistortAndRectifyMaps()
 
 	k_n = i_n.cross(j_n);
 	k_n /= k_n.norm();
-	
+
+	std::cout << "i dot j: " << i_n.dot(j_n) << ", "
+			  << "j dot k: " << j_n.dot(k_n) << ", "
+			  << "k dot i: " << k_n.dot(i_n) << "\n";
+
     Rot3 R_0n; // left to rectified camera
 	R_0n << i_n, j_n, k_n;
 
 	// New intrinsic parameter
     float f_n = 
-		(cam_left_->fx() + cam_left_->fy() + cam_right_->fx() + cam_right_->fy()) * 0.5f * invscale;
+		(cam_left_->fx() + cam_left_->fy()) * invscale;
 
     float centu = (float)cam_left_->cols()*0.5f;
     float centv = (float)cam_left_->rows()*0.5f;
@@ -391,20 +403,14 @@ void StereoCamera::generateStereoImagesUndistortAndRectifyMaps()
 
 	// Generate rectified camera
 	cam_rect_ = std::make_shared<Camera>();
-	cam_rect_->initParams(cam_left_->cols(), cam_left_->rows(), cvK_rect, cvD_rect);
+	cam_rect_->initParams(n_cols, n_rows, cvK_rect, cvD_rect);
 
-	int n_cols = cam_rect_->cols();
-	int n_rows = cam_rect_->rows();
 	rectify_map_left_u_  = cv::Mat::zeros(n_rows, n_cols, CV_32FC1);
 	rectify_map_left_v_  = cv::Mat::zeros(n_rows, n_cols, CV_32FC1);
 	rectify_map_right_u_ = cv::Mat::zeros(n_rows, n_cols, CV_32FC1);
 	rectify_map_right_v_ = cv::Mat::zeros(n_rows, n_cols, CV_32FC1);
 
     // interpolation grid calculations.
-    float* ptr_map_left_u = nullptr;
-	float* ptr_map_left_v = nullptr;
-    float* ptr_map_right_u = nullptr;
-	float* ptr_map_right_v = nullptr;
 
 	Vec3 p_n;
     Vec3 P_0, x_l, x_r;
@@ -412,22 +418,20 @@ void StereoCamera::generateStereoImagesUndistortAndRectifyMaps()
     float k1, k2, k3, p1, p2;
     float x, y, xy, r2, r4, r6, r_radial, x_dist, y_dist;
 
-
 	const float& fx_l = cam_left_->fx();
 	const float& fy_l = cam_left_->fy();
-	const float& invfx_l = cam_left_->fxinv();
-	const float& invfy_l = cam_left_->fyinv();
 	const float& cx_l = cam_left_->cx();
 	const float& cy_l = cam_left_->cy();
 
 	const float& fx_r = cam_right_->fx();
 	const float& fy_r = cam_right_->fy();
-	const float& invfx_r = cam_right_->fxinv();
-	const float& invfy_r = cam_right_->fyinv();
 	const float& cx_r = cam_right_->cx();
 	const float& cy_r = cam_right_->cy();
 
-
+    float* ptr_map_left_u = nullptr;
+	float* ptr_map_left_v = nullptr;
+    float* ptr_map_right_u = nullptr;
+	float* ptr_map_right_v = nullptr;
     for (int v = 0; v < n_rows; ++v)
     {
         ptr_map_left_u = this->rectify_map_left_u_.ptr<float>(v);
@@ -441,14 +445,15 @@ void StereoCamera::generateStereoImagesUndistortAndRectifyMaps()
 			p_n << (float)u, (float)v, 1.0f;
             P_0 = R_0n*K_rect_inv*p_n;
 
-            x_l = R_0l.transpose()*P_0;
+            x_l = R_l0*P_0;
             x_l /= x_l(2); // left normalized coordinate
 
-            x_r = R_0r.transpose()*P_0;
+            x_r = R_r0*P_0;
             x_r /= x_r(2);// right normalized coordinate
 
-            // left
 
+
+		// Left
             k1 = cam_left_->k1();
             k2 = cam_left_->k2();
             k3 = cam_left_->k3();
@@ -464,12 +469,17 @@ void StereoCamera::generateStereoImagesUndistortAndRectifyMaps()
             r6 = r4*r2;
 
             r_radial = 1.0f + k1*r2 + k2*r4 + k3*r6;
-            x_dist = x*r_radial + 2.0f * p1*xy + p2*(r2 + 2.0f * x*x);
-            y_dist = y*r_radial + p1*(r2 + 2.0f * y*y) + 2.0f * p2*xy;
-            *(ptr_map_left_u + u) = cx_l + x_dist * fx_l;
-            *(ptr_map_left_v + u) = cy_l + y_dist * fy_l;
+            // x_dist = x*r_radial + 2.0f * p1*xy + p2*(r2 + 2.0f * x*x);
+            // y_dist = y*r_radial + p1*(r2 + 2.0f * y*y) + 2.0f * p2*xy;
+			x_dist = x*r_radial;
+            y_dist = y*r_radial;
 
-            // right
+            *(ptr_map_left_u + u) = cx_l  +  x_dist * fx_l;
+            *(ptr_map_left_v + u) = cy_l  +  y_dist * fy_l;
+
+
+
+		// Right
             k1 = cam_right_->k1();
             k2 = cam_right_->k2();
             k3 = cam_right_->k3();
@@ -485,19 +495,21 @@ void StereoCamera::generateStereoImagesUndistortAndRectifyMaps()
             r6 = r4*r2;
 
             r_radial = 1.0f + k1*r2 + k2*r4 + k3*r6;
-            x_dist = x*r_radial + 2.0f * p1*xy + p2*(r2 + 2.0f * x*x);
-            y_dist = y*r_radial + p1*(r2 + 2.0f * y*y) + 2.0f * p2*xy;
-            *(ptr_map_right_u + u) = cx_r + x_dist * fx_r;
-            *(ptr_map_right_v + u) = cy_r + y_dist * fy_r;
+            // x_dist = x*r_radial + 2.0f * p1*xy + p2*(r2 + 2.0f * x*x);
+            // y_dist = y*r_radial + p1*(r2 + 2.0f * y*y) + 2.0f * p2*xy;
+			x_dist = x*r_radial;
+            y_dist = y*r_radial;
+            *(ptr_map_right_u + u) = cx_r  +  x_dist * fx_r;
+            *(ptr_map_right_v + u) = cy_r  +  y_dist * fy_r;
         }
     }
 
     // Rectified stereo extrinsic parameters (T_nlnr)
-    Rot3 R_ln = R_0l.transpose()*R_0n;
-    Rot3 R_rn = R_0r.transpose()*R_0n;
+    Rot3 R_ln = R_l0*R_0n;
+    Rot3 R_rn = R_r0*R_0n;
     Pos3 t_clcr = T_lr_.block<3, 1>(0, 3);
     this->T_lr_rect_ << Rot3::Identity(), R_ln.transpose()*t_clcr, 0, 0, 0, 1;
-    this->T_rl_rect_ = this->T_lr_rect_.inverse();
+    this->T_rl_rect_ << Rot3::Identity(), -R_ln.transpose()*t_clcr, 0, 0, 0, 1;
 
 	std::cout << "T_lr_rect_:\n" << T_lr_rect_ << std::endl;
 	

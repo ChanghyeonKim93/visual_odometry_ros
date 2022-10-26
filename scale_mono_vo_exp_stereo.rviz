@@ -135,7 +135,7 @@ Visualization Manager:
           Scale: 1
           Value: true
         Value: true
-      Enabled: true
+      Enabled: false
       Keep: 1
       Name: VO_pose
       Position Tolerance: 0.05000000074505806
@@ -152,7 +152,7 @@ Visualization Manager:
         Value: Axes
       Topic: /stereo_vo/pose
       Unreliable: true
-      Value: true
+      Value: false
     - Alpha: 1
       Buffer Length: 1
       Class: rviz/Path
@@ -285,7 +285,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 62.277313232421875
+      Distance: 66.34690856933594
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -293,17 +293,17 @@ Visualization Manager:
         Value: false
       Field of View: 1
       Focal Point:
-        X: -16.458858489990234
-        Y: 0.8497093915939331
-        Z: 16.3099365234375
+        X: -2.331822156906128
+        Y: -0.6531663537025452
+        Z: 7.878352642059326
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.020202666521072388
+      Pitch: -0.009797336533665657
       Target Frame: <Fixed Frame>
-      Yaw: 4.719990253448486
+      Yaw: 4.7199625968933105
     Saved: ~
 Window Geometry:
   Displays:

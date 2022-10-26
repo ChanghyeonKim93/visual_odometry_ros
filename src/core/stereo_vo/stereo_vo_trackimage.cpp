@@ -20,7 +20,8 @@ void StereoVO::trackStereoImages(
 	if( system_flags_.flagDoUndistortion )
 	{
         timer::tic();
-        stereo_cam_->rectifyStereoImages(img_left, img_right, 
+        stereo_cam_->rectifyStereoImages(
+            img_left, img_right, 
             img_left_undist, img_right_undist);
 
 		img_left_undist.convertTo(img_left_undist, CV_8UC1);
@@ -64,14 +65,6 @@ void StereoVO::trackStereoImages(
         lmtrack_prev.pts_r1 = PixelVec(lmtrack_prev.n_pts);
         lmtrack_prev.lms    = stframe_prev_->getLeft()->getRelatedLandmarkPtr();
 
-        // 사이즈 비교
-        std::cout << " size: lmtrack_prev : " 
-            << lmtrack_prev.pts_l0.size() << ", " 
-            << lmtrack_prev.pts_r0.size() << ", " 
-            << lmtrack_prev.pts_l1.size() << ", " 
-            << lmtrack_prev.pts_r1.size() << ", " 
-            << lmtrack_prev.lms.size() << "\n"; 
-
         int n_pts_exist = lmtrack_prev.n_pts;
         std::cout << " --- # previous pixels : " << n_pts_exist << "\n";
         
@@ -87,7 +80,6 @@ void StereoVO::trackStereoImages(
         std::cout << "T_wc_prior:\n" << T_wc_prior << std::endl;
 
         // [3] tracking을 위해, 'pts_l1' 'pts_r1' 에 대한 prior 계산.
-        MaskVec  mask_prior(n_pts_exist, true);
         for(int i = 0; i < n_pts_exist; ++i)
         {
             const LandmarkPtr& lm = lmtrack_prev.lms[i]; 
@@ -97,19 +89,20 @@ void StereoVO::trackStereoImages(
                 Point X_l1 = T_cw_prior.block<3,3>(0,0)*X + T_cw_prior.block<3,1>(0,3);
                 Point X_r1 = T_rl.block<3,3>(0,0)*X_l1 + T_rl.block<3,1>(0,3);
                 
-                Pixel& pt_l1 = lmtrack_prev.pts_l1[i];
-                Pixel& pt_r1 = lmtrack_prev.pts_r1[i];
-        
                 // Project prior point.
-                pt_l1 = cam_rect->projectToPixel(X_l1);
-                pt_r1 = cam_rect->projectToPixel(X_r1);
+                Pixel pt_l1 = cam_rect->projectToPixel(X_l1);
+                Pixel pt_r1 = cam_rect->projectToPixel(X_r1);
                 if( !cam_rect->inImage(pt_l1) || !cam_rect->inImage(pt_r1) 
                     || X_l1(2) < 0.1 || X_r1(2) < 0.1 )
                 { 
                     // out of image.
-                    pt_l1 = lmtrack_prev.pts_l0[i];
-                    pt_r1 = lmtrack_prev.pts_r0[i];
-                    mask_prior[i] = false;
+                    lmtrack_prev.pts_l1[i] = lmtrack_prev.pts_l0[i];
+                    lmtrack_prev.pts_r1[i] = lmtrack_prev.pts_r0[i];
+                }
+                else
+                {
+                    lmtrack_prev.pts_l1[i] = pt_l1;
+                    lmtrack_prev.pts_r1[i] = pt_r1;
                 }
             }
             else   
@@ -128,7 +121,8 @@ void StereoVO::trackStereoImages(
         // [4] Track l0 --> l1 (lmtrack_l0l1)
         timer::tic();
         MaskVec mask_l0l1;
-        this->tracker_->trackWithPrior(I0_left, I1_left,
+        this->tracker_->trackWithPrior(
+            I0_left, I1_left,
             lmtrack_prev.pts_l0, params_.feature_tracker.window_size, params_.feature_tracker.max_level, params_.feature_tracker.thres_error,
             lmtrack_prev.pts_l1, mask_l0l1); // lmtrack_curr.pts_u1 에 prior pixels가 이미 들어있다.
 
@@ -139,8 +133,9 @@ void StereoVO::trackStereoImages(
         // [5] Track l1 --> r1 (lmtrack_l1r1)
         timer::tic();
         MaskVec mask_l1r1;
-        this->tracker_->trackWithPrior(I1_left, I1_right,
-            lmtrack_l0l1.pts_l0, params_.feature_tracker.window_size, params_.feature_tracker.max_level, params_.feature_tracker.thres_error,
+        this->tracker_->trackWithPrior(
+            I1_left, I1_right,
+            lmtrack_l0l1.pts_l1, params_.feature_tracker.window_size, params_.feature_tracker.max_level, params_.feature_tracker.thres_error,
             lmtrack_l0l1.pts_r1, mask_l1r1); // lmtrack_curr.pts_u1 에 prior pixels가 이미 들어있다.
 
         StereoLandmarkTracking lmtrack_kltok(lmtrack_l0l1, mask_l1r1);
@@ -154,10 +149,10 @@ void StereoVO::trackStereoImages(
         
         MaskVec mask_sampson(lmtrack_kltok.pts_l1.size(), true);
         for(int i = 0; i < mask_sampson.size(); ++i)
-            mask_sampson[i] = (symm_epi_dist[i] < THRES_SAMPSON*5);
+            mask_sampson[i] = (symm_epi_dist[i] < THRES_SAMPSON);
         
-        StereoLandmarkTracking lmtrack_final(lmtrack_kltok, mask_sampson);
-        std::cout << "# pts : " << lmtrack_final.n_pts << std::endl;
+        StereoLandmarkTracking lmtrack_sampson(lmtrack_kltok, mask_sampson);
+        std::cout << "# pts : " << lmtrack_sampson.n_pts << std::endl;
 		std::cout << colorcode::text_green << "Time [sampson ]: " << timer::toc(0) << " [ms]\n" << colorcode::cout_reset;
 
 
@@ -166,7 +161,7 @@ void StereoVO::trackStereoImages(
         // pts_left_1 , pts_right_1 , Xw , T_cw_prior    : needed. 
         //    --> return: T_wc
         timer::tic();
-        MaskVec mask_motion(lmtrack_final.pts_l1.size(), true); 
+        MaskVec mask_motion(lmtrack_sampson.pts_l1.size(), true); 
 
         // Find point with 3D points
         PoseSE3 dT_pc_poBA = dT_pc_prev;
@@ -179,14 +174,14 @@ void StereoVO::trackStereoImages(
         PixelVec pts_r1_poBA;
         MaskVec mask_poBA;
         std::vector<int> index_poBA;
-        for(int i = 0; i < lmtrack_final.pts_l1.size(); ++i)
+        for(int i = 0; i < lmtrack_sampson.pts_l1.size(); ++i)
         {
-            LandmarkConstPtr& lm = lmtrack_final.lms[i];
+            LandmarkConstPtr& lm = lmtrack_sampson.lms[i];
 
             if( lm->isTriangulated() )
             {   
-                const Pixel& pt_l1 = lmtrack_final.pts_l1[i];
-                const Pixel& pt_r1 = lmtrack_final.pts_r1[i];
+                const Pixel& pt_l1 = lmtrack_sampson.pts_l1[i];
+                const Pixel& pt_r1 = lmtrack_sampson.pts_r1[i];
                 const Point& X     = lm->get3DPoint();
 
                 Point Xp = T_pw.block<3,3>(0,0) * X + T_pw.block<3,1>(0,3);
@@ -233,7 +228,7 @@ void StereoVO::trackStereoImages(
             stframe_curr->getLeft()->setPoseDiff10(dT_pc_poBA.inverse());
         }
 
-        StereoLandmarkTracking lmtrack_motion_ok(lmtrack_final, mask_motion);
+        StereoLandmarkTracking lmtrack_motion_ok(lmtrack_sampson, mask_motion);
 		std::cout << colorcode::text_green << "Time [motion est]: " << timer::toc(0) << " [ms]\n" << colorcode::cout_reset;
 
         // [8] Reconstruction
@@ -410,11 +405,13 @@ std::cout << colorcode::text_green << "Time [RECORD KEYFR STAT]: " << timer::toc
         // The very first image.
         const cv::Mat& I1_left  = stframe_curr->getLeft()->getImage();
         const cv::Mat& I1_right = stframe_curr->getRight()->getImage();
+        const PoseSE3& T_lr     = stereo_cam_->getRectifiedStereoPoseLeft2Right();
 
         // 첫번째 stereo frame의 자세는 아래와 같다. 
-        stframe_curr->getLeft()->setPose(PoseSE3::Identity());
-        stframe_curr->getRight()->setPose(PoseSE3::Identity()*stereo_cam_->getRectifiedStereoPoseLeft2Right()); // lower cam 에 대한 자세 .. 슬 필요 없다.
-
+        stframe_curr->setStereoPoseByLeft(PoseSE3::Identity(), T_lr);
+        stframe_curr->getLeft()->setPoseDiff10(PoseSE3::Identity());
+        stframe_curr->getRight()->setPoseDiff10(PoseSE3::Identity());
+        
         // Extract initial feature points.
         timer::tic();
         StereoLandmarkTracking lmtrack_curr;
@@ -439,7 +436,7 @@ std::cout << colorcode::text_green << "Time [RECORD KEYFR STAT]: " << timer::toc
             lmtrack_curr.pts_r1, mask_track); // lmtrack_curr.pts_u1 에 prior pixels가 이미 들어있다.
 
         StereoLandmarkTracking lmtrack_staticklt;
-        for(int i = 0; i < mask_track.size(); ++i)
+        for(int i = 0; i < lmtrack_curr.pts_l1.size(); ++i)
         {
             if( mask_track[i] )
             {
@@ -449,7 +446,7 @@ std::cout << colorcode::text_green << "Time [RECORD KEYFR STAT]: " << timer::toc
         }
         lmtrack_staticklt.n_pts = lmtrack_staticklt.pts_l1.size();
         lmtrack_staticklt.pts_l0.resize(lmtrack_staticklt.n_pts);
-        lmtrack_staticklt.pts_r1.resize(lmtrack_staticklt.n_pts);
+        lmtrack_staticklt.pts_r0.resize(lmtrack_staticklt.n_pts);
         lmtrack_staticklt.lms.resize(lmtrack_staticklt.n_pts);
 
 		std::cout << colorcode::text_green << "Time [track bidirection]: " << timer::toc(0) << " [ms]\n" << colorcode::cout_reset;       
