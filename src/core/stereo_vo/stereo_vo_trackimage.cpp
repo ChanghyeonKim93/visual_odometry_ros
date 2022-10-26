@@ -208,7 +208,7 @@ void StereoVO::trackStereoImages(
         std::cout << "  # of poseonly BA point: " << cnt_poBA << std::endl;
 
         bool poseonlyBA_success =
-            motion_estimator_->poseOnlyStereoBundleAdjustment(
+            motion_estimator_->poseOnlyBundleAdjustment_Stereo(
                 Xp_poBA, pts_l1_poBA, pts_r1_poBA, cam_rect, cam_rect, T_lr, params_.motion_estimator.thres_poseba_error,
                 dT_pc_poBA, mask_poBA);
 
@@ -370,7 +370,37 @@ void StereoVO::trackStereoImages(
 
         if( flag_add_new_keyframe )
         {
-            std::cout <<" KEYFRAME ADD!!!!!!!!!!!!!!!!!!\n";
+            // Add keyframe
+            this->saveStereoKeyframe(stframe_curr);
+            this->stkeyframes_->addNewStereoKeyframe(stframe_curr);
+            std::cout << "add done\n";
+            
+
+            // Local Bundle Adjustment
+            motion_estimator_->localBundleAdjustmentSparseSolver_Stereo(stkeyframes_, stereo_cam_);
+
+timer::tic();
+PointVec X_tmp;
+const LandmarkPtrVec& lmvec_tmp = stframe_curr->getLeft()->getRelatedLandmarkPtr();
+for(int i = 0; i < lmvec_tmp.size(); ++i)
+{
+	X_tmp.push_back(lmvec_tmp[i]->get3DPoint());
+}
+statcurr_keyframe.Twc = stframe_curr->getLeft()->getPose();
+statcurr_keyframe.mappoints = X_tmp;
+stat_.stats_keyframe.push_back(statcurr_keyframe);
+
+for(int j = 0; j < stat_.stats_keyframe.size(); ++j){
+	stat_.stats_keyframe[j].Twc = all_stkeyframes_[j]->getLeft()->getPose();
+
+	const LandmarkPtrVec& lmvec_tmp = all_stkeyframes_[j]->getLeft()->getRelatedLandmarkPtr();
+	stat_.stats_keyframe[j].mappoints.resize(lmvec_tmp.size());
+	for(int i = 0; i < lmvec_tmp.size(); ++i) {
+		stat_.stats_keyframe[j].mappoints[i] = lmvec_tmp[i]->get3DPoint();
+	}
+}
+std::cout << colorcode::text_green << "Time [RECORD KEYFR STAT]: " << timer::toc(0) << " [ms]\n" << colorcode::cout_reset;
+
         } // KEYFRAME addition done.
 
 
@@ -514,4 +544,7 @@ void StereoVO::trackStereoImages(
 
 // [6] Update prev
 	this->stframe_prev_ = stframe_curr;	
+
+	std::cout << "# of all landmarks: " << all_landmarks_.size() << std::endl;
+
 };

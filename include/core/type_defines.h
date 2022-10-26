@@ -87,11 +87,11 @@ struct StereoFrame;
 class StereoCamera;
 
 typedef std::shared_ptr<StereoFrame>    StereoFramePtr;
-typedef const StereoFramePtr            StereoFramConstePtr;
+typedef const StereoFramePtr            StereoFrameConstPtr;
 typedef std::vector<StereoFramePtr>     StereoFramePtrVec;
 
 typedef std::shared_ptr<StereoCamera>   StereoCameraPtr;
-typedef const StereoCameraPtr           StereoFrameConstPtr;
+typedef const StereoCameraPtr           StereoCameraConstPtr;
 
 
 

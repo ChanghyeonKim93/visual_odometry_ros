@@ -138,38 +138,36 @@ N_MAX_KEYFRAMES_IN_WINDOW_(7)
 
 };
 
-void StereoKeyframes::setMaxKeyframes(int max_kf)
+void StereoKeyframes::setMaxStereoKeyframes(int max_kf)
 {
     N_MAX_KEYFRAMES_IN_WINDOW_ = max_kf;
 };
 
 
-void StereoKeyframes::addNewKeyframe(const StereoFramePtr& stframe)
+void StereoKeyframes::addNewStereoKeyframe(const StereoFramePtr& stframe)
 {
     // Make both left and right frames as keyframes.
     stframe->getLeft()->makeThisKeyframe(); // 새 keyframe이 됨을 표시. (추가시에는 당연히 keyframe window로 들어옴)
     stframe->getRight()->makeThisKeyframe(); // 새 keyframe이 됨을 표시. (추가시에는 당연히 keyframe window로 들어옴)
    
-    all_stereo_keyframes_.push_back(stframe); // Stereo frame 저장.
+    all_stereo_keyframes_.push_back(stframe); // 모든 stereo keyframe을 저장하는 변수.
 
+    // 만약, keyframe 윈도우 list 가 꽉 찼다면, 가장 과거의 keyframe을 버리고 새 키프레임을 넣음.
     if(stereo_kfs_list_.size() == N_MAX_KEYFRAMES_IN_WINDOW_) 
     {
-        stereo_kfs_list_.front()->getLeft()->outOfKeyframeWindow(); // keyframe window에서 제거됨을 표시.
-        stereo_kfs_list_.front()->getRight()->outOfKeyframeWindow(); // keyframe window에서 제거됨을 표시.
+        StereoFrameConstPtr& stf = stereo_kfs_list_.front();
+        stf->getLeft()->outOfKeyframeWindow(); // keyframe window에서 제거됨을 표시.
+        stf->getRight()->outOfKeyframeWindow(); // keyframe window에서 제거됨을 표시.
         stereo_kfs_list_.pop_front(); // keyframe window에서 제거.
     }
     stereo_kfs_list_.push_back(stframe); // 새 keyframe을 추가. (sliding window)
     
+
+
     // 새로 추가된 keyframe과 관련된 landmark 정보를 업데이트.
-    const FramePtr& frame_left = stframe->getLeft();
-    const FramePtr& frame_right = stframe->getRight();
-
-    const LandmarkPtrVec& lms_left = frame_left->getRelatedLandmarkPtr();
-    const LandmarkPtrVec& lms_right = frame_right->getRelatedLandmarkPtr();
-
-    const PixelVec& pts_left = frame_left->getPtsSeen();
-    const PixelVec& pts_right  = frame_right->getPtsSeen();
-
+    const FramePtr& frame_left  = stframe->getLeft();
+    const LandmarkPtrVec& lms_left  = frame_left->getRelatedLandmarkPtr();
+    const PixelVec& pts_left  = frame_left->getPtsSeen();
     for(int i = 0; i < lms_left.size(); ++i)
     {   
         const LandmarkPtr& lm = lms_left[i];
@@ -177,6 +175,9 @@ void StereoKeyframes::addNewKeyframe(const StereoFramePtr& stframe)
         lm->addObservationAndRelatedKeyframe(pt, frame_left);
     }
 
+    const FramePtr& frame_right = stframe->getRight();
+    const LandmarkPtrVec& lms_right = frame_right->getRelatedLandmarkPtr();
+    const PixelVec& pts_right = frame_right->getPtsSeen();
     for(int i = 0; i < lms_right.size(); ++i)
     {   
         const LandmarkPtr& lm = lms_right[i];
@@ -189,10 +190,12 @@ void StereoKeyframes::addNewKeyframe(const StereoFramePtr& stframe)
 bool StereoKeyframes::checkUpdateRule(const StereoFramePtr& stframe_curr)
 {
     bool flag_addkeyframe = false;
-
+    
+    // Keyframe이 없으면 무조건 추가한다.
     if(stereo_kfs_list_.empty()) 
-        flag_addkeyframe = true; // Keyframe이 없으면 무조건 추가한다.
+        flag_addkeyframe = true;
 
+    // 맨 첫 키프레임이 아니면 수행.
     if( !flag_addkeyframe )
     {   
         // 1) Check overlapping ratio
@@ -236,7 +239,7 @@ bool StereoKeyframes::checkUpdateRule(const StereoFramePtr& stframe_curr)
         
         // 2) Check rotation & translation
         const PoseSE3& Tkw_last = stereo_kfs_list_.back()->getLeft()->getPoseInv();
-        const PoseSE3& Twc = stframe_curr->getLeft()->getPose();
+        const PoseSE3& Twc      = stframe_curr->getLeft()->getPose();
         PoseSE3 dT = Tkw_last * Twc;
         if( !flag_addkeyframe )
         {
@@ -258,12 +261,12 @@ bool StereoKeyframes::checkUpdateRule(const StereoFramePtr& stframe_curr)
         std::cout << "       ADD NEW KEYFRAME. keyframe id: ";
         for(std::list<StereoFramePtr>::iterator it = stereo_kfs_list_.begin(); it != stereo_kfs_list_.end(); ++it)
         {
-            std::cout << (*it)->getLeft()->getID() << " (w/ R: " << (*it)->getRight()->getID() << ") ";
+            std::cout << (*it)->getLeft()->getID() << "(" << (*it)->getRight()->getID() << ") ";
         }
         std::cout << "\n";
     }
     else // No need of new keyframe
-        std::cout << "       Don't add keyframe.\n";
+        std::cout << "       DON'T ADD KEYFRAME.\n";
 
     return flag_addkeyframe;
 };
@@ -273,12 +276,12 @@ const std::list<StereoFramePtr>& StereoKeyframes::getList() const // get list of
     return stereo_kfs_list_;
 };    
 
-int StereoKeyframes::getCurrentNumOfKeyframes() const // get current number of window keyframes
+int StereoKeyframes::getCurrentNumOfStereoKeyframes() const // get current number of window keyframes
 {
     return stereo_kfs_list_.size();
 };
 
-int StereoKeyframes::getMaxNumOfKeyframes() const // get maximum allowed number of window keyframes
+int StereoKeyframes::getMaxNumOfStereoKeyframes() const // get maximum allowed number of window keyframes
 {
     return N_MAX_KEYFRAMES_IN_WINDOW_;
 };

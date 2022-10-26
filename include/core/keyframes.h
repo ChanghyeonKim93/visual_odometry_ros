@@ -57,7 +57,7 @@ public:
 class StereoKeyframes
 {
 private:
-    std::list<StereoFramePtr>  stereo_kfs_list_; // lits of window keyframes
+    std::list<StereoFramePtr>   stereo_kfs_list_; // lits of window keyframes
     std::vector<StereoFramePtr> all_stereo_keyframes_; // vector of all keyframe history
 
 private:
@@ -70,15 +70,15 @@ public:
     StereoKeyframes(); // constructor of keyframes class
 
 public:
-    void setMaxKeyframes(int max_kf); // set maximum keyframes in window.
+    void setMaxStereoKeyframes(int max_kf); // set maximum keyframes in window.
 
 public:
-    void addNewKeyframe(const StereoFramePtr& stframe); // delete the oldest keyframe and add new keyframe.
+    void addNewStereoKeyframe(const StereoFramePtr& stframe); // delete the oldest keyframe and add new keyframe.
     bool checkUpdateRule(const StereoFramePtr& stframe_curr); // check keyframe update rule.
 
 public:
     const std::list<StereoFramePtr>& getList() const; // get list of window keyframes
-    int getCurrentNumOfKeyframes() const; // get current number of window keyframes
-    int getMaxNumOfKeyframes() const; // get maximum allowed number of window keyframes
+    int getCurrentNumOfStereoKeyframes() const; // get current number of window keyframes
+    int getMaxNumOfStereoKeyframes() const; // get maximum allowed number of window keyframes
 };
 #endif

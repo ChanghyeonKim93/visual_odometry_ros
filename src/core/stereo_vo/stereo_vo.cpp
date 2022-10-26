@@ -4,37 +4,43 @@ StereoVO::StereoVO(std::string mode, std::string directory_intrinsic)
 : stereo_cam_(nullptr), stframe_prev_(nullptr)
 {
 	std::cout << "Stereo VO starts\n";
-		
+	
+	// Set the algorithm to 'stereo mode'
+	bool is_stereo_mode = true;
+
 	// Initialize stereo camera
 	stereo_cam_ = std::make_shared<StereoCamera>();
 	
 	if(mode == "dataset")
 	{
-		throw std::runtime_error("dataset mode is not supported.");
+		throw std::runtime_error("StereoVO - 'dataset' mode is not supported now...");
 	}
 	else if(mode == "rosbag")
 	{
 		std::cout << "StereoVO - 'rosbag' mode.\n";
-		
 		this->loadStereoCameraIntrinsicAndUserParameters(directory_intrinsic);
-		// wait callback ...
 	}
 	else 
-		throw std::runtime_error("StereoVO - unknown mode.");
+		throw std::runtime_error("StereoVO - unknown mode...");
+
+	// Get rectified stereo camera parameters
+	CameraConstPtr& cam_rect = stereo_cam_->getRectifiedCamera();
+	const PoseSE3& T_lr = stereo_cam_->getRectifiedStereoPoseLeft2Right(); // left to right pose (rectified camera)
 
 	// Initialize feature extractor (ORB-based)
-	extractor_ = std::make_shared<FeatureExtractor>();
 	int n_bins_u     = params_.feature_extractor.n_bins_u;
 	int n_bins_v     = params_.feature_extractor.n_bins_v;
 	float THRES_FAST = params_.feature_extractor.thres_fastscore;
 	float radius     = params_.feature_extractor.radius;
-	extractor_->initParams(stereo_cam_->getLeftCamera()->cols(), stereo_cam_->getLeftCamera()->rows(), n_bins_u, n_bins_v, THRES_FAST, radius);
+
+	extractor_ = std::make_shared<FeatureExtractor>();
+	extractor_->initParams(cam_rect->cols(), cam_rect->rows(), n_bins_u, n_bins_v, THRES_FAST, radius);
 
 	// Initialize feature tracker (KLT-based)
 	tracker_ = std::make_shared<FeatureTracker>();
 
 	// Initialize motion estimator
-	motion_estimator_ = std::make_shared<MotionEstimator>();
+	motion_estimator_ = std::make_shared<MotionEstimator>(is_stereo_mode, T_lr);
 	motion_estimator_->setThres1p(params_.motion_estimator.thres_1p_error);
 	motion_estimator_->setThres5p(params_.motion_estimator.thres_5p_error);
 

@@ -1,7 +1,7 @@
 #include "core/motion_estimator.h"
 
-MotionEstimator::MotionEstimator(bool is_stereo_mode)
-:is_stereo_mode_(is_stereo_mode)
+MotionEstimator::MotionEstimator(bool is_stereo_mode, const PoseSE3& T_lr)
+:is_stereo_mode_(is_stereo_mode), T_lr_(T_lr)
 {
     this->thres_1p_ = 10.0; // pixels
     this->thres_5p_ = 1.5; // pixels
@@ -853,10 +853,11 @@ bool MotionEstimator::poseOnlyBundleAdjustment(const PointVec& X, const PixelVec
 };
 
 
-bool MotionEstimator::poseOnlyStereoBundleAdjustment(const PointVec& X, const PixelVec& pts_l1, const PixelVec& pts_r1, CameraConstPtr& cam_left, CameraConstPtr& cam_right, const PoseSE3& T_lr, float thres_reproj_outlier, 
+bool MotionEstimator::poseOnlyBundleAdjustment_Stereo(const PointVec& X, const PixelVec& pts_l1, const PixelVec& pts_r1, CameraConstPtr& cam_left, CameraConstPtr& cam_right, const PoseSE3& T_lr, float thres_reproj_outlier, 
     PoseSE3& T01, MaskVec& mask_inlier)
 {
-
+    if( !is_stereo_mode_ )
+        throw std::runtime_error("In 'poseOnlyBundleAdjustment_Stereo()', is_stereo_mode_ == false");
     
     PoseSE3 T_rl = geometry::inverseSE3_f(T_lr);
 
@@ -1228,6 +1229,172 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
 
     return true;
 };
+
+
+
+bool MotionEstimator::localBundleAdjustmentSparseSolver_Stereo(const std::shared_ptr<StereoKeyframes>& stkfs_window, StereoCameraConstPtr& stereo_cam)
+{
+// Variables
+// 
+// LandmarkBAVec lms_ba; 
+//  - Xi
+//  - pts_on_kfs
+//  - kfs_seen
+// 
+// std::map<FramePtr,int>     kfmap_optimizable
+// std::map<FramePtr,PoseSE3> Tjw_map;
+
+    if( !is_stereo_mode_ )
+        throw std::runtime_error("In 'MotionEstimator::localBundleAdjustmentSparseSolver_Stereo()', is_stereo_mode_ == false.");
+
+    std::cout << colorcode::text_cyan;
+    std::cout << "===============     Local Bundle adjustment (Sparse Solver, Stereo version)     ===============\n";
+
+    // Optimization paraameters
+    int   MAX_ITER          = 15;
+
+    float lam               = 1e-5;  // for Levenberg-Marquardt algorithm
+    float MAX_LAM           = 1.0f;  // for Levenberg-Marquardt algorithm
+    float MIN_LAM           = 1e-4f; // for Levenberg-Marquardt algorithm
+
+    float THRES_HUBER       = 0.5f;
+    float THRES_HUBER_MIN   = 0.3f;
+    float THRES_HUBER_MAX   = 20.0f;
+
+    // optimization status flags
+    bool DO_RECALC          = true;
+    bool IS_DECREASE        = false;
+    bool IS_STRICT_DECREASE = false;
+    bool IS_BAD_DIVERGE     = false;
+
+    float THRES_DELTA_THETA = 1e-7;
+    float THRES_ERROR       = 1e-7;
+
+    int NUM_MINIMUM_REQUIRED_KEYFRAMES = 3; // 최소 stereo keyframe 갯수.
+    int NUM_FIX_KEYFRAMES_IN_WINDOW    = 2; // optimization에서 제외 할 keyframe 갯수. 과거 순.
+
+
+    // Check whether there are enough keyframes
+    if(stkfs_window->getCurrentNumOfStereoKeyframes() < NUM_MINIMUM_REQUIRED_KEYFRAMES)
+    {
+        std::cout << "  ---- Not enough keyframes... at least four keyframes are needed. local BA is skipped.\n";
+        return false;
+    }
+
+    CameraConstPtr& cam_rect  = stereo_cam->getRectifiedCamera();
+    const PoseSE3& T_lr       = stereo_cam->getRectifiedStereoPoseLeft2Right();
+
+    // Do Local Bundle Adjustment.
+    bool flag_success = true; // Local BA success flag.
+
+    // make opt and non opt images
+    FramePtrVec frames_ba; // left and right 모두 합친 것.
+    std::vector<int> idx_fix; // left 초반만.
+    std::vector<int> idx_opt;
+
+    /* 
+        - monocular mode
+
+        n(idx_fix) + n(idx_opt) === n(frames)
+
+        
+        - stereo mode 
+        n(idx_fix) + n(idx_opt) =/= n(frames)
+        n(idx_fix) + n(idx_opt) === n(frames)/2
+        
+            * stereo mode 일 때는 left image의 포즈만 업데이트 하기 때문임.
+              하지만 right frames 역시 residual 을 만들어주기때문에 frames 에 다 넣어주긴해야함.
+
+    */
+
+
+   // Left 먼저 저장해야한다.
+    for(const auto& stkf : stkfs_window->getList())
+        frames_ba.push_back(stkf->getLeft());
+    
+    for(const auto& stkf : stkfs_window->getList())
+        frames_ba.push_back(stkf->getRight());
+    
+    int N = frames_ba.size();
+   
+    for(int j = 0; j < NUM_FIX_KEYFRAMES_IN_WINDOW; ++j)
+        idx_fix.push_back(j);
+
+    for(int j = NUM_FIX_KEYFRAMES_IN_WINDOW; j < frames_ba.size(); ++j)
+    {
+        if( !frames_ba[j]->isRightImage() )
+            idx_opt.push_back(j);
+    }
+        
+    std::cout << "fixed frame indexes: ";
+    for(int j = 0; j < idx_fix.size(); ++j)
+        std::cout << idx_fix[j] <<" ";
+    std::cout << std::endl;
+
+    std::cout << "  Opt frame indexes: ";
+    for(int j = 0; j < idx_opt.size(); ++j)
+        std::cout << idx_opt[j] <<" ";
+    std::cout << std::endl;
+
+
+    std::cout << "# of window stereo kfs: " << stkfs_window->getList().size() << ", N: " << N << ", n(idx_fix): " << idx_fix.size() << ", n(idx_opt): " << idx_opt.size() << std::endl;
+
+    // Make Sparse BA Parameters
+    std::shared_ptr<SparseBAParameters> ba_params;
+    ba_params = std::make_shared<SparseBAParameters>(is_stereo_mode_, T_lr);
+    ba_params->setPosesAndPoints(frames_ba, idx_fix, idx_opt);
+
+    // BA sparse solver
+    // timer::tic();
+    sparse_ba_solver_->reset(); // reset the solver
+    sparse_ba_solver_->setStereoCameras(cam_rect, cam_rect);
+    sparse_ba_solver_->setBAParameters(ba_params);
+    sparse_ba_solver_->setHuberThreshold(THRES_HUBER);
+    // double dt_prepare = timer::toc(0);
+
+    // timer::tic();
+    sparse_ba_solver_->solveForFiniteIterations(MAX_ITER);
+    // double dt_solve = timer::toc(0);
+
+    // timer::tic();
+    sparse_ba_solver_->reset();
+    // double dt_reset = timer::toc(0);
+
+    if(0){
+        std::cout << "==== Show Translations: \n";
+        for(int j = 0; j < ba_params->getNumOfOptimizeFrames(); ++j)
+        {
+            const FramePtr& f = ba_params->getOptFramePtr(j);
+
+            std::cout << "[" << f->getID() << "] frame's trans: " 
+                             << f->getPose().block<3,1>(0,3).transpose() << "\n";
+        }
+
+        std::cout << "==== Show Points: \n";
+        for(int i = 0; i < ba_params->getNumOfOptimizeLandmarks(); ++i)
+        {
+            const LandmarkPtr& lm = ba_params->getOptLandmarkPtr(i);
+
+            std::cout << "[" << lm->getID() << "] point: " << lm->get3DPoint().transpose() << "\n";
+        }
+    }
+
+    for(const auto& f : ba_params->getAllFrameset())
+    {
+        std::cout << f->getID() << "-th frame is " << 
+        (f->isPoseOnlySuccess() ? "TRUE" : "FALSE") << std::endl;
+    }
+    
+    
+    // Time analysis
+    // std::cout << "== LBA time to prepare: " << dt_prepare << " [ms]\n";
+    // std::cout << "== LBA time to solve: "   << dt_solve   << " [ms]\n";
+    // std::cout << "== LBA time to reset: "   << dt_reset   << " [ms]\n\n";
+    std::cout << colorcode::cout_reset;
+
+    return true;
+};
+
 
 
 inline void MotionEstimator::calcJtJ_x(const Eigen::Matrix<float,6,1>& Jt, Eigen::Matrix<float,6,6>& JtJ_tmp)

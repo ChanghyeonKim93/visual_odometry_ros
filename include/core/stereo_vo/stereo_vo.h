@@ -187,9 +187,8 @@ private:
 private:
 	std::shared_ptr<FeatureExtractor> extractor_;
 	std::shared_ptr<FeatureTracker>   tracker_;
-	std::shared_ptr<MotionEstimator>  motion_estimator_;
-
-    std::shared_ptr<SparseBundleAdjustmentSolver> ba_solver_; // bundle adjustment solver
+	std::shared_ptr<MotionEstimator>  motion_estimator_; // Stereo mode
+    std::shared_ptr<SparseBundleAdjustmentSolver> ba_solver_; // Stereo mode
 
 // For tracker
 private:
@@ -209,14 +208,27 @@ private:
 private:
 	cv::Mat img_debug_;
 
+
+
+
+
+
 // Constructor, destructor and track function
 public:
 	StereoVO(std::string mode, std::string directory_intrinsic);
 	~StereoVO();
 
+// Tracking function.
+public:
     void trackStereoImages(const cv::Mat& img_left, const cv::Mat& img_right, const double& timestamp);
 
+// Get statistics
+public:
 	const AlgorithmStatistics& getStatistics() const;
+
+
+public:
+	const cv::Mat& getDebugImage();
 
 private:
 	void saveLandmark(const LandmarkPtr& lm, bool verbose = false);
@@ -224,10 +236,7 @@ private:
 	void saveStereoFrame(const StereoFramePtr& stframe, bool verbose = false);
 	void saveStereoFrames(const StereoFramePtrVec& stframes, bool verbose = false);
 	void saveStereoKeyframe(const StereoFramePtr& stframe, bool verbose = false);
-
-public:
-	const cv::Mat& getDebugImage();
-
+	
 private:
 	void loadStereoCameraIntrinsicAndUserParameters(const std::string& dir);
 };

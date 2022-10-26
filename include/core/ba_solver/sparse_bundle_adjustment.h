@@ -47,9 +47,11 @@ class SparseBundleAdjustmentSolver;
 class SparseBundleAdjustmentSolver
 {
 private:
+    bool is_stereo_mode_;
+
+private:
     std::vector<std::shared_ptr<Camera>> cams_;
     int n_cams_;
-    bool is_stereo_;
 
 private:
     // Storages to solve Schur Complement
@@ -102,7 +104,7 @@ private:
 
 public:
     /// @brief Constructor for BundleAdjustmentSolver ( se3 (6-DoF), 3D points (3-DoF) ). Sparse solver with 6x6 block diagonals, 3x3 block diagonals, 6x3 and 3x6 blocks.
-    SparseBundleAdjustmentSolver(bool is_stereo);
+    SparseBundleAdjustmentSolver(bool is_stereo = false);
 
     /// @brief Set connectivities, variables...
     /// @param ba_params bundle adjustment parameters

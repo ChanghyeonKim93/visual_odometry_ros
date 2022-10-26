@@ -19,8 +19,11 @@
 /// @brief parameter class for Sparse Bundle Adjustment
 class SparseBAParameters 
 {
+// Stereo related.
 private:
-    bool is_stereo_;
+    bool is_stereo_mode_;
+    _BA_PoseSE3 T_stereo_; // Stereo pose from the left to right (the first to the second)
+    _BA_PoseSE3 T_stereo_inv_; // Stereo pose from the left to right (the first to the second)
 
 private: // Reference Pose and scaling factor for numerical stability
     _BA_PoseSE3 Twj_ref_;
@@ -29,18 +32,33 @@ private: // Reference Pose and scaling factor for numerical stability
     _BA_Numeric inv_pose_scale_;
 
 
-    _BA_PoseSE3 T_stereo_; // Stereo pose from the left to right (the first to the second)
-    _BA_PoseSE3 T_stereo_inv_; // Stereo pose from the left to right (the first to the second)
-
-
 private: // all frames and landmarks used for BA.
-    std::set<FramePtr>       frameset_all_;
-    std::set<LandmarkPtr>    landmarkset_all_;
+    std::set<FramePtr>    frameset_all_;
+    std::set<LandmarkPtr> landmarkset_all_;
 
 private: 
     int N_; // total number of frames
     int N_opt_; // # of optimizable frames
     int N_nonopt_; // # of non-optimizable frames (to prevent gauge freedom)
+
+    /*
+        Example 1) monocular mode 
+
+            N_        = 28
+            N_opt_    = 20
+            N_nonopt_ = 8
+
+            N_ = N_opt_ + N_nonopt_ should hold.
+
+
+        Example 2) stereo mode
+
+            N_        = 28 (indeed 14 stereo frames)
+            N_opt_    = 10
+            N_nonopt_ = 4  
+
+            N_ != N_opt_ + N_nonopt_ , but N_ == 2*(N_opt_ + N_nonopt_) should hold.
+    */
 
     int M_; // total number of landmarks (all landmarks is to be optimized if they satisty the conditions.) 
 
@@ -162,7 +180,7 @@ public:
 public:
     bool isOptFrame(const FramePtr& f) {return (indexmap_opt_.find(f) != indexmap_opt_.end() ); };
     bool isFixFrame(const FramePtr& f) {return (indexmap_opt_.find(f) == indexmap_opt_.end() ); };
-    bool isStereoMode() const { return is_stereo_; };
+    bool isStereoMode() const { return is_stereo_mode_; };
 
 public:
     _BA_Point warpToRef(const _BA_Point& X){
@@ -215,14 +233,14 @@ public:
 public:
     SparseBAParameters() 
     : N_(0), N_opt_(0), N_nonopt_(0), M_(0), n_obs_(0),
-    pose_scale_(10.0), inv_pose_scale_(1.0/pose_scale_), is_stereo_(false)
+    pose_scale_(10.0), inv_pose_scale_(1.0/pose_scale_), is_stereo_mode_(false)
     { 
 
     };
 
     SparseBAParameters(bool is_stereo, const PoseSE3& T_stereo) 
     : N_(0), N_opt_(0), N_nonopt_(0), M_(0), n_obs_(0),
-    pose_scale_(10.0), inv_pose_scale_(1.0/pose_scale_), is_stereo_(true)
+    pose_scale_(10.0), inv_pose_scale_(1.0/pose_scale_), is_stereo_mode_(true)
     { 
         if(!is_stereo)
             throw std::runtime_error("is_stereo should be set 'true' when T_stereo is given!");
@@ -231,7 +249,7 @@ public:
             T_stereo(0,0), T_stereo(0,1), T_stereo(0,2), T_stereo(0,3),
             T_stereo(1,0), T_stereo(1,1), T_stereo(1,2), T_stereo(1,3),
             T_stereo(2,0), T_stereo(2,1), T_stereo(2,2), T_stereo(2,3),
-            T_stereo(3,0), T_stereo(3,1), T_stereo(3,2), T_stereo(3,3);
+            0,0,0,1;
 
         T_stereo_inv_ = geometry::inverseSE3(T_stereo_);
     };
@@ -255,45 +273,51 @@ public:
             '
         */
 
-        if(is_stereo_){
+        if(is_stereo_mode_)
+        {
             T_stereo_     = this->scalingPose(T_stereo_);
             T_stereo_inv_ = this->scalingPose(T_stereo_inv_);
         }
 
-        // Threshold
-        int THRES_MINIMUM_SEEN = 2;
+        // Threshold for landmark usage
+        int THRES_MINIMUM_SEEN = 2; // landmark should be seen on at least two stereo frames.
 
-        N_     = frames.size();
-
+        N_        = frames.size();
         N_nonopt_ = idx_fix.size();
-        N_opt_ = idx_optimize.size();
+        N_opt_    = idx_optimize.size();
 
         std::cout << "In 'setPosesAndPoints()', N: " << N_ << ", N_fix: "<< N_nonopt_ << ", N_opt: " << N_opt_ << std::endl;
 
-        if( N_ != N_nonopt_ + N_opt_ ) 
-            throw std::runtime_error(" N != N_fix + N_opt ");
-        
+        if( !is_stereo_mode_ )
+            if( N_ != N_nonopt_ + N_opt_ ) 
+                throw std::runtime_error("In 'setPosesAndPoints()', monocular mode is set, but N != N_fix + N_opt ");
+        else
+            if( N_ != (N_nonopt_ + N_opt_) * 2)
+                throw std::runtime_error("In 'setPosesAndPoints()', stereo mode is set, but N != 2*N_fix + 2*N_opt ");
+
 
         // 1) get all window keyframes 
         std::set<LandmarkPtr> lmset_window; // 안겹치는 랜드마크들
         std::set<FramePtr> frameset_window; // 윈도우 내부 키프레임들
         FramePtrVec kfvec_window; // 윈도우 내부의 키프레임들
-        for(const auto& kf : frames) 
+        for(const auto& f : frames) 
         { 
             // 모든 keyframe in window 순회 
-            kfvec_window.push_back(kf); // window keyframes 저장.
-            frameset_window.insert(kf);
+            kfvec_window.push_back(f); // window keyframes 저장.
+            frameset_window.insert(f); // left and right 모두 포함.
 
-            for(const auto& lm : kf->getRelatedLandmarkPtr())
+            for(const auto& lm : f->getRelatedLandmarkPtr())
             { 
                 // 현재 keyframe에서 보인 모든 landmark 순회
                 if( lm->isTriangulated() && lm->isAlive() ) // age > THRES, triangulate() == true 경우 포함.
                     lmset_window.insert(lm);
             }
         }
+        std::cout << "In 'setPosesAndPoints()', SIZE kfvec_window : "<< kfvec_window.size() << std::endl;
+        std::cout << "In 'setPosesAndPoints()', SIZE frameset_window : "<< frameset_window.size() << std::endl;
 
         // 1-1) get reference pose.
-        const PoseSE3& Twj_ref_float = kfvec_window.front()->getPose();
+        const PoseSE3& Twj_ref_float = kfvec_window.front()->getPose(); // 맨 첫 자세.
         Twj_ref_ << Twj_ref_float(0,0),Twj_ref_float(0,1),Twj_ref_float(0,2),Twj_ref_float(0,3),
                     Twj_ref_float(1,0),Twj_ref_float(1,1),Twj_ref_float(1,2),Twj_ref_float(1,3),
                     Twj_ref_float(2,0),Twj_ref_float(2,1),Twj_ref_float(2,2),Twj_ref_float(2,3),
@@ -315,16 +339,16 @@ public:
             lm_ba.X = this->warpToRef(lm_ba.X);
             lm_ba.X = this->scalingPoint(lm_ba.X);
             
-            lm_ba.kfs_seen.reserve(100);
-            lm_ba.pts_on_kfs.reserve(100);
-            lm_ba.err_on_kfs.reserve(100);
+            lm_ba.kfs_seen.reserve(300);
+            lm_ba.pts_on_kfs.reserve(300);
+            lm_ba.err_on_kfs.reserve(300);
 
             // 현재 landmark가 보였던 keyframes을 저장한다.
             for(int j = 0; j < lm->getRelatedKeyframePtr().size(); ++j) 
             {
-                const FramePtr& kf = lm->getRelatedKeyframePtr()[j];
+                const FramePtr& kf = lm->getRelatedKeyframePtr()[j]; // left 든 right든 상관 없음.
                 const Pixel&    pt = lm->getObservationsOnKeyframes()[j];
-                if(frameset_window.find(kf) != frameset_window.end())
+                if(frameset_window.find(kf) != frameset_window.end()) // 윈도우 내부에 있는 프레임이면 추가.
                 {   
                     //window keyframe만으로 제한
                     lm_ba.kfs_seen.push_back(kf);
@@ -338,25 +362,34 @@ public:
             {
                 lmbavec_all_.push_back(lm_ba); 
                 landmarkset_all_.insert(lm);
+
                 for(int j = 0; j < lm_ba.kfs_seen.size(); ++j) // all related keyframes.
                     frameset_all_.insert(lm_ba.kfs_seen[j]);
             }
         }
 
         // 3) re-initialize N, N_fix, M
-        M_ = lmbavec_all_.size();
         N_ = frameset_all_.size(); 
-        N_nonopt_ = N_ - N_opt_;
+        if(is_stereo_mode_)
+        {
+            N_nonopt_ = (N_ - 2*N_opt_)*0.5;
+        }
+        else
+        {
+            N_nonopt_ = N_ - N_opt_;
+        }
+        M_ = lmbavec_all_.size();
         std::cout << "Recomputed N: " << N_ <<", N_fix + N_opt: " << N_nonopt_ << "+" << N_opt_ << std::endl;
 
         // 4) set poses for all frames
-        for(const auto& kf : frameset_all_)
+        for(const auto& f : frameset_all_)
         {
-             if( !kf->isRightImage() )
+             if( !f->isRightImage() )  // Left image only.
             {
                 _BA_PoseSE3 Tjw_tmp;
-                const PoseSE3& Tjw_float = kf->getPoseInv();
-                Tjw_tmp << Tjw_float(0,0), Tjw_float(0,1), Tjw_float(0,2), Tjw_float(0,3),
+                const PoseSE3& Tjw_float = f->getPoseInv();
+                Tjw_tmp << 
+                        Tjw_float(0,0), Tjw_float(0,1), Tjw_float(0,2), Tjw_float(0,3),
                         Tjw_float(1,0), Tjw_float(1,1), Tjw_float(1,2), Tjw_float(1,3),
                         Tjw_float(2,0), Tjw_float(2,1), Tjw_float(2,2), Tjw_float(2,3),
                         0.0, 0.0, 0.0, 1.0;
@@ -364,7 +397,7 @@ public:
                 Tjw_tmp = this->changeInvPoseWorldToRef(Tjw_tmp);
                 Tjw_tmp = this->scalingPose(Tjw_tmp);
                 
-                posemap_all_.insert(std::pair<FramePtr,_BA_PoseSE3>(kf, Tjw_tmp));
+                posemap_all_.insert(std::pair<FramePtr,_BA_PoseSE3>(f, Tjw_tmp));
             }
         }
         
@@ -374,13 +407,17 @@ public:
         for(int jj = 0; jj < idx_optimize.size(); ++jj)
         {
             int j = idx_optimize.at(jj);
-            if( !frames[j]->isRightImage())
+            if( !frames[j]->isRightImage() ) // Left image only.
             {
-                indexmap_opt_.insert({frames[j],cnt_idx});
+                indexmap_opt_.insert({frames[j], cnt_idx});
                 framemap_opt_.push_back(frames[j]);
                 ++cnt_idx;
             }
         }
+
+        //check 
+        if( cnt_idx != indexmap_opt_.size() )
+            throw std::runtime_error("cnt_idx != indexmap_opt_.size()");
 
         // 6) set optimization values 
         n_obs_ = 0; // the number of total observations (2*n_obs == len_residual)
@@ -390,8 +427,6 @@ public:
         
         int len_residual  = 2*n_obs_;
         int len_parameter = 6*N_opt_ + 3*M_;
-
-
         printf("| Bundle Adjustment Statistics:\n");
         printf("|  -        # of total images: %d images \n", N_);
         printf("|  -           -  opt. images: %d images \n", N_opt_);

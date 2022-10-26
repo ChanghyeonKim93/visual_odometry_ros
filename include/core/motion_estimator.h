@@ -36,6 +36,7 @@ class MotionEstimator
 {
 private:
     bool is_stereo_mode_;
+    PoseSE3 T_lr_;
 
 private:
     float thres_1p_;
@@ -45,7 +46,7 @@ private:
     std::shared_ptr<SparseBundleAdjustmentSolver> sparse_ba_solver_;
     
 public:
-    MotionEstimator(bool is_stereo_mode = false);
+    MotionEstimator(bool is_stereo_mode = false,  const PoseSE3& T_lr = PoseSE3::Identity() );
     ~MotionEstimator();
 
     bool calcPose5PointsAlgorithm(const PixelVec& pts0, const PixelVec& pts1, const std::shared_ptr<Camera>& cam, 
@@ -58,10 +59,13 @@ public:
     bool poseOnlyBundleAdjustment(const PointVec& X, const PixelVec& pts1, const std::shared_ptr<Camera>& cam, const int& thres_reproj_outlier,
         Rot3& R01_true, Pos3& t01_true, MaskVec& mask_inlier);
 
-    bool poseOnlyStereoBundleAdjustment(const PointVec& X, const PixelVec& pts_l1, const PixelVec& pts_r1, CameraConstPtr& cam_left, CameraConstPtr& cam_right, const PoseSE3& T_lr, float thres_reproj_outlier, 
+    bool poseOnlyBundleAdjustment_Stereo(const PointVec& X, const PixelVec& pts_l1, const PixelVec& pts_r1, CameraConstPtr& cam_left, CameraConstPtr& cam_right, const PoseSE3& T_lr, float thres_reproj_outlier, 
         PoseSE3& T01, MaskVec& mask_inlier);
 
     bool localBundleAdjustmentSparseSolver(const std::shared_ptr<Keyframes>& kfs, const std::shared_ptr<Camera>& cam);
+    bool localBundleAdjustmentSparseSolver_Stereo(const std::shared_ptr<StereoKeyframes>& stkfs_window, StereoCameraConstPtr& stereo_cam);
+
+    // bool localBundleAdjustmentSparseSolver(const std::shared_ptr<Keyframes>& kfs, const std::shared_ptr<Camera>& cam);
 
 public:
     void calcSampsonDistance(const PixelVec& pts0, const PixelVec& pts1, const std::shared_ptr<Camera>& cam, 

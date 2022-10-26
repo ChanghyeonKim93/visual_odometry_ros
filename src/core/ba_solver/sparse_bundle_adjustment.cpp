@@ -17,9 +17,9 @@
 
 
 
-SparseBundleAdjustmentSolver::SparseBundleAdjustmentSolver(bool is_stereo = false) 
+SparseBundleAdjustmentSolver::SparseBundleAdjustmentSolver(bool is_stereo) 
 : N_(0), N_opt_(0), M_(0), n_obs_(0), THRES_EPS_(0), THRES_HUBER_(0),
-n_cams_(0), is_stereo_(is_stereo)
+n_cams_(0), is_stereo_mode_(is_stereo)
 {
     cams_.resize(0);
     // this->cam_       = nullptr;
@@ -30,7 +30,7 @@ n_cams_(0), is_stereo_(is_stereo)
     Bt_.reserve(5000);
     C_.reserve(5000); // reserve expected # of optimizable landmarks (M)
 
-    if(is_stereo_) 
+    if(is_stereo_mode_)
         std::cout << "SparseBundleAdjustmentSolver() - set to 'stereo' mode.\n";
     else 
         std::cout << "SparseBundleAdjustmentSolver() - set to 'monocular' mode.\n";
@@ -38,8 +38,8 @@ n_cams_(0), is_stereo_(is_stereo)
 
 void SparseBundleAdjustmentSolver::setBAParameters(const std::shared_ptr<SparseBAParameters>& ba_params)
 {
-    if(is_stereo_){
-        if(!ba_params->isStereoMode())
+    if(is_stereo_mode_){
+        if( !ba_params->isStereoMode() )
             throw std::runtime_error("In SparseBundleAdjustmentSolver::setBAParameters(), 'ba_params' is not in stereo mode while 'is_stereo' of this module is set to 'true'.");
     }
 
@@ -58,10 +58,10 @@ void SparseBundleAdjustmentSolver::setHuberThreshold(_BA_Numeric thres_huber){
 };
 
 void SparseBundleAdjustmentSolver::setCamera(const std::shared_ptr<Camera>& cam){
-     if( !is_stereo_ ){
+     if( !is_stereo_mode_ ){
         cams_.resize(1);
         cams_[0] = cam;
-
+        n_cams_ = 1;
         std::cout << "Sparse BA solver is in 'monocular mode'\n";   
     }
     else
@@ -70,10 +70,11 @@ void SparseBundleAdjustmentSolver::setCamera(const std::shared_ptr<Camera>& cam)
 
 void SparseBundleAdjustmentSolver::setStereoCameras(const std::shared_ptr<Camera>& cam0, const std::shared_ptr<Camera>& cam1)
 {
-    if( is_stereo_ ){
+    if( is_stereo_mode_ ){
         cams_.resize(2);
         cams_[0] = cam0;
         cams_[1] = cam1;
+        n_cams_ = 2;
         
         std::cout << "Sparse BA solver is in 'stereo mode'\n";
     }
@@ -164,7 +165,7 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER)
     _BA_PoseSE3 T_lr, T_rl;
     _BA_Rot3 R_rl, R_lr;
     _BA_Pos3 t_rl, t_lr;
-    if(is_stereo_)
+    if(is_stereo_mode_)
     { 
         fx_r = cams_[1]->fx(); fy_r = cams_[1]->fy();
         cx_r = cams_[1]->cx(); cy_r = cams_[1]->cy();
@@ -643,7 +644,7 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER)
             kf->setPose(geometry::inverseSE3_f(Tjw_update_float));
         }
         
-        if(is_stereo_)
+        if(is_stereo_mode_)
         {            
             _BA_PoseSE3 T_lr_scaled = ba_params_->getStereoPose();
             T_lr_scaled = ba_params_->recoverOriginalScalePose(T_lr_scaled);
