@@ -50,7 +50,7 @@ T_lr: !!opencv-matrix # this statement is necessary.
 # Parameters of feature tracker
 feature_tracker.thres_error: 40.0      
 feature_tracker.thres_bidirection: 0.5
-feature_tracker.thres_sampson: 1.0
+feature_tracker.thres_sampson: 0.5
 feature_tracker.window_size: 15
 feature_tracker.max_level: 6
 

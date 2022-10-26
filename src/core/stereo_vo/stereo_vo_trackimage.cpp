@@ -28,7 +28,7 @@ void StereoVO::trackStereoImages(
 		img_right_undist.convertTo(img_right_undist, CV_8UC1);
 		std::cout << colorcode::text_green << "Time [stereo undistort ]: " << timer::toc(0) << " [ms]\n" << colorcode::cout_reset;
 	}
-	else 
+	else
 	{
 		img_left.copyTo(img_left_undist);
 		img_right.copyTo(img_right_undist);
@@ -66,7 +66,6 @@ void StereoVO::trackStereoImages(
         lmtrack_prev.lms    = stframe_prev_->getLeft()->getRelatedLandmarkPtr();
 
         int n_pts_exist = lmtrack_prev.n_pts;
-        std::cout << " --- # previous pixels : " << n_pts_exist << "\n";
         
         // [2] 현재 stereo frame의 자세를 업데이트한다.
         // 이전 자세와 이전 업데이트 값을 가져온다. (constant velocity assumption)
@@ -77,17 +76,22 @@ void StereoVO::trackStereoImages(
         PoseSE3 T_wc_prior = T_wp * dT_pc_prev;
         PoseSE3 T_cw_prior = geometry::inverseSE3_f(T_wc_prior);
 
-        std::cout << "T_wc_prior:\n" << T_wc_prior << std::endl;
-
         // [3] tracking을 위해, 'pts_l1' 'pts_r1' 에 대한 prior 계산.
+        std::vector<float> patch_scale_prior(n_pts_exist);
         for(int i = 0; i < n_pts_exist; ++i)
         {
             const LandmarkPtr& lm = lmtrack_prev.lms[i]; 
+            float scale_tmp = 1.0f;
+
             if( lm->isTriangulated() )
             {
                 const Point& X = lm->get3DPoint();
                 Point X_l1 = T_cw_prior.block<3,3>(0,0)*X + T_cw_prior.block<3,1>(0,3);
                 Point X_r1 = T_rl.block<3,3>(0,0)*X_l1 + T_rl.block<3,1>(0,3);
+
+                // warp to current estimate
+                Point X_l0 = T_pw.block<3,3>(0,0) * X + T_pw.block<3,1>(0,3);
+                scale_tmp = X_l0(2)/X_l1(2);
                 
                 // Project prior point.
                 Pixel pt_l1 = cam_rect->projectToPixel(X_l1);
@@ -110,6 +114,8 @@ void StereoVO::trackStereoImages(
                 lmtrack_prev.pts_l1[i] = lmtrack_prev.pts_l0[i];
                 lmtrack_prev.pts_r1[i] = lmtrack_prev.pts_r0[i];
             }
+
+            patch_scale_prior[i] = scale_tmp;
         }
 
         /* Tracking order
@@ -126,9 +132,23 @@ void StereoVO::trackStereoImages(
             lmtrack_prev.pts_l0, params_.feature_tracker.window_size, params_.feature_tracker.max_level, params_.feature_tracker.thres_error,
             lmtrack_prev.pts_l1, mask_l0l1); // lmtrack_curr.pts_u1 에 prior pixels가 이미 들어있다.
 
-        StereoLandmarkTracking lmtrack_l0l1(lmtrack_prev, mask_l0l1);
-        std::cout << "# pts : " << lmtrack_l0l1.n_pts << std::endl;
+        StereoLandmarkTracking lmtrack_l0l1_notrefine(lmtrack_prev, mask_l0l1);
+        std::cout << "# pts : " << lmtrack_l0l1_notrefine.n_pts << std::endl;
 		std::cout << colorcode::text_green << "Time [track l0l1]: " << timer::toc(0) << " [ms]\n" << colorcode::cout_reset;       
+
+        // [4-1] track with scale
+        timer::tic();
+		MaskVec mask_refine(lmtrack_l0l1_notrefine.pts_l0.size(), true);
+		const cv::Mat& du0 = stframe_prev_->getLeft()->getImageDu();
+		const cv::Mat& dv0 = stframe_prev_->getLeft()->getImageDv();
+		tracker_->trackWithScale(
+			I0_left, du0, dv0, I1_left, 
+			lmtrack_l0l1_notrefine.pts_l0, patch_scale_prior, lmtrack_l0l1_notrefine.pts_l1,
+			mask_refine); 
+
+		StereoLandmarkTracking lmtrack_l0l1(lmtrack_l0l1_notrefine, mask_refine);
+		std::cout << colorcode::text_green << "Time [trackWithScale   ]: " << timer::toc(0) << " [ms]\n" << colorcode::cout_reset;
+		
 
         // [5] Track l1 --> r1 (lmtrack_l1r1)
         timer::tic();
@@ -367,9 +387,7 @@ void StereoVO::trackStereoImages(
         {
             // Add keyframe
             this->saveStereoKeyframe(stframe_curr);
-            this->stkeyframes_->addNewStereoKeyframe(stframe_curr);
-            std::cout << "add done\n";
-            
+            this->stkeyframes_->addNewStereoKeyframe(stframe_curr);          
 
             // Local Bundle Adjustment
             motion_estimator_->localBundleAdjustmentSparseSolver_Stereo(stkeyframes_, stereo_cam_);

@@ -5,7 +5,6 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
-        - /Grid1
         - /VO_pose1/Shape1
       Splitter Ratio: 0.5010846257209778
     Tree Height: 291
@@ -35,7 +34,7 @@ Visualization Manager:
   Class: ""
   Displays:
     - Alpha: 0.5
-      Cell Size: 2
+      Cell Size: 1
       Class: rviz/Grid
       Color: 160; 160; 164
       Enabled: true
@@ -49,7 +48,7 @@ Visualization Manager:
         Y: 0
         Z: 0
       Plane: XZ
-      Plane Cell Count: 100
+      Plane Cell Count: 300
       Reference Frame: <Fixed Frame>
       Value: true
     - Class: rviz/Image
@@ -177,7 +176,7 @@ Visualization Manager:
       Topic: /stereo_vo/trajectory
       Unreliable: false
       Value: true
-    - Alpha: 0.6000000238418579
+    - Alpha: 0.4000000059604645
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
         Max Value: 6916.58154296875
@@ -285,7 +284,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 66.34690856933594
+      Distance: 48.97624588012695
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -293,17 +292,17 @@ Visualization Manager:
         Value: false
       Field of View: 1
       Focal Point:
-        X: -2.331822156906128
-        Y: -0.6531663537025452
-        Z: 7.878352642059326
+        X: -28.34449577331543
+        Y: -3.9413797855377197
+        Z: 11.692769050598145
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: -0.009797336533665657
+      Pitch: -0.009796859696507454
       Target Frame: <Fixed Frame>
-      Yaw: 4.7199625968933105
+      Yaw: 4.704975128173828
     Saved: ~
 Window Geometry:
   Displays:

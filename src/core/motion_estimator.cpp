@@ -1043,7 +1043,7 @@ bool MotionEstimator::poseOnlyBundleAdjustment_Stereo(const PointVec& X, const P
         T10_optimized.noalias() = dT*T10_optimized;
 
         err_prev = err_curr;
-        std::cout << "reproj. err. (avg): " << err_curr << ", step: " << delta_xi.transpose() << std::endl;
+        // std::cout << "reproj. err. (avg): " << err_curr << ", step: " << delta_xi.transpose() << std::endl;
         if(delta_xi.norm() < THRES_DELTA_XI || delta_err < THRES_DELTA_ERROR)
         {
             std::cout << "poseonly Stereo BA stops at: " << iter <<", err: " << err_curr <<", derr: " << delta_err << ", deltaxi: " << delta_xi.norm() << ", # invalid: " << cnt_invalid << "\n";
@@ -1251,7 +1251,7 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver_Stereo(const std::shared
     std::cout << "===============     Local Bundle adjustment (Sparse Solver, Stereo version)     ===============\n";
 
     // Optimization paraameters
-    int   MAX_ITER          = 15;
+    int   MAX_ITER          = 10;
 
     float lam               = 1e-5;  // for Levenberg-Marquardt algorithm
     float MAX_LAM           = 1.0f;  // for Levenberg-Marquardt algorithm
