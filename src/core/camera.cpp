@@ -196,7 +196,18 @@ Point Camera::reprojectToNormalizedPoint(const Pixel& pt){
 };
 
 
-inline bool Camera::inImage(const Pixel& pt)
+bool Camera::inImage(const Pixel& pt)
+{
+	bool is_in_image = true;
+	float offset = 3.0f;
+
+	if(pt.x < offset || pt.y < offset || pt.x >= n_cols_-offset || pt.y >= n_rows_-offset)
+		is_in_image = false;
+
+	return is_in_image;
+};
+
+bool Camera::inImage(Pixel& pt)
 {
 	bool is_in_image = true;
 	float offset = 3.0f;
@@ -240,6 +251,7 @@ CameraConstPtr& StereoCamera::getRightCamera() const
 
 CameraConstPtr& StereoCamera::getRectifiedCamera() const
 {
+	if( !is_initialized_to_stereo_rectify_ ) throw std::runtime_error("In 'getRectifiedCamera()', is_initialized_to_stereo_rectify_ == false");
 	return cam_rect_;
 };
 
@@ -269,6 +281,8 @@ void StereoCamera::rectifyStereoImages(
 	const cv::Mat& img_left, const cv::Mat& img_right,
 	cv::Mat& img_left_rect, cv::Mat& img_right_rect)
 {
+	if( !is_initialized_to_stereo_rectify_ ) throw std::runtime_error("In 'rectifyStereoImages()', is_initialized_to_stereo_rectify_ == false");
+
 	// LEFT IMAGE
 	if (img_left.empty() || img_left.cols != cam_rect_->cols() || img_left.rows != cam_rect_->rows())
 		throw std::runtime_error("In 'rectifyStereoImages()': provided image has not the same size as the camera model!\n");
@@ -310,12 +324,16 @@ const PoseSE3& StereoCamera::getStereoPoseRight2Left() const
 
 
 const PoseSE3& StereoCamera::getRectifiedStereoPoseLeft2Right() const
-{
+{	
+	if( !is_initialized_to_stereo_rectify_ ) throw std::runtime_error("In 'getRectifiedStereoPoseLeft2Right()', is_initialized_to_stereo_rectify_ == false");
+
 	return T_lr_rect_;	
 };
 
 const PoseSE3& StereoCamera::getRectifiedStereoPoseRight2Left() const
 {
+	if( !is_initialized_to_stereo_rectify_ ) throw std::runtime_error("In 'getRectifiedStereoPoseRight2Left()', is_initialized_to_stereo_rectify_ == false");
+
 	return T_rl_rect_;	
 };
 
@@ -482,5 +500,7 @@ void StereoCamera::generateStereoImagesUndistortAndRectifyMaps()
     this->T_rl_rect_ = this->T_lr_rect_.inverse();
 
 	std::cout << "T_lr_rect_:\n" << T_lr_rect_ << std::endl;
+	
+	is_initialized_to_stereo_rectify_ = true;
     std::cout << "[** INFO **] StereoCamera: stereo rectification maps are generated.\n";
 };

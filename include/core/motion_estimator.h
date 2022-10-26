@@ -58,6 +58,9 @@ public:
     bool poseOnlyBundleAdjustment(const PointVec& X, const PixelVec& pts1, const std::shared_ptr<Camera>& cam, const int& thres_reproj_outlier,
         Rot3& R01_true, Pos3& t01_true, MaskVec& mask_inlier);
 
+    bool poseOnlyStereoBundleAdjustment(const PointVec& X, const PixelVec& pts_l1, const PixelVec& pts_r1, CameraConstPtr& cam_left, CameraConstPtr& cam_right, const PoseSE3& T_lr, float thres_reproj_outlier, 
+        PoseSE3& T01, MaskVec& mask_inlier);
+
     bool localBundleAdjustmentSparseSolver(const std::shared_ptr<Keyframes>& kfs, const std::shared_ptr<Camera>& cam);
 
 public:

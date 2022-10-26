@@ -60,7 +60,7 @@ is_bundled_(false)
 };  
 
 Landmark::~Landmark(){
-    std::cout << "Landmark destructor called, ID [" << id_ << "]\n";  
+    // std::cout << "Landmark destructor called, ID [" << id_ << "]\n";  
 };
 
 void Landmark::set3DPoint(const Point& Xw) { 
@@ -288,8 +288,8 @@ LandmarkTracking::LandmarkTracking(const PixelVec& pts0_in, const PixelVec& pts1
 */
 StereoLandmarkTracking::StereoLandmarkTracking()
 {
-    pts_left_0.reserve(1000); pts_left_1.reserve(1000);
-    pts_right_0.reserve(1000); pts_right_1.reserve(1000);
+    pts_l0.reserve(1000); pts_l1.reserve(1000);
+    pts_r0.reserve(1000); pts_r1.reserve(1000);
 
     lms.reserve(1000);
     
@@ -299,14 +299,14 @@ StereoLandmarkTracking::StereoLandmarkTracking()
 StereoLandmarkTracking::StereoLandmarkTracking(const StereoLandmarkTracking& slmtrack, const MaskVec& mask)
 {
     
-    if(slmtrack.pts_left_0.size() != slmtrack.pts_left_1.size() 
-    || slmtrack.pts_left_0.size() != slmtrack.pts_right_0.size()
-    || slmtrack.pts_left_0.size() != slmtrack.pts_right_1.size()
-    || slmtrack.pts_left_0.size() != slmtrack.lms.size()
-    || slmtrack.pts_left_0.size() != mask.size())
+    if(slmtrack.pts_l0.size() != slmtrack.pts_l1.size() 
+    || slmtrack.pts_l0.size() != slmtrack.pts_r0.size()
+    || slmtrack.pts_l0.size() != slmtrack.pts_r1.size()
+    || slmtrack.pts_l0.size() != slmtrack.lms.size()
+    || slmtrack.pts_l0.size() != mask.size())
         throw std::runtime_error("slmtrack.pts_left_0.size() != slmtrack.pts_left_1.size() || slmtrack.pts_left_0.size() != slmtrack.pts_right_0.size() || slmtrack.pts_left_0.size() != slmtrack.pts_right_1.size() || slmtrack.pts_left_0.size() != slmtrack.lms.size() || slmtrack.pts_left_0.size() != mask.size()");
 
-    int n_pts_input = slmtrack.pts_left_0.size();
+    int n_pts_input = slmtrack.pts_l0.size();
 
     std::vector<int> index_valid;
     index_valid.reserve(n_pts_input);
@@ -325,20 +325,20 @@ StereoLandmarkTracking::StereoLandmarkTracking(const StereoLandmarkTracking& slm
     // set
     n_pts = cnt_alive;
 
-    pts_left_0.resize(n_pts);
-    pts_left_1.resize(n_pts);
-    pts_right_0.resize(n_pts);
-    pts_right_1.resize(n_pts);
+    pts_l0.resize(n_pts);
+    pts_l1.resize(n_pts);
+    pts_r0.resize(n_pts);
+    pts_r1.resize(n_pts);
     lms.resize(n_pts);
 
     for(int i = 0; i < cnt_alive; ++i)
     {
         const int& idx  = index_valid[i];
         
-        pts_left_0[i]  = slmtrack.pts_left_0[idx];
-        pts_left_1[i]  = slmtrack.pts_left_1[idx];
-        pts_right_0[i] = slmtrack.pts_right_0[idx];
-        pts_right_1[i] = slmtrack.pts_right_1[idx];
-        lms[i]         = slmtrack.lms[idx];
+        pts_l0[i] = slmtrack.pts_l0[idx];
+        pts_l1[i] = slmtrack.pts_l1[idx];
+        pts_r0[i] = slmtrack.pts_r0[idx];
+        pts_r1[i] = slmtrack.pts_r1[idx];
+        lms[i]    = slmtrack.lms[idx];
     }
 };

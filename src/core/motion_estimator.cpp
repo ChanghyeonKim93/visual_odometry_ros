@@ -852,6 +852,221 @@ bool MotionEstimator::poseOnlyBundleAdjustment(const PointVec& X, const PixelVec
     return is_success;
 };
 
+
+bool MotionEstimator::poseOnlyStereoBundleAdjustment(const PointVec& X, const PixelVec& pts_l1, const PixelVec& pts_r1, CameraConstPtr& cam_left, CameraConstPtr& cam_right, const PoseSE3& T_lr, float thres_reproj_outlier, 
+    PoseSE3& T01, MaskVec& mask_inlier)
+{
+
+    
+    PoseSE3 T_rl = geometry::inverseSE3_f(T_lr);
+
+    // X is represented in the reference frame.
+    if(X.size() != pts_l1.size()
+    || X.size() != pts_r1.size()) 
+        throw std::runtime_error("In 'poseOnlyStereoBundleAdjustment()': X.size() != pts_l1.size() || X.size() != pts_r1.size().");
+    
+    bool is_success = true;
+
+    int n_pts = X.size();
+    mask_inlier.assign(n_pts, true);
+
+    int MAX_ITER = 100;
+    float THRES_HUBER        = 0.5f; // pixels
+    float THRES_DELTA_XI     = 1e-6;
+    float THRES_DELTA_ERROR  = 1e-7;
+    float THRES_REPROJ_ERROR = thres_reproj_outlier; // pixels
+
+    float lambda = 0.00001f;
+    
+    const float& fx_l = cam_left->fx(); const float& fy_l = cam_left->fy();
+    const float& cx_l = cam_left->cx(); const float& cy_l = cam_left->cy();
+    const float& fx_l_inv = cam_left->fxinv(); const float& fy_l_inv = cam_left->fyinv();
+
+    const float& fx_r = cam_right->fx(); const float& fy_r = cam_right->fy();
+    const float& cx_r = cam_right->cx(); const float& cy_r = cam_right->cy();
+    const float& fx_r_inv = cam_right->fxinv(); const float& fy_r_inv = cam_right->fyinv();
+
+    float err_prev = 1e10f;
+    PoseSE3 T10_optimized;
+    T10_optimized << T01.block<3,3>(0,0).transpose(), -T01.block<3,3>(0,0).transpose()*T01.block<3,1>(0,3), 0,0,0,1;
+
+    Mat66 JtWJ;
+    Vec6 mJtWr;
+    for(int iter = 0; iter < MAX_ITER; ++iter)
+    {
+        JtWJ.setZero();
+        mJtWr.setZero();
+
+        const Rot3& R10 = T10_optimized.block<3,3>(0,0);
+        const Pos3& t10 = T10_optimized.block<3,1>(0,3);
+
+        float err_curr = 0.0f;
+        float inv_npts = 1.0f/(float)n_pts;
+        int cnt_invalid = 0;
+        // Warp and project point & calculate error...
+        for(int i = 0; i < n_pts; ++i) 
+        {
+            // Warp 3D point to left and right
+            const Pixel& pt_l = pts_l1[i];
+            const Pixel& pt_r = pts_r1[i];
+            Point Xl = R10*X[i] + t10;
+            Point Xr = T_rl.block<3,3>(0,0)*Xl + T_rl.block<3,1>(0,3);
+
+            // left
+            float iz_l = 1.0f/Xl(2);
+            float xiz_l = Xl(0)*iz_l;
+            float yiz_l = Xl(1)*iz_l;
+            float fxxiz_l = fx_l*xiz_l;
+            float fyyiz_l = fy_l*yiz_l;
+
+            Pixel pt_l_warp(fxxiz_l + cx_l, fyyiz_l + cy_l);
+            float rx_l = pt_l_warp.x - pt_l.x;
+            float ry_l = pt_l_warp.y - pt_l.y;
+            
+            // right
+            float iz_r = 1.0f/Xr(2);
+            float xiz_r = Xr(0)*iz_r;
+            float yiz_r = Xr(1)*iz_r;
+            float fxxiz_r = fx_r*xiz_r;
+            float fyyiz_r = fy_r*yiz_r;
+
+            Pixel pt_r_warp(fxxiz_r + cx_r, fyyiz_r + cy_r);
+            float rx_r = pt_r_warp.x - pt_r.x;
+            float ry_r = pt_r_warp.y - pt_r.y;
+
+            // Huber weight calculation by the Manhattan distance
+            float weight     = 1.0f;
+            bool flag_weight = false;
+            float absrxry = abs(rx_l) + abs(ry_l) + abs(rx_r) + abs(ry_r);
+            absrxry *= 0.5f;
+            if(absrxry >= THRES_HUBER)
+            {
+                weight = THRES_HUBER/absrxry; 
+                flag_weight = true;
+            }
+
+            if(absrxry >= THRES_REPROJ_ERROR)
+            {
+                mask_inlier[i] = false;
+                ++cnt_invalid;
+            }
+            else
+                mask_inlier[i] = true;
+
+            // JtWJ, JtWr for x
+            Vec6 Jt; Jt.setZero();
+            Mat66 JtJ_tmp; JtJ_tmp.setZero();
+            
+            // Left x
+            Jt(0) = fx_l*iz_l;
+            Jt(1) = 0.0f;
+            Jt(2) = -fxxiz_l*iz_l;
+            Jt(3) = -fxxiz_l*yiz_l;
+            Jt(4) = fx_l*(1.0f+xiz_l*xiz_l);
+            Jt(5) = -fx_l*yiz_l;
+
+            float w_rx = weight*rx_l;
+            float err  = w_rx*rx_l;
+
+            // JtWJ.noalias() += weight *(Jt*Jt.transpose());
+            this->calcJtWJ_x(weight, Jt, JtJ_tmp);
+            JtWJ.noalias()  += JtJ_tmp;
+            mJtWr.noalias() -= (w_rx)*Jt;
+            err_curr += rx_l*rx_l;
+
+            // Left y
+            Jt(0) = 0.0f;
+            Jt(1) = fy_l*iz_l;
+            Jt(2) =-fyyiz_l*iz_l;
+            Jt(3) =-fy_l*(1.0f+yiz_l*yiz_l);
+            Jt(4) = fyyiz_l*xiz_l;
+            Jt(5) = fy_l*xiz_l;
+
+            float w_ry = weight*ry_l;
+            err  = w_ry*ry_l;
+
+            this->calcJtWJ_y(weight, Jt, JtJ_tmp);
+            JtWJ.noalias()  += JtJ_tmp;
+            mJtWr.noalias() -= (w_ry)*Jt;
+            err_curr += ry_l*ry_l;
+
+
+            // Right x
+            Jt(0) = fx_r*iz_r;
+            Jt(1) = 0.0f;
+            Jt(2) = -fxxiz_r*iz_r;
+            Jt(3) = -fxxiz_r*yiz_r;
+            Jt(4) = fx_r*(1.0f+xiz_r*xiz_r);
+            Jt(5) = -fx_r*yiz_r;
+
+            w_rx = weight*rx_r;
+            err  = w_rx*rx_r;
+
+            // JtWJ.noalias() += weight *(Jt*Jt.transpose());
+            this->calcJtWJ_x(weight, Jt, JtJ_tmp);
+            JtWJ.noalias()  += JtJ_tmp;
+            mJtWr.noalias() -= (w_rx)*Jt;
+            err_curr += rx_r*rx_r;
+
+            // Right y
+            Jt(0) = 0.0f;
+            Jt(1) = fy_r*iz_r;
+            Jt(2) =-fyyiz_r*iz_r;
+            Jt(3) =-fy_r*(1.0f+yiz_r*yiz_r);
+            Jt(4) = fyyiz_r*xiz_r;
+            Jt(5) = fy_r*xiz_r;
+
+            w_ry = weight*ry_r;
+            err  = w_ry*ry_r;
+
+            this->calcJtWJ_y(weight, Jt, JtJ_tmp);
+            JtWJ.noalias()  += JtJ_tmp;
+            mJtWr.noalias() -= (w_ry)*Jt;
+            err_curr += ry_r*ry_r;
+        } // END FOR
+
+        err_curr *= (inv_npts*0.5f);
+        err_curr = std::sqrt(err_curr);
+        float delta_err = abs(err_curr - err_prev);
+
+
+        // Solve H^-1*Jtr;
+        for(int i = 0; i < 6; ++i)
+            JtWJ(i,i) *= (1.0f + lambda); // lambda 
+
+        PoseSE3Tangent delta_xi = JtWJ.ldlt().solve(mJtWr);
+
+        // Update matrix
+        PoseSE3 dT;
+        geometry::se3Exp_f(delta_xi, dT);
+        T10_optimized.noalias() = dT*T10_optimized;
+
+        err_prev = err_curr;
+        std::cout << "reproj. err. (avg): " << err_curr << ", step: " << delta_xi.transpose() << std::endl;
+        if(delta_xi.norm() < THRES_DELTA_XI || delta_err < THRES_DELTA_ERROR)
+        {
+            std::cout << "poseonly Stereo BA stops at: " << iter <<", err: " << err_curr <<", derr: " << delta_err << ", deltaxi: " << delta_xi.norm() << ", # invalid: " << cnt_invalid << "\n";
+            break;
+        }
+        if(iter == MAX_ITER-1)
+            std::cout << "!! WARNING !! poseonly Stereo BA stops at full iterations!!" <<", err: " << err_curr <<", derr: " << delta_err << ", # invalid: " << cnt_invalid << "\n";
+    } //END iter
+
+
+    if( !std::isnan(T10_optimized.norm()) )
+    {
+        PoseSE3 T01_update;
+        T01_update << geometry::inverseSE3_f(T10_optimized);
+        T01 = T01_update;
+    }
+    else{
+        std::cout << "!! WARNING !! poseonly BA yields NAN value!!" <<", T10_optimized: \n" << T10_optimized << "\n";
+        is_success = false;  // if nan, do not update.
+    }
+
+    return is_success;
+};
+
 void MotionEstimator::addData(SpMat& mat, const Eigen::MatrixXf& mat_part, int row_start, int col_start, int row_sz, int col_sz)
 {
     // Sparse matrix default : column-major order. 

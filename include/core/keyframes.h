@@ -50,6 +50,9 @@ public:
     int getMaxNumOfKeyframes() const; // get maximum allowed number of window keyframes
 };
 
+
+
+
 /// @brief Stereo Keyframe class
 class StereoKeyframes
 {
@@ -70,8 +73,8 @@ public:
     void setMaxKeyframes(int max_kf); // set maximum keyframes in window.
 
 public:
-    bool checkUpdateRule(const StereoFramePtr& stframe_curr); // check keyframe update rule.
     void addNewKeyframe(const StereoFramePtr& stframe); // delete the oldest keyframe and add new keyframe.
+    bool checkUpdateRule(const StereoFramePtr& stframe_curr); // check keyframe update rule.
 
 public:
     const std::list<StereoFramePtr>& getList() const; // get list of window keyframes

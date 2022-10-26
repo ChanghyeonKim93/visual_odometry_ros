@@ -7,6 +7,10 @@ Frame::Frame(const std::shared_ptr<Camera>& cam, bool is_right_image, const Fram
 
     Twc_ = PoseSE3::Identity();
     Tcw_ = PoseSE3::Identity();
+
+    dT01_ = PoseSE3::Identity();
+    dT10_ = PoseSE3::Identity();
+
     steering_angle_ = 0.0f;
     scale_          = 0.0f;
     timestamp_      = 0.0;
@@ -25,6 +29,10 @@ Frame::Frame(const std::shared_ptr<Camera>& cam, const cv::Mat& img, const doubl
 
     Twc_ = PoseSE3::Identity();
     Tcw_ = PoseSE3::Identity();
+
+    dT01_ = PoseSE3::Identity();
+    dT10_ = PoseSE3::Identity();
+
     steering_angle_ = 0.0f;
     scale_          = 0.0f;
     timestamp_      = 0.0;
@@ -65,7 +73,7 @@ void Frame::setImageAndTimestamp(const cv::Mat& img, const double& timestamp) {
 
 void Frame::setPtsSeenAndRelatedLandmarks(const PixelVec& pts, const LandmarkPtrVec& landmarks){
     if(pts.size() != landmarks.size())
-        throw std::runtime_error("pts.size() != landmarks.size()");
+        throw std::runtime_error("In 'Frame::setPtsSeenAndRelatedLandmarks()', pts.size() != landmarks.size()");
 
     // pts_seen
     pts_seen_.resize(pts.size());
@@ -232,12 +240,31 @@ StereoFrame::StereoFrame(const FramePtr& f_l, const FramePtr& f_r)
     right_ = f_r;
 };
 
-FrameConstPtr& StereoFrame::getLeftFrame() const
+StereoFrame::StereoFrame(const cv::Mat& img_left, const cv::Mat& img_right, CameraConstPtr& cam_left, CameraConstPtr& cam_right, double timestamp)
+{
+	left_  = std::make_shared<Frame>(cam_left, img_left, timestamp);
+	right_ = std::make_shared<Frame>(cam_right, img_right, timestamp, true, left_);
+};
+
+
+FrameConstPtr& StereoFrame::getLeft() const
 {
     return left_;
 };
 
-FrameConstPtr& StereoFrame::getRightFrame() const
+FrameConstPtr& StereoFrame::getRight() const
 {
     return right_;
 };
+
+void StereoFrame::setStereoPoseByLeft(const PoseSE3& Twc_left, const PoseSE3& T_lr)
+{
+    left_->setPose(Twc_left);
+    right_->setPose(Twc_left * T_lr);
+};
+
+void StereoFrame::setStereoPtsSeenAndRelatedLandmarks(const PixelVec& pts_l1, const PixelVec& pts_r1, const LandmarkPtrVec& lms)
+{
+    left_->setPtsSeenAndRelatedLandmarks(pts_l1, lms);
+    right_->setPtsSeenAndRelatedLandmarks(pts_r1, lms);
+};  

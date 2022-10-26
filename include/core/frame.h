@@ -151,14 +151,16 @@ private:
     FramePtr right_; // frame pointr to upper frame (same as right frame)
 
 public:
-    /// @brief Constructor of StereoFrame structure.
-    /// @param frame_left frame pointer to left frame.
-    /// @param frame_right frame pointer to right frame.
     StereoFrame(const FramePtr& frame_left, const FramePtr& frame_right);
+    StereoFrame(const cv::Mat& img_left, const cv::Mat& img_right, CameraConstPtr& cam_left, CameraConstPtr& cam_right, double timestamp);
 
 public:
-    FrameConstPtr& getLeftFrame() const;
-    FrameConstPtr& getRightFrame() const;
+    FrameConstPtr& getLeft() const;
+    FrameConstPtr& getRight() const;
+
+public:
+    void setStereoPoseByLeft(const PoseSE3& Twc_left, const PoseSE3& T_lr);
+    void setStereoPtsSeenAndRelatedLandmarks(const PixelVec& pts_l1, const PixelVec& pts_r1, const LandmarkPtrVec& lms);
 };
 
 #endif
