@@ -48,7 +48,7 @@ MonoNode::MonoNode(ros::NodeHandle& nh) : nh_(nh)
     int half_win_sz = 7;
     Landmark::setPatch(half_win_sz);
 
-    mappoints_.reserve(500000);
+    mappoints_.reserve(150000);
 
     // spin .
     this->run();

@@ -693,6 +693,12 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
             }
         }
 
+        std::cout << "Show lagrange mult.:\n";
+        for(_BA_Index k = 0; k < K_; ++k)
+        {
+            std::cout << k << "-th lagrange mult.: " << params_lagrange_[k] << std::endl;
+        }
+
         std::cout << "         # of diverged landmarks : " << cnt_invalid_lms << " / " << M_ << std::endl;
     }
 
@@ -958,7 +964,7 @@ void SparseBundleAdjustmentScaleSQPSolver::initializeLagrangeMultipliers()
 
     // Set params_lagrange_
     for(_BA_Index k = 0; k < K_; ++k)
-        params_lagrange_[k] = lambda_mat(k,0);
+        params_lagrange_[k] = lambda_mat(k,0)*0.01;
     
     std::cout << "params_lagrange:\n";
     for(_BA_Index k = 0; k < K_; ++k)
