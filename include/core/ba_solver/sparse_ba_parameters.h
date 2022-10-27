@@ -235,15 +235,18 @@ public:
     : N_(0), N_opt_(0), N_nonopt_(0), M_(0), n_obs_(0),
     pose_scale_(10.0), inv_pose_scale_(1.0/pose_scale_), is_stereo_mode_(false)
     { 
+        
+        T_stereo_ .setIdentity();
 
+        T_stereo_inv_ = geometry::inverseSE3(T_stereo_);
     };
 
     SparseBAParameters(bool is_stereo, const PoseSE3& T_stereo) 
     : N_(0), N_opt_(0), N_nonopt_(0), M_(0), n_obs_(0),
-    pose_scale_(10.0), inv_pose_scale_(1.0/pose_scale_), is_stereo_mode_(true)
+    pose_scale_(10.0), inv_pose_scale_(1.0/pose_scale_), is_stereo_mode_(is_stereo)
     { 
-        if(!is_stereo)
-            throw std::runtime_error("is_stereo should be set 'true' when T_stereo is given!");
+        if(!is_stereo_mode_)
+            throw std::runtime_error("'is_stereo_mode_' should be set to 'true' when T_stereo is given!");
         
         T_stereo_ << 
             T_stereo(0,0), T_stereo(0,1), T_stereo(0,2), T_stereo(0,3),
@@ -280,7 +283,7 @@ public:
         }
 
         // Threshold for landmark usage
-        int THRES_MINIMUM_SEEN = 4; // landmark should be seen on at least two stereo frames.
+        int THRES_MINIMUM_SEEN = 2; // landmark should be seen on at least two stereo frames.
 
         N_        = frames.size();
         N_nonopt_ = idx_fix.size();

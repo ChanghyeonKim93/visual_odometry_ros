@@ -8,32 +8,34 @@ flagDoUndistortion: 1 # 0: do not undistort an image (KITTI), 1: undistort an im
 
 # Camera calibration and distortion parameters (OpenCV) 
 # Left camera
-Camera.left.fx: 667.959809653146
-Camera.left.fy: 667.713938545685
-Camera.left.cx: 545.634424235588
-Camera.left.cy: 395.629849906665
+Camera.left.fx: 667.996718397864
+Camera.left.fy: 667.897046777980
+Camera.left.cx: 545.962424742217
+Camera.left.cy: 395.009211833006
+# Camera.left.cy: 395.109211833006
 
-Camera.left.k1: -0.321306365737294
-Camera.left.k2: 0.168216630982978
-Camera.left.k3: 0.0583388111983407
-Camera.left.p1: 0.0
-Camera.left.p2: 0.0
+Camera.left.k1: -0.321228281190158
+Camera.left.k2: 0.168829730797736
+Camera.left.k3: -0.0593916215970953
+Camera.left.p1: 0.000333342561423721
+Camera.left.p2: -0.0000921663355027036
 
 Camera.left.width: 1032
 Camera.left.height: 772
 
 # Right camera
-Camera.right.fx: 666.4674 # truth 1
-Camera.right.fy: 666.302 # truth 1
-Camera.right.cx: 513.13357 # good for 39_2
-Camera.right.cy: 413.16925 # good for 39_2
+Camera.right.fx: 668.268563958765
+Camera.right.fy: 668.318252074066
+Camera.right.cx: 522.499226032714
+# Camera.right.cy: 410.349049368375
+Camera.right.cy: 410.949049368375
 
 
-Camera.right.k1: -0.288519
-Camera.right.k2: 0.084903
-Camera.right.k3: -0.000074
-Camera.right.p1: 0.0
-Camera.right.p2: 0.0
+Camera.right.k1: -0.318303994811522
+Camera.right.k2: 0.156334115904764
+Camera.right.k3: -0.0471411127343415
+Camera.right.p1: 0.000188304604518822
+Camera.right.p2: -0.0000439644417875838
 
 Camera.right.width: 1032
 Camera.right.height: 772
@@ -42,8 +44,7 @@ T_lr: !!opencv-matrix # this statement is necessary.
   rows: 4
   cols: 4
   dt: f
-  data: [0.999999025791103, -0.00137955561858292, -0.000212704348221640, 0.254740180977306, 0.00137997239354495, 0.999997103690113, 0.00197187412818722, 8.59566308727688e-05, 0.000209983422131205, -0.00197216573329844, 0.999998033232707, -0.000641735851620330, 0, 0, 0, 1]
-
+  data: [0.999999053145654, -0.00129593309891480, -0.000462887888932720, 0.254680732094097, 0.00129681244351772, 0.999997345630180, 0.00190447107649274, 0.0000943718223901332, 0.000460418593153149, -0.00190506955201034, 0.999998079360516, -0.000595096962302827, 0,0,0,1]
 #--------------------------------------------------------------------------------------------
 # User setting Parameters
 #--------------------------------------------------------------------------------------------
@@ -52,7 +53,7 @@ T_lr: !!opencv-matrix # this statement is necessary.
 feature_tracker.thres_error: 40.0
 feature_tracker.thres_bidirection: 0.5
 feature_tracker.thres_sampson: 0.5
-feature_tracker.window_size: 15
+feature_tracker.window_size: 10
 feature_tracker.max_level: 6
 
 # Parameters of map update
@@ -61,8 +62,8 @@ map_update.thres_parallax: 1.0
 # Parameters of feature extractor
 feature_extractor.n_features: 4000
 feature_extractor.n_bins_u: 24
-feature_extractor.n_bins_v: 14
-feature_extractor.thres_fastscore: 15.0
+feature_extractor.n_bins_v: 18
+feature_extractor.thres_fastscore: 20.0
 feature_extractor.radius: 5.0
 
 # Parameters of motion estimator

@@ -342,7 +342,10 @@ void StereoCamera::generateStereoImagesUndistortAndRectifyMaps()
 {
 	float scale = 2.0f;
 	float invscale = 1.0f/scale;
-
+	int n_cols = cam_left_->cols();
+	int n_rows = cam_left_->rows();
+	
+	// Stereo poses;
     PoseSE3 T_0l = PoseSE3::Identity();
     PoseSE3 T_0r = T_lr_;
 
@@ -356,11 +359,8 @@ void StereoCamera::generateStereoImagesUndistortAndRectifyMaps()
 	// Generate Reference rotation matrix
     Vec3 k_l = R_0l.block<3, 1>(0, 2);
     Vec3 k_r = R_0r.block<3, 1>(0, 2);
-    Vec3 k_n = (k_l + k_r)*0.5;
+    Vec3 k_n = (k_l + k_r)*0.5f;
     k_n /= k_n.norm();
-	
-	int n_cols = cam_left_->cols();
-	int n_rows = cam_left_->rows();
 	
 	Vec3 i_n = t_0r;
     i_n /= i_n.norm();
@@ -380,10 +380,10 @@ void StereoCamera::generateStereoImagesUndistortAndRectifyMaps()
 
 	// New intrinsic parameter
     float f_n = 
-		(cam_left_->fx() + cam_left_->fy()) * invscale;
+		(cam_left_->fx() + cam_right_->fx()) * invscale;
 
-    float centu = (float)cam_left_->cols()*0.5f;
-    float centv = (float)cam_left_->rows()*0.5f;
+    float centu = (float)n_cols*0.5f;
+    float centv = (float)n_rows*0.5f;
     
 	Mat33 K_rect;
     K_rect << f_n,   0, centu, 
@@ -416,17 +416,13 @@ void StereoCamera::generateStereoImagesUndistortAndRectifyMaps()
     Vec3 P_0, x_l, x_r;
 
     float k1, k2, k3, p1, p2;
-    float x, y, xy, r2, r4, r6, r_radial, x_dist, y_dist;
+    float x, y, xx, yy, xy2, r2, r4, r6, r_radial, x_dist, y_dist;
 
-	const float& fx_l = cam_left_->fx();
-	const float& fy_l = cam_left_->fy();
-	const float& cx_l = cam_left_->cx();
-	const float& cy_l = cam_left_->cy();
+	const float& fx_l = cam_left_->fx(); const float& fy_l = cam_left_->fy();
+	const float& cx_l = cam_left_->cx(); const float& cy_l = cam_left_->cy();
 
-	const float& fx_r = cam_right_->fx();
-	const float& fy_r = cam_right_->fy();
-	const float& cx_r = cam_right_->cx();
-	const float& cy_r = cam_right_->cy();
+	const float& fx_r = cam_right_->fx(); const float& fy_r = cam_right_->fy();
+	const float& cx_r = cam_right_->cx(); const float& cy_r = cam_right_->cy();
 
     float* ptr_map_left_u = nullptr;
 	float* ptr_map_left_v = nullptr;
@@ -442,7 +438,7 @@ void StereoCamera::generateStereoImagesUndistortAndRectifyMaps()
 
         for (int u = 0; u < n_cols; ++u)
         {
-			p_n << (float)u, (float)v, 1.0f;
+			p_n << (float)(u+1), (float)(v+1), 1.0f;
             P_0 = R_0n*K_rect_inv*p_n;
 
             x_l = R_l0*P_0;
@@ -460,22 +456,23 @@ void StereoCamera::generateStereoImagesUndistortAndRectifyMaps()
             p1 = cam_left_->p1();
             p2 = cam_left_->p2();
 
-            x = x_l(0);
-            y = x_l(1);
+            x = x_l(0); y = x_l(1);
 
-			xy = x*y;
-            r2 = x*x + y*y;
+			xx = x*x;
+			yy = y*y;
+			xy2 = x*y*2.0f;
+            r2 = xx + yy;
             r4 = r2*r2;
             r6 = r4*r2;
 
             r_radial = 1.0f + k1*r2 + k2*r4 + k3*r6;
-            // x_dist = x*r_radial + 2.0f * p1*xy + p2*(r2 + 2.0f * x*x);
-            // y_dist = y*r_radial + p1*(r2 + 2.0f * y*y) + 2.0f * p2*xy;
-			x_dist = x*r_radial;
-            y_dist = y*r_radial;
+            x_dist = x*r_radial + p1*xy2 + p2*(r2 + 2.0f * xx);
+            y_dist = y*r_radial + p2*xy2 + p1*(r2 + 2.0f * yy);
+			// x_dist = x*r_radial;
+            // y_dist = y*r_radial;
 
-            *(ptr_map_left_u + u) = cx_l  +  x_dist * fx_l;
-            *(ptr_map_left_v + u) = cy_l  +  y_dist * fy_l;
+            *(ptr_map_left_u + u) = x_dist*fx_l + cx_l - 1.0f;
+            *(ptr_map_left_v + u) = y_dist*fy_l + cy_l - 1.0f;
 
 
 
@@ -486,21 +483,23 @@ void StereoCamera::generateStereoImagesUndistortAndRectifyMaps()
             p1 = cam_right_->p1();
             p2 = cam_right_->p2();
 
-            x = x_r(0);
-            y = x_r(1);
+            x = x_r(0); y = x_r(1);
 
-			xy = x*y;
-            r2 = x*x + y*y;
+			xx = x*x;
+			yy = y*y;
+			xy2 = x*y*2.0f;
+			r2 = xx + yy;
             r4 = r2*r2;
             r6 = r4*r2;
 
             r_radial = 1.0f + k1*r2 + k2*r4 + k3*r6;
-            // x_dist = x*r_radial + 2.0f * p1*xy + p2*(r2 + 2.0f * x*x);
-            // y_dist = y*r_radial + p1*(r2 + 2.0f * y*y) + 2.0f * p2*xy;
-			x_dist = x*r_radial;
-            y_dist = y*r_radial;
-            *(ptr_map_right_u + u) = cx_r  +  x_dist * fx_r;
-            *(ptr_map_right_v + u) = cy_r  +  y_dist * fy_r;
+            x_dist = x*r_radial + p1*xy2 + p2*(r2 + 2.0f * xx);
+            y_dist = y*r_radial + p2*xy2 + p1*(r2 + 2.0f * yy);
+			// x_dist = x*r_radial;
+            // y_dist = y*r_radial;
+
+            *(ptr_map_right_u + u) = x_dist*fx_r + cx_r - 1.0f;
+            *(ptr_map_right_v + u) = y_dist*fy_r + cy_r - 1.0f;
         }
     }
 
