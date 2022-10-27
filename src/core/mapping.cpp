@@ -129,11 +129,11 @@ namespace Mapping{
         X1 = R10*X0 + t10;
    };
 
-    Eigen::Matrix3f skew(const Eigen::Vector3f& vec){
+    Eigen::Matrix3f skew(const Eigen::Vector3f& v){
         Eigen::Matrix3f mat;
-        mat <<    0.0, -vec(2),  vec(1), 
-               vec(2),     0.0, -vec(0),
-              -vec(1),  vec(0),     0.0;
+        mat <<  0.0, -v(2),  v(1), 
+               v(2),   0.0, -v(0),
+              -v(1),  v(0),   0.0;
               
         return mat;
     };

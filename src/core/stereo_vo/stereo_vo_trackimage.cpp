@@ -162,34 +162,12 @@ void StereoVO::trackStereoImages(
         std::cout << "# pts : " << lmtrack_kltok.n_pts << std::endl;
 		std::cout << colorcode::text_green << "Time [track l1r1]: " << timer::toc(0) << " [ms]\n" << colorcode::cout_reset;
 
-        // [6] Check sampson distance 0.01 ms
-        timer::tic();
-        std::vector<float> symm_epi_dist;
-        // motion_estimator_->calcSampsonDistance(lmtrack_kltok.pts_l1, lmtrack_kltok.pts_r1, cam_rect, T_rl.block<3,3>(0,0), T_rl.block<3,1>(0,3), symm_epi_dist);
-        for(int i = 0; i < lmtrack_kltok.pts_l1.size(); ++i)
-        {
-            float dv = lmtrack_kltok.pts_l1[i].y - lmtrack_kltok.pts_r1[i].y;
-            if( lmtrack_kltok.pts_l1[i].y > 680)
-                symm_epi_dist.push_back(abs(dv)*100);
-            else
-                symm_epi_dist.push_back(abs(dv)*0);
-        }
-
-        MaskVec mask_sampson(lmtrack_kltok.pts_l1.size(), true);
-        for(int i = 0; i < mask_sampson.size(); ++i)
-            mask_sampson[i] = (symm_epi_dist[i] < THRES_SAMPSON);
-        
-        StereoLandmarkTracking lmtrack_sampson(lmtrack_kltok, mask_sampson);
-        std::cout << "# pts : " << lmtrack_sampson.n_pts << std::endl;
-		std::cout << colorcode::text_green << "Time [sampson ]: " << timer::toc(0) << " [ms]\n" << colorcode::cout_reset;
-
-
-        // [7] Motion Estimation via pose-only BA (stereo version)
+        // [6] Motion Estimation via pose-only BA (stereo version)
         // Using landmarks with 3D point, stereo pose-only BA.
         // pts_left_1 , pts_right_1 , Xw , T_cw_prior    : needed. 
         //    --> return: T_wc
         timer::tic();
-        MaskVec mask_motion(lmtrack_sampson.pts_l1.size(), true); 
+        MaskVec mask_motion(lmtrack_kltok.pts_l1.size(), true); 
 
         // Find point with 3D points
         PoseSE3 dT_pc_poBA = dT_pc_prev;
@@ -202,14 +180,14 @@ void StereoVO::trackStereoImages(
         PixelVec pts_r1_poBA;
         MaskVec mask_poBA;
         std::vector<int> index_poBA;
-        for(int i = 0; i < lmtrack_sampson.pts_l1.size(); ++i)
+        for(int i = 0; i < lmtrack_kltok.pts_l1.size(); ++i)
         {
-            LandmarkConstPtr& lm = lmtrack_sampson.lms[i];
+            LandmarkConstPtr& lm = lmtrack_kltok.lms[i];
 
             if( lm->isTriangulated() )
             {   
-                const Pixel& pt_l1 = lmtrack_sampson.pts_l1[i];
-                const Pixel& pt_r1 = lmtrack_sampson.pts_r1[i];
+                const Pixel& pt_l1 = lmtrack_kltok.pts_l1[i];
+                const Pixel& pt_r1 = lmtrack_kltok.pts_r1[i];
                 const Point& X     = lm->get3DPoint();
 
                 Point Xp = T_pw.block<3,3>(0,0) * X + T_pw.block<3,1>(0,3);
@@ -222,12 +200,6 @@ void StereoVO::trackStereoImages(
                 ++cnt_poBA;
             }
         }
-        std::cout << "  size comparison : " 
-            << Xp_poBA.size() << ", "
-            << pts_l1_poBA.size() << ", "
-            << pts_r1_poBA.size() << ", "
-            << mask_poBA.size() << ", "
-            << index_poBA.size() << "\n ";
         std::cout << "  # of poseonly BA point: " << cnt_poBA << std::endl;
 
         bool poseonlyBA_success =
@@ -256,25 +228,51 @@ void StereoVO::trackStereoImages(
             stframe_curr->getLeft()->setPoseDiff10(dT_pc_poBA.inverse());
         }
 
-        StereoLandmarkTracking lmtrack_motion_ok(lmtrack_sampson, mask_motion);
+        StereoLandmarkTracking lmtrack_motion_ok(lmtrack_kltok, mask_motion);
 		std::cout << colorcode::text_green << "Time [motion est]: " << timer::toc(0) << " [ms]\n" << colorcode::cout_reset;
 
-        // [9] Update observations for surviving landmarks
+
+        // [7] Check sampson distance 0.01 ms
+        timer::tic();
+        std::vector<float> symm_epi_dist;
+        symm_epi_dist.resize(lmtrack_motion_ok.pts_l1.size(), 0);
+        // motion_estimator_->calcSymmetricEpipolarDistance(lmtrack_motion_ok.pts_l0, lmtrack_motion_ok.pts_l1, cam_rect, dT_pc_poBA.block<3,3>(0,0), dT_pc_poBA.block<3,1>(0,3), symm_epi_dist);
         for(int i = 0; i < lmtrack_motion_ok.pts_l1.size(); ++i)
         {
-            const LandmarkPtr& lm = lmtrack_motion_ok.lms[i];
-            lm->addObservationAndRelatedFrame(lmtrack_motion_ok.pts_l1[i], stframe_curr->getLeft());
-            lm->addObservationAndRelatedFrame(lmtrack_motion_ok.pts_r1[i], stframe_curr->getRight());
+            // std::cout << i << "-th point epi dist: " << symm_epi_dist[i] << std::endl;
+            if( lmtrack_motion_ok.pts_l1[i].y > 660)
+                symm_epi_dist[i] = 100;
+            // else  
+                // symm_epi_dist[i] = 0;
+        }
+
+        MaskVec mask_sampson(lmtrack_motion_ok.pts_l1.size(), true);
+        for(int i = 0; i < mask_sampson.size(); ++i)
+            mask_sampson[i] = (symm_epi_dist[i] < THRES_SAMPSON);
+        
+        StereoLandmarkTracking lmtrack_final(lmtrack_motion_ok, mask_sampson);
+        std::cout << "# pts : " << lmtrack_final.n_pts << std::endl;
+		std::cout << colorcode::text_green << "Time [sampson ]: " << timer::toc(0) << " [ms]\n" << colorcode::cout_reset;
+
+
+
+
+        // [8] Update observations for surviving landmarks
+        for(int i = 0; i < lmtrack_final.pts_l1.size(); ++i)
+        {
+            const LandmarkPtr& lm = lmtrack_final.lms[i];
+            lm->addObservationAndRelatedFrame(lmtrack_final.pts_l1[i], stframe_curr->getLeft());
+            lm->addObservationAndRelatedFrame(lmtrack_final.pts_r1[i], stframe_curr->getRight());
         }  
 
         if(1)
         {
-            this->showTrackingBA( "stereo_tracking", I1_left, PixelVec(), lmtrack_motion_ok.pts_l1);
+            this->showTrackingBA( "stereo_tracking", I1_left, PixelVec(), lmtrack_final.pts_l1);
         }
 
         // [10] Extract new points from empty bins.
         PixelVec pts_l1_new;
-        extractor_->updateWeightBin(lmtrack_motion_ok.pts_l1);
+        extractor_->updateWeightBin(lmtrack_final.pts_l1);
         extractor_->extractORBwithBinning_fast(I1_left, pts_l1_new, true);
 
         int n_pts_new = pts_l1_new.size();
@@ -312,9 +310,9 @@ void StereoVO::trackStereoImages(
                         LandmarkPtr lmptr = std::make_shared<Landmark>(pt_l1_new, stframe_curr->getLeft(), cam_rect);
                         lmptr->addObservationAndRelatedFrame(pt_r1_new, stframe_curr->getRight());
 
-                        lmtrack_motion_ok.pts_l1.push_back(pt_l1_new);
-                        lmtrack_motion_ok.pts_r1.push_back(pt_r1_new);
-                        lmtrack_motion_ok.lms.push_back(lmptr);
+                        lmtrack_final.pts_l1.push_back(pt_l1_new);
+                        lmtrack_final.pts_r1.push_back(pt_r1_new);
+                        lmtrack_final.lms.push_back(lmptr);
 
                         // lmptr->set3DPoint(Xw);
                     }
@@ -327,8 +325,8 @@ void StereoVO::trackStereoImages(
         
 
         // [11] Update tracking information (set related pixels and landmarks)
-        std::cout << "# of final landmarks : " << lmtrack_motion_ok.pts_l1.size() << std::endl;
-        stframe_curr->setStereoPtsSeenAndRelatedLandmarks(lmtrack_motion_ok.pts_l1, lmtrack_motion_ok.pts_r1, lmtrack_motion_ok.lms);
+        std::cout << "# of final landmarks : " << lmtrack_final.pts_l1.size() << std::endl;
+        stframe_curr->setStereoPtsSeenAndRelatedLandmarks(lmtrack_final.pts_l1, lmtrack_final.pts_r1, lmtrack_final.lms);
 
         // [12] Keyframe selection?
         bool flag_add_new_keyframe = this->stkeyframes_->checkUpdateRule(stframe_curr);
@@ -343,11 +341,11 @@ void StereoVO::trackStereoImages(
             int cnt_recon = 0;
             const Rot3& R_rl = T_rl.block<3,3>(0,0);
             const Pos3& t_rl = T_rl.block<3,1>(0,3);
-            for(int i = 0; i < lmtrack_motion_ok.n_pts; ++i)
+            for(int i = 0; i < lmtrack_final.n_pts; ++i)
             {
-                const Pixel&      pt0 = lmtrack_motion_ok.pts_l1[i];
-                const Pixel&      pt1 = lmtrack_motion_ok.pts_r1[i];
-                const LandmarkPtr& lm = lmtrack_motion_ok.lms[i];
+                const Pixel&      pt0 = lmtrack_final.pts_l1[i];
+                const Pixel&      pt1 = lmtrack_final.pts_r1[i];
+                const LandmarkPtr& lm = lmtrack_final.lms[i];
                 
                 // Reconstruct points
                 Point Xl, Xr;
@@ -372,7 +370,7 @@ void StereoVO::trackStereoImages(
                     ++cnt_recon;
                 }
             }
-            std::cout << "# of reconstructed points: " << cnt_recon << " / " << lmtrack_motion_ok.n_pts << std::endl;
+            std::cout << "# of reconstructed points: " << cnt_recon << " / " << lmtrack_final.n_pts << std::endl;
             
 
             // Local Bundle Adjustment

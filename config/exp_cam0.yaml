@@ -7,16 +7,27 @@
 flagDoUndistortion: 1 # 0: do not undistort an image (KITTI), 1: undistort an image
 
 # Camera calibration and distortion parameters (OpenCV) 
-Camera.fx: 667.59708
-Camera.fy: 667.40554
-Camera.cx: 545.66678
-Camera.cy: 395.18554
+# Camera.fx: 667.59708
+# Camera.fy: 667.40554
+# Camera.cx: 545.66678
+# Camera.cy: 395.18554
 
-Camera.k1: -0.296981
-Camera.k2: 0.097228
-Camera.k3: 0.000187
-Camera.p1: -0.000192
-Camera.p2: 0.0
+# Camera.k1: -0.296981
+# Camera.k2: 0.097228
+# Camera.k3: 0.000187
+# Camera.p1: -0.000192
+# Camera.p2: 0.0
+
+Camera.fx: 667.996718397864
+Camera.fy: 667.897046777980
+Camera.cx: 545.962424742217
+Camera.cy: 395.009211833006
+
+Camera.k1: -0.321228281190158
+Camera.k2: 0.168829730797736
+Camera.k3: -0.0593916215970953
+Camera.p1: 0.000333342561423721
+Camera.p2: -0.0000921663355027036
 
 Camera.width: 1032
 Camera.height: 772

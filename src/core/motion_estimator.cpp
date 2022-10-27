@@ -20,7 +20,7 @@ MotionEstimator::~MotionEstimator()
 };
 
 bool MotionEstimator::calcPose5PointsAlgorithm(
-    const PixelVec& pts0, const PixelVec& pts1, const std::shared_ptr<Camera>& cam,
+    const PixelVec& pts0, const PixelVec& pts1, CameraConstPtr& cam,
     Rot3& R10_true, Pos3& t10_true, PointVec& X0_true, MaskVec& mask_inlier)
 {
     // std::cout <<" - MotionEstimator - 'calcPose5PointsAlgorithm()'\n";
@@ -131,7 +131,7 @@ bool MotionEstimator::calcPose5PointsAlgorithm(
  * @author Changhyeon Kim (hyun91015@gmail.com)
  * @date 12-July-2022
  */
-bool MotionEstimator::calcPosePnPAlgorithm(const PointVec& Xw, const PixelVec& pts_c, const std::shared_ptr<Camera>& cam, 
+bool MotionEstimator::calcPosePnPAlgorithm(const PointVec& Xw, const PixelVec& pts_c, CameraConstPtr& cam, 
     Rot3& Rwc, Pos3& twc, MaskVec& maskvec_inlier){
     if(Xw.size() != pts_c.size())
         throw std::runtime_error("Error in 'calcPosePnPAlgorithm()': Xw.size() != pts_c.size()");
@@ -198,7 +198,7 @@ bool MotionEstimator::calcPosePnPAlgorithm(const PointVec& Xw, const PixelVec& p
 
 bool MotionEstimator::findCorrectRT(
     const std::vector<Rot3>& R10_vec, const std::vector<Pos3>& t10_vec, 
-    const PixelVec& pxvec0, const PixelVec& pxvec1, const std::shared_ptr<Camera>& cam,
+    const PixelVec& pxvec0, const PixelVec& pxvec1, CameraConstPtr& cam,
     Rot3& R10_true, Pos3& t10_true, 
     MaskVec& maskvec_true, PointVec& X0_true)
 {
@@ -255,7 +255,7 @@ bool MotionEstimator::findCorrectRT(
 };
 
 
-void MotionEstimator::refineEssentialMat(const PixelVec& pts0, const PixelVec& pts1, const MaskVec& mask, const std::shared_ptr<Camera>& cam,
+void MotionEstimator::refineEssentialMat(const PixelVec& pts0, const PixelVec& pts1, const MaskVec& mask, CameraConstPtr& cam,
     Mat33& E)
 {
 
@@ -346,7 +346,7 @@ void MotionEstimator::refineEssentialMat(const PixelVec& pts0, const PixelVec& p
 };
 
 
-void MotionEstimator::refineEssentialMatIRLS(const PixelVec& pts0, const PixelVec& pts1, const MaskVec& mask, const std::shared_ptr<Camera>& cam,
+void MotionEstimator::refineEssentialMatIRLS(const PixelVec& pts0, const PixelVec& pts1, const MaskVec& mask, CameraConstPtr& cam,
     Mat33& E)
 {
 
@@ -472,7 +472,7 @@ void MotionEstimator::refineEssentialMatIRLS(const PixelVec& pts0, const PixelVe
 
 };
 
-float MotionEstimator::findInliers1PointHistogram(const PixelVec& pts0, const PixelVec& pts1, const std::shared_ptr<Camera>& cam,
+float MotionEstimator::findInliers1PointHistogram(const PixelVec& pts0, const PixelVec& pts1, CameraConstPtr& cam,
     MaskVec& maskvec_inlier){
     
     if(pts0.size() != pts1.size()) {
@@ -537,7 +537,7 @@ float MotionEstimator::findInliers1PointHistogram(const PixelVec& pts0, const Pi
 };
 
 
-void MotionEstimator::calcSampsonDistance(const PixelVec& pts0, const PixelVec& pts1, const std::shared_ptr<Camera>& cam, 
+void MotionEstimator::calcSampsonDistance(const PixelVec& pts0, const PixelVec& pts1, CameraConstPtr& cam, 
     const Rot3& R10, const Pos3& t10, std::vector<float>& sampson_dist)
 {
     if(pts0.size() != pts1.size()) 
@@ -620,17 +620,18 @@ float MotionEstimator::calcSampsonDistance(const Pixel& pt0, const Pixel& pt1,co
     return dist_tmp;
 };
 
-void MotionEstimator::calcSymmetricEpipolarDistance(const PixelVec& pts0, const PixelVec& pts1, const std::shared_ptr<Camera>& cam, 
+void MotionEstimator::calcSymmetricEpipolarDistance(
+    const PixelVec& pts0, const PixelVec& pts1, CameraConstPtr& cam, 
     const Rot3& R10, const Pos3& t10, std::vector<float>& sym_epi_dist)
 {
     if(pts0.size() != pts1.size()) 
-        throw std::runtime_error("Error in 'fineInliers1PointHistogram()': pts0.size() != pts1.size()");
+        throw std::runtime_error("In 'calcSymmetricEpipolarDistance()', pts0.size() != pts1.size()");
     
     int n_pts = pts0.size();
-    
     sym_epi_dist.resize(n_pts);
 
-    Eigen::Matrix3f E10,F10, F10t;
+    // Calculate Fundamental matrix
+    Mat33 E10, F10, F10t;
 
     E10 = Mapping::skew(t10)*R10;
     F10 = cam->Kinv().transpose()*E10*cam->Kinv();
@@ -645,9 +646,10 @@ void MotionEstimator::calcSymmetricEpipolarDistance(const PixelVec& pts0, const 
         Point F10p0  = F10*p0;
         Point F10tp1 = F10t*p1;
         
-        float numerator = p1.transpose()*F10p0;
-        numerator *= numerator;
-        float denominator = 1.0f/(F10p0(0)*F10p0(0) + F10p0(1)*F10p0(1)) + 1.0f*(F10tp1(0)*F10tp1(0) + F10tp1(1)*F10tp1(1));
+        float numerator = fabs(p1.transpose()*F10p0);
+        float denominator =
+              1.0f/std::sqrt(F10p0(0)*F10p0(0) + F10p0(1)*F10p0(1)) 
+            + 1.0f/std::sqrt(F10tp1(0)*F10tp1(0) + F10tp1(1)*F10tp1(1));
         float dist_tmp = numerator * denominator;
         sym_epi_dist[i] = dist_tmp;
     }
@@ -663,7 +665,7 @@ void MotionEstimator::setThres5p(float thres_5p)
     thres_5p_ = thres_5p; // pixels
 };
 
-bool MotionEstimator::poseOnlyBundleAdjustment(const PointVec& X, const PixelVec& pts1, const std::shared_ptr<Camera>& cam, const int& thres_reproj_outlier, 
+bool MotionEstimator::poseOnlyBundleAdjustment(const PointVec& X, const PixelVec& pts1, CameraConstPtr& cam, const int& thres_reproj_outlier, 
     Rot3& R01_true, Pos3& t01_true, MaskVec& mask_inlier)
 {
     // X is represented in the world frame.
@@ -1114,7 +1116,7 @@ inline void MotionEstimator::fillTriplet(SpTripletList& Tri, const int& idx_hori
     }
 };
 
-bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Keyframes>& kfs_window, const std::shared_ptr<Camera>& cam)
+bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Keyframes>& kfs_window, CameraConstPtr& cam)
 {
 // Variables
 // 
@@ -1129,7 +1131,7 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     std::cout << "===============     Local Bundle adjustment (Sparse Solver)     ===============\n";
 
     // Optimization paraameters
-    int   MAX_ITER          = 15;
+    int   MAX_ITER          = 10;
 
     float lam               = 1e-5;  // for Levenberg-Marquardt algorithm
     float MAX_LAM           = 1.0f;  // for Levenberg-Marquardt algorithm

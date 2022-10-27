@@ -31,8 +31,7 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp)
 		img.copyTo(img_undist);
 
 	// 현재 이미지에 대한 새로운 Frame 생성
-	FramePtr frame_curr = std::make_shared<Frame>(cam_, false, nullptr);
-	frame_curr->setImageAndTimestamp(img_undist, timestamp); 	// frame_curr에 img_undist와 시간 부여 (gradient image도 함께 사용)
+	FramePtr frame_curr = std::make_shared<Frame>(cam_, img_undist, timestamp, false, nullptr);
 	this->saveFrame(frame_curr);
 
 	// Get previous and current images
@@ -70,6 +69,8 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp)
 
 			if( true )
 				this->showTracking("img_features", I1, lmtrack_curr.pts1, PixelVec(), PixelVec());
+
+			std::cout << "First image is initialized.\n";
 
 			// 첫 이미지 업데이트 완료
 			system_flags_.flagFirstImageGot = true;
@@ -202,6 +203,9 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			// lms1와 pts1을 frame_curr에 넣는다.
 			frame_curr->setPtsSeenAndRelatedLandmarks(lmtrack_final.pts1, lmtrack_final.lms);
 
+
+			std::cout <<" VISUAL ODOMETRY IS INITIALIZED..!\n";
+			
 			system_flags_.flagVOInit = true;
 		}
 	}

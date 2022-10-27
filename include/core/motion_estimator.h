@@ -49,33 +49,32 @@ public:
     MotionEstimator(bool is_stereo_mode = false,  const PoseSE3& T_lr = PoseSE3::Identity() );
     ~MotionEstimator();
 
-    bool calcPose5PointsAlgorithm(const PixelVec& pts0, const PixelVec& pts1, const std::shared_ptr<Camera>& cam, 
+    bool calcPose5PointsAlgorithm(const PixelVec& pts0, const PixelVec& pts1, CameraConstPtr& cam, 
         Rot3& R10_true, Pos3& t10_true, PointVec& X0_true, MaskVec& mask_inlier);
-    bool calcPosePnPAlgorithm(const PointVec& Xw, const PixelVec& pts_c, const std::shared_ptr<Camera>& cam, 
+    bool calcPosePnPAlgorithm(const PointVec& Xw, const PixelVec& pts_c, CameraConstPtr& cam, 
         Rot3& Rwc, Pos3& twc, MaskVec& maskvec_inlier);
-    float findInliers1PointHistogram(const PixelVec& pts0, const PixelVec& pts1, const std::shared_ptr<Camera>& cam,
+    float findInliers1PointHistogram(const PixelVec& pts0, const PixelVec& pts1, CameraConstPtr& cam,
         MaskVec& maskvec_inlier);
 
-    bool poseOnlyBundleAdjustment(const PointVec& X, const PixelVec& pts1, const std::shared_ptr<Camera>& cam, const int& thres_reproj_outlier,
+    bool poseOnlyBundleAdjustment(const PointVec& X, const PixelVec& pts1, CameraConstPtr& cam, const int& thres_reproj_outlier,
         Rot3& R01_true, Pos3& t01_true, MaskVec& mask_inlier);
-
     bool poseOnlyBundleAdjustment_Stereo(const PointVec& X, const PixelVec& pts_l1, const PixelVec& pts_r1, CameraConstPtr& cam_left, CameraConstPtr& cam_right, const PoseSE3& T_lr, float thres_reproj_outlier, 
         PoseSE3& T01, MaskVec& mask_inlier);
 
-    bool localBundleAdjustmentSparseSolver(const std::shared_ptr<Keyframes>& kfs, const std::shared_ptr<Camera>& cam);
+    bool localBundleAdjustmentSparseSolver(const std::shared_ptr<Keyframes>& kfs, CameraConstPtr& cam);
     bool localBundleAdjustmentSparseSolver_Stereo(const std::shared_ptr<StereoKeyframes>& stkfs_window, StereoCameraConstPtr& stereo_cam);
 
-    // bool localBundleAdjustmentSparseSolver(const std::shared_ptr<Keyframes>& kfs, const std::shared_ptr<Camera>& cam);
+    // bool localBundleAdjustmentSparseSolver(const std::shared_ptr<Keyframes>& kfs, CameraConstPtr& cam);
 
 public:
-    void calcSampsonDistance(const PixelVec& pts0, const PixelVec& pts1, const std::shared_ptr<Camera>& cam, 
+    void calcSampsonDistance(const PixelVec& pts0, const PixelVec& pts1, CameraConstPtr& cam, 
                             const Rot3& R10, const Pos3& t10, std::vector<float>& sampson_dist);
 
     void calcSampsonDistance(const PixelVec& pts0, const PixelVec& pts1,const Mat33& F10, 
                             std::vector<float>& sampson_dist);
     float calcSampsonDistance(const Pixel& pt0, const Pixel& pt1,const Mat33& F10);
 
-    void calcSymmetricEpipolarDistance(const PixelVec& pts0, const PixelVec& pts1, const std::shared_ptr<Camera>& cam, 
+    void calcSymmetricEpipolarDistance(const PixelVec& pts0, const PixelVec& pts1, CameraConstPtr& cam, 
                             const Rot3& R10, const Pos3& t10, std::vector<float>& sym_epi_dist);
     
 public:
@@ -85,14 +84,14 @@ public:
 private:
     bool findCorrectRT(
         const std::vector<Eigen::Matrix3f>& R10_vec, const std::vector<Eigen::Vector3f>& t10_vec, 
-        const PixelVec& pxvec0, const PixelVec& pxvec1, const std::shared_ptr<Camera>& cam,
+        const PixelVec& pxvec0, const PixelVec& pxvec1, CameraConstPtr& cam,
         Rot3& R10_true, Pos3& t10_true, 
         MaskVec& maskvec_true, PointVec& X0);
 
-    void refineEssentialMat(const PixelVec& pts0, const PixelVec& pts1, const MaskVec& mask, const std::shared_ptr<Camera>& cam,
+    void refineEssentialMat(const PixelVec& pts0, const PixelVec& pts1, const MaskVec& mask, CameraConstPtr& cam,
         Mat33& E);
 
-    void refineEssentialMatIRLS(const PixelVec& pts0, const PixelVec& pts1, const MaskVec& mask, const std::shared_ptr<Camera>& cam,
+    void refineEssentialMatIRLS(const PixelVec& pts0, const PixelVec& pts1, const MaskVec& mask, CameraConstPtr& cam,
         Mat33& E);
 
     void addData(SpMat& mat, const Eigen::MatrixXf& mat_part, int row_start, int col_start, int row_sz, int col_sz);

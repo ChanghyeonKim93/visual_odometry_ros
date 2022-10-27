@@ -237,8 +237,8 @@ public:
     { 
         
         T_stereo_ .setIdentity();
-
         T_stereo_inv_ = geometry::inverseSE3(T_stereo_);
+        std::cout << "SparseBAParameters is in 'monocular' mode.\n";
     };
 
     SparseBAParameters(bool is_stereo, const PoseSE3& T_stereo) 
@@ -248,6 +248,8 @@ public:
         if(!is_stereo_mode_)
             throw std::runtime_error("'is_stereo_mode_' should be set to 'true' when T_stereo is given!");
         
+        std::cout << "SparseBAParameters is in 'stereo' mode.\n";
+
         T_stereo_ << 
             T_stereo(0,0), T_stereo(0,1), T_stereo(0,2), T_stereo(0,3),
             T_stereo(1,0), T_stereo(1,1), T_stereo(1,2), T_stereo(1,3),
@@ -289,15 +291,17 @@ public:
         N_nonopt_ = idx_fix.size();
         N_opt_    = idx_optimize.size();
 
-        std::cout << "In 'setPosesAndPoints()', N: " << N_ << ", N_fix: "<< N_nonopt_ << ", N_opt: " << N_opt_ << std::endl;
-
-        if( !is_stereo_mode_ )
-            if( N_ != N_nonopt_ + N_opt_ ) 
-                throw std::runtime_error("In 'setPosesAndPoints()', monocular mode is set, but N != N_fix + N_opt ");
-        else
+        std::cout << "In 'SparseBAParameters::setPosesAndPoints()', N: " << N_ << ", N_fix: "<< N_nonopt_ << ", N_opt: " << N_opt_ << std::endl;
+        std::cout << "stereo mode? : " << is_stereo_mode_ << std::endl;
+        if( is_stereo_mode_ ){
             if( N_ != (N_nonopt_ + N_opt_) * 2)
-                throw std::runtime_error("In 'setPosesAndPoints()', stereo mode is set, but N != 2*N_fix + 2*N_opt ");
-
+                throw std::runtime_error("In 'SparseBAParameters::setPosesAndPoints()', stereo mode is set, but N != 2*N_fix + 2*N_opt ");
+        }
+        else
+        {
+            if( N_ != (N_nonopt_ + N_opt_) ) 
+                throw std::runtime_error("In 'SparseBAParameters::setPosesAndPoints()', monocular mode is set, but N != N_fix + N_opt ");
+        }
 
         // 1) get all window keyframes 
         std::set<LandmarkPtr> lmset_window; // 안겹치는 랜드마크들
