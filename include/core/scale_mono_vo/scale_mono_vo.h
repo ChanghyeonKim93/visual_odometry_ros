@@ -66,7 +66,7 @@ private:
 private:
 	std::shared_ptr<std::mutex> mut_scale_estimator_;
 	std::shared_ptr<std::condition_variable> cond_var_scale_estimator_;
-	std::shared_ptr<bool> flag_do_ASR_;
+	bool flag_do_ASR_;
 
 private:
 	struct SystemFlags {
@@ -108,10 +108,14 @@ private:
 
 			float thres_parallax_use   = 1.0; // degrees
 			float thres_parallax_recon = 20.0; // degrees
+
+			bool flag_do_ASR = false;
 		};
 		struct KeyframeUpdateParameters{
-			float thres_alive_ratio     = 0.7;
-			float thres_mean_parallax   = 3.0*D2R;
+			float thres_translation       = 1.0; // meter
+			float thres_rotation          = 3.0*D2R; // radian
+			float thres_overlap_ratio     = 0.7;
+			int n_max_keyframes_in_window = 7;
 		};
 		struct MappingParameters{
 			float thres_parallax      = 1.0*D2R;
@@ -202,7 +206,7 @@ public:
 
 		std::vector<LandmarkStatistics>  stats_landmark;
 		std::vector<FrameStatistics>     stats_frame;
-		std::vector<KeyframeStatistics>     stats_keyframe;
+		std::vector<KeyframeStatistics>  stats_keyframe;
 		std::vector<ExecutionStatistics> stats_execution;
 		TurnRegionStatistics stat_turn;
 

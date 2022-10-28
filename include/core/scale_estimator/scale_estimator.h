@@ -61,6 +61,7 @@ private:
 
 // Car Kinematic parameters (L, Rw)
 private:
+    bool  flag_do_ASR_;
     float L_; //  car length;
     Rot3 Rw_;
 
@@ -94,7 +95,6 @@ private:
     std::thread                              thread_;
     std::shared_ptr<std::mutex>              mut_;
     std::shared_ptr<std::condition_variable> cond_var_;
-    std::shared_ptr<bool>                    flag_do_ASR_;
 
 
 
@@ -110,7 +110,7 @@ public:
         const float& L, /* car rear axle to camera distance (meter)*/
         const std::shared_ptr<std::mutex> mut,  /* mutex for sync */
         const std::shared_ptr<std::condition_variable> cond_var, /* condition variable for sync*/
-        const std::shared_ptr<bool> flag_do_ASR);
+        bool flag_do_ASR);
 
     /// @brief Destructor of ScaleEstimator
     ~ScaleEstimator();

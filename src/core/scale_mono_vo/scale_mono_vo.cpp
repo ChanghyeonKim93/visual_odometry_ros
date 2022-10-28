@@ -48,15 +48,19 @@ ScaleMonoVO::ScaleMonoVO(std::string mode, std::string directory_intrinsic)
 
 	// Initialize scale estimator
 	double L = params_.scale_estimator.cam_to_rear_axle_length; // CAR experiment.
+	flag_do_ASR_ = params_.scale_estimator.flag_do_ASR;
 
 	mut_scale_estimator_      = std::make_shared<std::mutex>();
 	cond_var_scale_estimator_ = std::make_shared<std::condition_variable>(); // New pose 가 도
-	flag_do_ASR_              = std::make_shared<bool>(false);
 	
 	scale_estimator_          = std::make_shared<ScaleEstimator>(cam_, L, mut_scale_estimator_, cond_var_scale_estimator_, flag_do_ASR_);
 	
 	// Initialize keyframes class
 	keyframes_ = std::make_shared<Keyframes>();
+	keyframes_->setMaxKeyframes(params_.keyframe_update.n_max_keyframes_in_window);
+	keyframes_->setThresOverlapRatio(params_.keyframe_update.thres_overlap_ratio);
+	keyframes_->setThresTranslation(params_.keyframe_update.thres_translation);
+	keyframes_->setThresRotation(params_.keyframe_update.thres_rotation*D2R);
 };
 
 /**
@@ -66,7 +70,8 @@ ScaleMonoVO::ScaleMonoVO(std::string mode, std::string directory_intrinsic)
  * @author Changhyeon Kim (hyun91015@gmail.com)
  * @date 10-July-2022
  */
-ScaleMonoVO::~ScaleMonoVO() {
+ScaleMonoVO::~ScaleMonoVO() 
+{
 	std::cout << "Scale mono VO is terminated.\n";
 };
 
@@ -138,6 +143,7 @@ void ScaleMonoVO::loadCameraIntrinsicAndUserParameters(const std::string& dir) {
 	params_.motion_estimator.thres_poseba_error    = fs["motion_estimator.thres_poseba_error"];
 
 	// Scale estimator
+	params_.scale_estimator.flag_do_ASR             = (int)fs["scale_estimator.flag_asr_on"];
 	params_.scale_estimator.cam_to_rear_axle_length = fs["scale_estimator.cam_to_rear_axle_length"];
 	params_.scale_estimator.initial_scale           = fs["scale_estimator.initial_scale"];
 	params_.scale_estimator.thres_turn_psi          = fs["scale_estimator.thres_turn_psi"];
@@ -149,8 +155,10 @@ void ScaleMonoVO::loadCameraIntrinsicAndUserParameters(const std::string& dir) {
 	params_.scale_estimator.thres_parallax_recon    = fs["scale_estimator.thres_parallax_recon"];
 
 	// Keyframe update
-	params_.keyframe_update.thres_alive_ratio      = fs["keyframe_update.thres_alive_ratio"];
-	params_.keyframe_update.thres_mean_parallax    = fs["keyframe_update.thres_mean_parallax"];
+	params_.keyframe_update.thres_translation         = fs["keyframe_update.thres_translation"];
+	params_.keyframe_update.thres_rotation            = fs["keyframe_update.thres_rotation"]; 
+	params_.keyframe_update.thres_overlap_ratio       = fs["keyframe_update.thres_overlap_ratio"];
+	params_.keyframe_update.n_max_keyframes_in_window = fs["keyframe_update.n_max_keyframes_in_window"];
 	
 	// Map update
 	params_.map_update.thres_parallax = fs["map_update.thres_parallax"];

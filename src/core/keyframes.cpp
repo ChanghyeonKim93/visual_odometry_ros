@@ -13,6 +13,21 @@ void Keyframes::setMaxKeyframes(int max_kf)
     N_MAX_KEYFRAMES_IN_WINDOW_ = max_kf;
 };
 
+void Keyframes::setThresTranslation(float val)
+{
+    THRES_TRANSLATION_ = val;
+};
+
+void Keyframes::setThresRotation(float val)
+{
+   THRES_ROTATION_  = val;
+};
+
+void Keyframes::setThresOverlapRatio(float val)
+{
+    THRES_OVERLAP_FEATURE_RATIO_ = val;
+};
+
 void Keyframes::addNewKeyframe(const FramePtr& frame)
 {
     frame->makeThisKeyframe(); // 새 keyframe이 됨을 표시. (추가시에는 당연히 keyframe window로 들어옴)

@@ -682,7 +682,6 @@ statcurr_frame.mappoints = X_world_recon;
 
 	// Notify a thread.
 	mut_scale_estimator_->lock();
-	*flag_do_ASR_ = true;
 	mut_scale_estimator_->unlock();
 	cond_var_scale_estimator_->notify_all();
 };

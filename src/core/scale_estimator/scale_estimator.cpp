@@ -5,7 +5,7 @@ ScaleEstimator::ScaleEstimator(
     const float& L,
     const std::shared_ptr<std::mutex> mut, 
     const std::shared_ptr<std::condition_variable> cond_var,
-    const std::shared_ptr<bool> flag_do_ASR)
+    bool flag_do_ASR)
 : frame_prev_(nullptr), L_(L), cnt_turn_(0)
 {
     // Setting camera
@@ -19,6 +19,11 @@ ScaleEstimator::ScaleEstimator(
     this->mut_         = mut;
     this->cond_var_    = cond_var;
     this->flag_do_ASR_ = flag_do_ASR;
+
+    if( flag_do_ASR_ )
+        std::cout << " - SCALE_ESTIMATOR: 'ASR' module is ON.\n";
+    else
+        std::cout << " - SCALE_ESTIMATOR: 'ASR' module is OFF.\n";
 
     // Detecting turn region variables
     this->setTurnRegion_ThresPsi(2.0*M_PI/180.0);
@@ -40,7 +45,6 @@ ScaleEstimator::~ScaleEstimator()
 
     // Notify the thread to run the while loop.
     mut_->lock();
-    *flag_do_ASR_ = true;
     mut_->unlock();
     
     cond_var_->notify_all();
@@ -72,8 +76,7 @@ void ScaleEstimator::process(std::shared_future<void> terminate_signal)
     {
         std::unique_lock<std::mutex> lk(*mut_);
 
-        cond_var_->wait(lk, [=] { return (*flag_do_ASR_); });
-        *flag_do_ASR_ = false;
+        cond_var_->wait(lk, [=] { return (1); });
         lk.unlock();
 
         std::future_status terminate_status = terminate_signal.wait_for(std::chrono::microseconds(1000));
@@ -255,11 +258,12 @@ bool ScaleEstimator::detectTurnRegions(const FramePtr& frame)
                 // If there is a previous turning frames, do ASR
                 if( frames_turn_prev_.size() > 0)
                 {
-
-                    // Run the Absolute Scale Recovery (ASR) Module.
-                    asr_module_->runASR(
-                        frames_turn_prev_, frames_unconstrained_, frames_turn_curr_);
-
+                    if(flag_do_ASR_)
+                    {
+                        // Run the Absolute Scale Recovery (ASR) Module.
+                        asr_module_->runASR(
+                            frames_turn_prev_, frames_unconstrained_, frames_turn_curr_);
+                    }
                 }
                                             
                 // Update previous turning region & empty the unconstrained region

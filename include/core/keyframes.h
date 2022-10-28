@@ -39,6 +39,9 @@ public:
 
 public:
     void setMaxKeyframes(int max_kf); // set maximum keyframes in window.
+    void setThresTranslation(float val);
+    void setThresRotation(float val);
+    void setThresOverlapRatio(float val);
 
 public:
     bool checkUpdateRule(const FramePtr& frame_curr); // check keyframe update rule.
