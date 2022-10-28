@@ -26,7 +26,7 @@ Camera.left.height: 370
 # Right camera
 Camera.right.fx: 707.0912
 Camera.right.fy: 707.0912
-Camera.right.cx: 601.8873
+Camera.right.cx: 602.2873
 Camera.right.cy: 183.1104
 
 Camera.right.k1: 0.0
@@ -42,7 +42,7 @@ T_lr: !!opencv-matrix # this statement is necessary.
   rows: 4
   cols: 4
   dt: f
-  data: [1,0,0,0.5371657189, 0,1,0,0, 0,0,1,0, 0,0,0,1]
+  data: [1,0,0,0.5451657189, 0,1,0,0, 0,0,1,0, 0,0,0,1]
   # data: [1,0,0,0.5371657189, 0,1,0,0, 0,0,1,0, 0,0,0,1]
 
 #--------------------------------------------------------------------------------------------
