@@ -66,7 +66,7 @@ private:
     BlockVec6 x_; // N_opt  (6x1)+
     BlockVec3 y_; // M  (3x1) +
 
-    BlockVec6 params_poses_;  // N_opt (6x1) parameter vector for poses
+    std::vector<_BA_PoseSE3> params_poses_;  // N_opt (4x4) parameter vector for poses
     BlockVec3 params_points_; // M     (3x1) parameter vector for points
 
     DiagBlockMat33 Cinv_;    // M (3x3) block diagonal part for landmarks' 3D points (inverse) +

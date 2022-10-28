@@ -91,7 +91,7 @@ void SparseBundleAdjustmentSolver::setProblemSize(int N, int N_opt, int M, int n
     this->n_obs_ = n_obs;
 
     // Resize storages.
-    A_.resize(N_opt_); 
+    A_.resize(N_opt_, _BA_Mat66::Zero()); 
     
     B_.resize(N_opt_);
     for(_BA_Index j = 0; j < N_opt_; ++j) 
@@ -101,17 +101,17 @@ void SparseBundleAdjustmentSolver::setProblemSize(int N, int N_opt, int M, int n
     for(_BA_Index i = 0; i < M_; ++i) 
         Bt_[i].resize(N_opt_, _BA_Mat36::Zero());   // 3x6, N_opt X M blocks
     
-    C_.resize(M_);
+    C_.resize(M_, _BA_Mat33::Zero());
 
-    a_.resize(N_opt_); // 6x1, N_opt blocks
-    x_.resize(N_opt_); // 6x1, N_opt blocks
-    params_poses_.resize(N_opt_); // 6x1, N_opt blocks
+    a_.resize(N_opt_, _BA_Vec6::Zero()); // 6x1, N_opt blocks
+    x_.resize(N_opt_, _BA_Vec6::Zero()); // 6x1, N_opt blocks
+    params_poses_.resize(N_opt_, _BA_PoseSE3::Identity()); // 4x4, N_opt blocks
 
-    b_.resize(M_);     // 3x1, M blocks
-    y_.resize(M_);     // 3x1, M blocks
-    params_points_.resize(M_);    // 3x1, M blocks
+    b_.resize(M_, _BA_Vec3::Zero());     // 3x1, M blocks
+    y_.resize(M_, _BA_Vec3::Zero());     // 3x1, M blocks
+    params_points_.resize(M_, _BA_Vec3::Zero());    // 3x1, M blocks
 
-    Cinv_.resize(M_); // 3x3, M diagonal blocks 
+    Cinv_.resize(M_, _BA_Mat33::Zero()); // 3x3, M diagonal blocks 
 
     BCinv_.resize(N_opt_); 
     for(_BA_Index j = 0; j < N_opt_; ++j) 
@@ -132,9 +132,9 @@ void SparseBundleAdjustmentSolver::setProblemSize(int N, int N_opt, int M, int n
     for(_BA_Index j = 0; j < N_opt_; ++j) 
         Am_BCinvBt_[j].resize(N_opt_, _BA_Mat66::Zero());   // 6x6, N_opt X N_opt blocks
     
-    Cinv_b_.resize(M_);
-    Bt_x_.resize(M_);        // 3x1, M x 1 blocks
-    CinvBt_x_.resize(M_);
+    Cinv_b_.resize(M_, _BA_Vec3::Zero());
+    Bt_x_.resize(M_, _BA_Vec3::Zero());        // 3x1, M x 1 blocks
+    CinvBt_x_.resize(M_, _BA_Vec3::Zero());
 
 
     // Dynamic matrices
@@ -576,7 +576,11 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER)
                 
         // Update step
         for(_BA_Index j = 0; j < N_opt_; ++j)
-            geometry::addFrontse3(params_poses_[j], x_[j]);
+        {
+            _BA_PoseSE3 dT;
+            geometry::se3Exp(x_[j], dT);
+            params_poses_[j].noalias() = (dT*params_poses_[j]);
+        }
 
         for(_BA_Index i = 0; i < M_; ++i)
             params_points_[i].noalias() += y_[i];
@@ -696,7 +700,16 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER)
         }
 
         if(flag_large_update)
-             throw std::runtime_error("large update!");
+        {
+            for(_BA_Index j_opt = 0; j_opt < N_opt_; ++j_opt)
+            {
+                std::cout << j_opt << "-th pose:\n"
+                        << params_poses_[j_opt] << std::endl;
+                std::cout << "rot det:" <<  params_poses_[j_opt].block<3,3>(0,0).determinant() << std::endl;
+
+            }
+            throw std::runtime_error("large update!");
+        }
     }
     else
     {
@@ -705,6 +718,7 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER)
         {
             std::cout << j << "-th Pose:\n";
             std::cout << ba_params_->getOptPose(j) << std::endl;
+            std::cout << "rot det:" <<  ba_params_->getOptPose(j).block<3,3>(0,0).determinant() << std::endl;
         }
         
         for(_BA_Index i = 0; i < M_; ++i)
@@ -777,19 +791,13 @@ void SparseBundleAdjustmentSolver::setParameterVectorFromPosesPoints()
     // 1) Pose part
     for(_BA_Index j_opt = 0; j_opt < N_opt_; ++j_opt)
     {
-        const _BA_PoseSE3& Tjw = ba_params_->getOptPose(j_opt);
-        _BA_PoseSE3Tangent xi_jw;
-        geometry::SE3Log(Tjw, xi_jw);
-        // params_poses_[j_opt] = xi_jw;
-        params_poses_[j_opt] << xi_jw;
-
-        // std::cout << "Pose:\n" << Tjw << std::endl;
-        // std::cout << "xi_jw: " << xi_jw.transpose() << std::endl;
+        _BA_PoseSE3 Tjw = ba_params_->getOptPose(j_opt);
+        params_poses_[j_opt].noalias() =  Tjw;
     }
 
     // 2) Point part
     for(_BA_Index i = 0; i < M_; ++i) 
-        params_points_[i] << ba_params_->getOptPoint(i);
+        params_points_[i].noalias() =  ba_params_->getOptPoint(i);
 };
 
 void SparseBundleAdjustmentSolver::getPosesPointsFromParameterVector()
@@ -804,10 +812,9 @@ void SparseBundleAdjustmentSolver::getPosesPointsFromParameterVector()
             std::cout << params_poses_[j_opt] << std::endl;
         }
             
-        _BA_PoseSE3 Tjw ;
-        geometry::se3Exp(params_poses_[j_opt], Tjw);
-        ba_params_->updateOptPose(j_opt,Tjw);
-        std::cout << j_opt << "-th trans: " << 10.0 * Tjw.block<3,1>(0,3).transpose() << std::endl;
+        _BA_PoseSE3 Tjw = params_poses_[j_opt];
+        ba_params_->updateOptPose(j_opt, Tjw);
+        std::cout << j_opt << "-th trans: " << 10.0 * Tjw.block<3,1>(0,3).transpose() <<", rot det: " << Tjw.block<3,3>(0,0).determinant() << std::endl;
     }
     // point part
     for(_BA_Index i = 0; i < M_; ++i)
