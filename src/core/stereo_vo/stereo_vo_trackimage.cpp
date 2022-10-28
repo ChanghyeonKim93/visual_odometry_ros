@@ -3,11 +3,9 @@
 void StereoVO::trackStereoImages(
     const cv::Mat& img_left, const cv::Mat& img_right, const double& timestamp)
 {
+
 	float THRES_SAMPSON  = params_.feature_tracker.thres_sampson;
 	float THRES_PARALLAX = params_.map_update.thres_parallax;
-
-    // Rectified Camera.
-    CameraConstPtr& cam_rect = stereo_cam_->getRectifiedCamera(); // In stereo setting, use rectified images.
 
 	// Generate statistics
 	AlgorithmStatistics::LandmarkStatistics  statcurr_landmark;
@@ -15,28 +13,49 @@ void StereoVO::trackStereoImages(
 	AlgorithmStatistics::KeyframeStatistics  statcurr_keyframe;
 	AlgorithmStatistics::ExecutionStatistics statcurr_execution;
 			
-	// 이미지 undistort (KITTI라서 할 필요 X)
+    
+	// 이미지 undistort (KITTI는 할 필요 X)
+    PoseSE3 T_lr;
+    PoseSE3 T_rl;
+
+    // Left and Right Cameras.
+    CameraPtr cam_left; 
+    CameraPtr cam_right;
+    
+
+    timer::tic();
 	cv::Mat img_left_undist, img_right_undist;
 	if( system_flags_.flagDoUndistortion )
 	{
-        timer::tic();
         stereo_cam_->rectifyStereoImages(
             img_left, img_right, 
             img_left_undist, img_right_undist);
 
 		img_left_undist.convertTo(img_left_undist, CV_8UC1);
 		img_right_undist.convertTo(img_right_undist, CV_8UC1);
-		std::cout << colorcode::text_green << "Time [stereo undistort ]: " << timer::toc(0) << " [ms]\n" << colorcode::cout_reset;
+
+        T_lr = stereo_cam_->getRectifiedStereoPoseLeft2Right();
+        T_rl = stereo_cam_->getRectifiedStereoPoseRight2Left();
+
+        cam_left  = stereo_cam_->getRectifiedCamera(); 
+        cam_right = stereo_cam_->getRectifiedCamera(); 
+
 	}
 	else
 	{
 		img_left.copyTo(img_left_undist);
 		img_right.copyTo(img_right_undist);
+        T_lr = stereo_cam_->getStereoPoseLeft2Right();
+        T_rl = stereo_cam_->getStereoPoseRight2Left();
+        cam_left  = stereo_cam_->getLeftCamera(); 
+        cam_right = stereo_cam_->getRightCamera(); 
 	}
+    std::cout << colorcode::text_green << "Time [stereo undistort ]: " << timer::toc(0) << " [ms]\n" << colorcode::cout_reset;
+
 
     // Algorithm implementation
     // Make new stereo frame for current images.
-	StereoFramePtr stframe_curr = std::make_shared<StereoFrame>(img_left_undist, img_right_undist, cam_rect, cam_rect, timestamp);
+	StereoFramePtr stframe_curr = std::make_shared<StereoFrame>(img_left_undist, img_right_undist, cam_left, cam_right, timestamp);
 	
 	this->saveStereoFrame(stframe_curr);      
 
@@ -44,10 +63,6 @@ void StereoVO::trackStereoImages(
     if( this->system_flags_.flagFirstImageGot )
     {
         // 초기화가 된 상태에서 반복적 구동.
-        // Stereo static pose 가져오기.
-        const PoseSE3& T_lr = stereo_cam_->getRectifiedStereoPoseLeft2Right();
-        const PoseSE3& T_rl = stereo_cam_->getRectifiedStereoPoseRight2Left();
-
         // 이전 이미지 가져오기
         const cv::Mat& I0_left  = stframe_prev_->getLeft()->getImage();
         const cv::Mat& I0_right = stframe_prev_->getRight()->getImage();
@@ -94,9 +109,9 @@ void StereoVO::trackStereoImages(
                 scale_tmp = X_l0(2)/X_l1(2);
                 
                 // Project prior point.
-                Pixel pt_l1 = cam_rect->projectToPixel(X_l1);
-                Pixel pt_r1 = cam_rect->projectToPixel(X_r1);
-                if( !cam_rect->inImage(pt_l1) || !cam_rect->inImage(pt_r1) 
+                Pixel pt_l1 = cam_left->projectToPixel(X_l1);
+                Pixel pt_r1 = cam_right->projectToPixel(X_r1);
+                if( !cam_left->inImage(pt_l1) || !cam_right->inImage(pt_r1) 
                     || X_l1(2) < 0.1 || X_r1(2) < 0.1 )
                 { 
                     // out of image.
@@ -204,7 +219,7 @@ void StereoVO::trackStereoImages(
 
         bool poseonlyBA_success =
             motion_estimator_->poseOnlyBundleAdjustment_Stereo(
-                Xp_poBA, pts_l1_poBA, pts_r1_poBA, cam_rect, cam_rect, T_lr, params_.motion_estimator.thres_poseba_error,
+                Xp_poBA, pts_l1_poBA, pts_r1_poBA, cam_left, cam_right, T_lr, params_.motion_estimator.thres_poseba_error,
                 dT_pc_poBA, mask_poBA);
 
         if( !poseonlyBA_success )
@@ -301,13 +316,13 @@ void StereoVO::trackStereoImages(
 
                     // Reconstruct 3D point
                     Point Xl, Xr;
-                    Mapping::triangulateDLT(pt_l1_new, pt_r1_new, T_rl.block<3,3>(0,0), T_rl.block<3,1>(0,3), cam_rect, Xl, Xr);
+                    Mapping::triangulateDLT(pt_l1_new, pt_r1_new, T_rl.block<3,3>(0,0), T_rl.block<3,1>(0,3), cam_left, cam_right, Xl, Xr);
 
                     if( Xl(2) > 0 && Xr(2) > 0)
                     {
                         // Point Xw = T_wc.block<3,3>(0,0) * Xl + T_wc.block<3,1>(0,3);
                     
-                        LandmarkPtr lmptr = std::make_shared<Landmark>(pt_l1_new, stframe_curr->getLeft(), cam_rect);
+                        LandmarkPtr lmptr = std::make_shared<Landmark>(pt_l1_new, stframe_curr->getLeft(), cam_left);
                         lmptr->addObservationAndRelatedFrame(pt_r1_new, stframe_curr->getRight());
 
                         lmtrack_final.pts_l1.push_back(pt_l1_new);
@@ -349,15 +364,15 @@ void StereoVO::trackStereoImages(
                 
                 // Reconstruct points
                 Point Xl, Xr;
-                Mapping::triangulateDLT(pt0, pt1, R_rl, t_rl, cam_rect, Xl, Xr);
+                Mapping::triangulateDLT(pt0, pt1, R_rl, t_rl, cam_left, cam_right, Xl, Xr);
 
                 // Check reprojection error for the first image
-                Pixel pt0_proj = cam_rect->projectToPixel(Xl);
+                Pixel pt0_proj = cam_left->projectToPixel(Xl);
                 Pixel dpt0 = pt0 - pt0_proj;
                 float dpt0_norm2 = dpt0.x*dpt0.x + dpt0.y*dpt0.y;
                 if(dpt0_norm2 > 1.0) continue;
 
-                Pixel pt1_proj = cam_rect->projectToPixel(Xr);
+                Pixel pt1_proj = cam_right->projectToPixel(Xr);
                 Pixel dpt1 = pt1 - pt1_proj;
                 float dpt1_norm2 = dpt1.x*dpt1.x + dpt1.y*dpt1.y;
                 if(dpt1_norm2 > 1.0) continue;
@@ -374,7 +389,7 @@ void StereoVO::trackStereoImages(
             
 
             // Local Bundle Adjustment
-            motion_estimator_->localBundleAdjustmentSparseSolver_Stereo(stkeyframes_, stereo_cam_);
+            motion_estimator_->localBundleAdjustmentSparseSolver_Stereo(stkeyframes_, cam_left, cam_right, T_lr);
 
 timer::tic();
 PointVec X_tmp;
@@ -404,15 +419,25 @@ std::cout << colorcode::text_green << "Time [RECORD KEYFR STAT]: " << timer::toc
     }
     else 
     {
-        // The very first image.
+        /*
+        ===================================================================
+        ===================================================================
+        ===================================================================
+        ===================================================================
+        ===================== The very first image ========================
+        ===================================================================
+        ===================================================================
+        ===================================================================
+        ===================================================================
+        */
         const cv::Mat& I1_left  = stframe_curr->getLeft()->getImage();
         const cv::Mat& I1_right = stframe_curr->getRight()->getImage();
-        const PoseSE3& T_lr     = stereo_cam_->getRectifiedStereoPoseLeft2Right();
 
         // 첫번째 stereo frame의 자세는 아래와 같다. 
         stframe_curr->setStereoPoseByLeft(PoseSE3::Identity(), T_lr);
         stframe_curr->getLeft()->setPoseDiff10(PoseSE3::Identity());
         stframe_curr->getRight()->setPoseDiff10(PoseSE3::Identity());
+
         
         // Extract initial feature points.
         timer::tic();
@@ -458,7 +483,7 @@ std::cout << colorcode::text_green << "Time [RECORD KEYFR STAT]: " << timer::toc
         {
             const Pixel& pt_left  = lmtrack_staticklt.pts_l1[i];
             const Pixel& pt_right = lmtrack_staticklt.pts_r1[i];
-            LandmarkPtr lmptr = std::make_shared<Landmark>(pt_left, stframe_curr->getLeft(), cam_rect);
+            LandmarkPtr lmptr = std::make_shared<Landmark>(pt_left, stframe_curr->getLeft(), cam_left);
             lmptr->addObservationAndRelatedFrame(pt_right, stframe_curr->getRight());
 
             lmtrack_staticklt.lms[i] = lmptr;
@@ -469,7 +494,6 @@ std::cout << colorcode::text_green << "Time [RECORD KEYFR STAT]: " << timer::toc
 
         // 3D reconstruction 
         int cnt_recon = 0;
-        const PoseSE3& T_rl = stereo_cam_->getRectifiedStereoPoseRight2Left();
         const Rot3& R_rl = T_rl.block<3,3>(0,0);
         const Pos3& t_rl = T_rl.block<3,1>(0,3);
         for(int i = 0; i < lmtrack_staticklt.n_pts; ++i)
@@ -480,15 +504,15 @@ std::cout << colorcode::text_green << "Time [RECORD KEYFR STAT]: " << timer::toc
             
             // Reconstruct points
             Point Xl, Xr;
-            Mapping::triangulateDLT(pt0, pt1, R_rl, t_rl, cam_rect, Xl, Xr);
+            Mapping::triangulateDLT(pt0, pt1, R_rl, t_rl, cam_left, cam_right, Xl, Xr);
 
             // Check reprojection error for the first image
-            Pixel pt0_proj = cam_rect->projectToPixel(Xl);
+            Pixel pt0_proj = cam_left->projectToPixel(Xl);
             Pixel dpt0 = pt0 - pt0_proj;
             float dpt0_norm2 = dpt0.x*dpt0.x + dpt0.y*dpt0.y;
             if(dpt0_norm2 > 1.0) continue;
 
-            Pixel pt1_proj = cam_rect->projectToPixel(Xr);
+            Pixel pt1_proj = cam_right->projectToPixel(Xr);
             Pixel dpt1 = pt1 - pt1_proj;
             float dpt1_norm2 = dpt1.x*dpt1.x + dpt1.y*dpt1.y;
             if(dpt1_norm2 > 1.0) continue;

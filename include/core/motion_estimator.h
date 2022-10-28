@@ -62,7 +62,7 @@ public:
         PoseSE3& T01, MaskVec& mask_inlier);
 
     bool localBundleAdjustmentSparseSolver(const std::shared_ptr<Keyframes>& kfs, CameraConstPtr& cam);
-    bool localBundleAdjustmentSparseSolver_Stereo(const std::shared_ptr<StereoKeyframes>& stkfs_window, StereoCameraConstPtr& stereo_cam);
+    bool localBundleAdjustmentSparseSolver_Stereo(const std::shared_ptr<StereoKeyframes>& stkfs_window, CameraConstPtr& cam_left, CameraConstPtr& cam_right, const PoseSE3& T_lr);
 
     // bool localBundleAdjustmentSparseSolver(const std::shared_ptr<Keyframes>& kfs, CameraConstPtr& cam);
 

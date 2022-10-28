@@ -1234,7 +1234,7 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
 
 
 
-bool MotionEstimator::localBundleAdjustmentSparseSolver_Stereo(const std::shared_ptr<StereoKeyframes>& stkfs_window, StereoCameraConstPtr& stereo_cam)
+bool MotionEstimator::localBundleAdjustmentSparseSolver_Stereo(const std::shared_ptr<StereoKeyframes>& stkfs_window, CameraConstPtr& cam_left, CameraConstPtr& cam_right, const PoseSE3& T_lr)
 {
 // Variables
 // 
@@ -1282,9 +1282,6 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver_Stereo(const std::shared
         std::cout << "  ---- Not enough keyframes... at least four keyframes are needed. local BA is skipped.\n";
         return false;
     }
-
-    CameraConstPtr& cam_rect  = stereo_cam->getRectifiedCamera();
-    const PoseSE3& T_lr       = stereo_cam->getRectifiedStereoPoseLeft2Right();
 
     // Do Local Bundle Adjustment.
     bool flag_success = true; // Local BA success flag.
@@ -1349,7 +1346,7 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver_Stereo(const std::shared
     // BA sparse solver
     // timer::tic();
     sparse_ba_solver_->reset(); // reset the solver
-    sparse_ba_solver_->setStereoCameras(cam_rect, cam_rect);
+    sparse_ba_solver_->setStereoCameras(cam_left, cam_right);
     sparse_ba_solver_->setBAParameters(ba_params);
     sparse_ba_solver_->setHuberThreshold(THRES_HUBER);
     // double dt_prepare = timer::toc(0);

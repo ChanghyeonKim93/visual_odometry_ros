@@ -244,7 +244,6 @@ void FeatureExtractor::extractORBwithBinning_fast(const cv::Mat& img, PixelVec& 
 	// Bucketing.
 	if(flag_nonmax_)
 	{
-
 		// Reset the index bins
 		for(IndexBin& v : index_bins_)
 			v.index_max_ = -1;
@@ -276,11 +275,11 @@ void FeatureExtractor::extractORBwithBinning_fast(const cv::Mat& img, PixelVec& 
 		// Make 
 		for(int j = 0; j < index_bins_.size(); ++j)
 		{
-			if(weight_bin_->weight[j] > 0)
+			if(index_bins_[j].index_max_ > -1 && weight_bin_->weight[j] > 0)
 				pts_extracted.push_back(fts[index_bins_[j].index_max_].pt);
 		}
 
-		std::cout << "# pts (final): " << pts_extracted.size() << std::endl;
+		std::cout << "# pts (extracted): " << pts_extracted.size() << std::endl;
 	}
 	else
 	{
@@ -312,7 +311,7 @@ void FeatureExtractor::extractORBwithBinning_fast(const cv::Mat& img, PixelVec& 
 				}
 			}
 
-			std::cout << "# pts (final): " << pts_extracted.size() << std::endl;
+			std::cout << "# pts (extracted): " << pts_extracted.size() << std::endl;
 		}
 	}
 	

@@ -12,6 +12,6 @@
         <param name="topicname_map_points"      type="string" value="/scale_mono_vo/map_points"/>
 
         <!-- intrinsic parameter yaml file directory -->
-        <param name="directory_intrinsic" type="string" value="$(find scale_mono_vo_ros)/config/mono/kitti_00_ba.yaml"/>
+        <param name="directory_intrinsic" type="string" value="$(find scale_mono_vo_ros)/config/mono/kitti_01.yaml"/>
     </node>
 </launch>
