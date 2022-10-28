@@ -97,6 +97,7 @@ private:
 			float thres_poseba_error = 5.0; // reprojection error.		
 		};
 		struct ScaleEstimatorParameters{
+			float cam_to_rear_axle_length = 1.05;
 			float initial_scale        = 1.0; // Initial velocity.
 			float thres_turn_psi       = 0.02; // rad
 			uint32_t thres_cnt_turns   = 0.02; // rad

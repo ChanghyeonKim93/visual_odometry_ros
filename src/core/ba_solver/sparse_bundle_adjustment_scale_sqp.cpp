@@ -964,7 +964,7 @@ void SparseBundleAdjustmentScaleSQPSolver::initializeLagrangeMultipliers()
 
     // Set params_lagrange_
     for(_BA_Index k = 0; k < K_; ++k)
-        params_lagrange_[k] = lambda_mat(k,0)*0.01;
+        params_lagrange_[k] = lambda_mat(k,0)*0.1;
     
     std::cout << "params_lagrange:\n";
     for(_BA_Index k = 0; k < K_; ++k)

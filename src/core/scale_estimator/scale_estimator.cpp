@@ -21,8 +21,8 @@ ScaleEstimator::ScaleEstimator(
     this->flag_do_ASR_ = flag_do_ASR;
 
     // Detecting turn region variables
-    this->setTurnRegion_ThresPsi(3.0*M_PI/180.0);
-    this->setTurnRegion_ThresCountTurn(8);
+    this->setTurnRegion_ThresPsi(2.0*M_PI/180.0);
+    this->setTurnRegion_ThresCountTurn(12);
 
     // Run process thread.
     this->terminate_future_ = terminate_promise_.get_future();
@@ -92,6 +92,10 @@ void ScaleEstimator::setTurnRegion_ThresPsi(float psi){
 };
 void ScaleEstimator::setTurnRegion_ThresCountTurn(uint32_t thres_cnt_turn){
     this->THRES_CNT_TURN_ = thres_cnt_turn;
+};
+
+void ScaleEstimator::setCamToRearAxleLength(float L){
+    this->L_ = L;
 };
 
 

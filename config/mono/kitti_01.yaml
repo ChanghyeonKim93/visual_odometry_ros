@@ -48,6 +48,7 @@ motion_estimator.thres_5p_error: 1.0 # pixels
 motion_estimator.thres_poseba_error: 5.0 # pixels
 
 # Parameters of scale estimator
+scale_estimator.cam_to_rear_axle_length: 0.95 # KITTI; 1.05 m, MYDATA: 1.45 m
 scale_estimator.initial_scale: 0.76 # meters
 scale_estimator.thres_turn_psi: 1.2 # degrees
 scale_estimator.thres_cnt_turns: 7

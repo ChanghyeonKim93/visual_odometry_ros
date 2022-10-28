@@ -47,7 +47,7 @@ ScaleMonoVO::ScaleMonoVO(std::string mode, std::string directory_intrinsic)
 	motion_estimator_->setThres5p(params_.motion_estimator.thres_5p_error);
 
 	// Initialize scale estimator
-	double L = 1.45; // CAR experiment.
+	double L = params_.scale_estimator.cam_to_rear_axle_length; // CAR experiment.
 
 	mut_scale_estimator_      = std::make_shared<std::mutex>();
 	cond_var_scale_estimator_ = std::make_shared<std::condition_variable>(); // New pose 가 도
@@ -138,14 +138,15 @@ void ScaleMonoVO::loadCameraIntrinsicAndUserParameters(const std::string& dir) {
 	params_.motion_estimator.thres_poseba_error    = fs["motion_estimator.thres_poseba_error"];
 
 	// Scale estimator
-	params_.scale_estimator.initial_scale          = fs["scale_estimator.initial_scale"];
-	params_.scale_estimator.thres_turn_psi         = fs["scale_estimator.thres_turn_psi"];
-	params_.scale_estimator.thres_cnt_turns        = (int)fs["scale_estimator.thres_cnt_turns"];
-	params_.scale_estimator.thres_age_past_horizon = (int)fs["scale_estimator.thres_age_past_horizon"];
-	params_.scale_estimator.thres_age_use          = (int)fs["scale_estimator.thres_age_use"];
-	params_.scale_estimator.thres_age_recon        = (int)fs["scale_estimator.thres_age_recon"];
-	params_.scale_estimator.thres_parallax_use     = fs["scale_estimator.thres_parallax_use"];
-	params_.scale_estimator.thres_parallax_recon   = fs["scale_estimator.thres_parallax_recon"];
+	params_.scale_estimator.cam_to_rear_axle_length = fs["scale_estimator.cam_to_rear_axle_length"];
+	params_.scale_estimator.initial_scale           = fs["scale_estimator.initial_scale"];
+	params_.scale_estimator.thres_turn_psi          = fs["scale_estimator.thres_turn_psi"];
+	params_.scale_estimator.thres_cnt_turns         = (int)fs["scale_estimator.thres_cnt_turns"];
+	params_.scale_estimator.thres_age_past_horizon  = (int)fs["scale_estimator.thres_age_past_horizon"];
+	params_.scale_estimator.thres_age_use           = (int)fs["scale_estimator.thres_age_use"];
+	params_.scale_estimator.thres_age_recon         = (int)fs["scale_estimator.thres_age_recon"];
+	params_.scale_estimator.thres_parallax_use      = fs["scale_estimator.thres_parallax_use"];
+	params_.scale_estimator.thres_parallax_recon    = fs["scale_estimator.thres_parallax_recon"];
 
 	// Keyframe update
 	params_.keyframe_update.thres_alive_ratio      = fs["keyframe_update.thres_alive_ratio"];

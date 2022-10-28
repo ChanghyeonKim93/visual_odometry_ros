@@ -124,7 +124,8 @@ private:
 public:
     void setTurnRegion_ThresPsi(float psi);
     void setTurnRegion_ThresCountTurn(uint32_t thres_cnt_turn);
-
+    void setCamToRearAxleLength(float L);
+    
     /// @brief Insert new frame. In this function, scale is estimated via kinematics if this frame has sufficient rotation motion.
     /// @param frame New frame (might be a keyframe)
     /// @return true: turn detected, false: unconstrained frame.

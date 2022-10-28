@@ -5,9 +5,7 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
-        - /Grid1
         - /VO_pose1/Shape1
-        - /VO_map_points1
         - /GT_path1/Status1
       Splitter Ratio: 0.6571428775787354
     Tree Height: 435
@@ -287,7 +285,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 946.2236938476562
+      Distance: 730.7734375
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -295,9 +293,9 @@ Visualization Manager:
         Value: false
       Field of View: 1
       Focal Point:
-        X: 61.429866790771484
-        Y: 114.33817291259766
-        Z: 159.88504028320312
+        X: -35.838008880615234
+        Y: 114.3384780883789
+        Z: 143.1481170654297
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
