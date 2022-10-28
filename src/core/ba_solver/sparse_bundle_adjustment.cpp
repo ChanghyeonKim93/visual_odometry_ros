@@ -780,7 +780,8 @@ void SparseBundleAdjustmentSolver::setParameterVectorFromPosesPoints()
         const _BA_PoseSE3& Tjw = ba_params_->getOptPose(j_opt);
         _BA_PoseSE3Tangent xi_jw;
         geometry::SE3Log(Tjw, xi_jw);
-        params_poses_[j_opt] = xi_jw;
+        // params_poses_[j_opt] = xi_jw;
+        params_poses_[j_opt] << xi_jw;
 
         // std::cout << "Pose:\n" << Tjw << std::endl;
         // std::cout << "xi_jw: " << xi_jw.transpose() << std::endl;
@@ -788,7 +789,7 @@ void SparseBundleAdjustmentSolver::setParameterVectorFromPosesPoints()
 
     // 2) Point part
     for(_BA_Index i = 0; i < M_; ++i) 
-        params_points_[i] = ba_params_->getOptPoint(i);
+        params_points_[i] << ba_params_->getOptPoint(i);
 };
 
 void SparseBundleAdjustmentSolver::getPosesPointsFromParameterVector()

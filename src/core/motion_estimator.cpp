@@ -685,23 +685,20 @@ bool MotionEstimator::poseOnlyBundleAdjustment(const PointVec& X, const PixelVec
 
     float lambda = 0.00001f;
     
-    float fx = cam->fx(); float fy = cam->fy();
-    float cx = cam->cx(); float cy = cam->cy();
-    float fxinv = cam->fxinv(); float fyinv = cam->fyinv();
+    const float& fx = cam->fx(); const float& fy = cam->fy();
+    const float& cx = cam->cx(); const float& cy = cam->cy();
+    const float& fxinv = cam->fxinv(); const float& fyinv = cam->fyinv();
 
-    PoseSE3 T10_init;
     PoseSE3 T01_init;
     T01_init << R01_true, t01_true, 0,0,0,1;
-    T10_init = T01_init.inverse();
 
-    PoseSE3Tangent xi10; // se3
-    geometry::SE3Log_f(T10_init,xi10);
     
     float err_prev = 1e10f;
-    PoseSE3 T10_optimized = T10_init;
 
-    Eigen::Matrix<float,6,6> JtWJ;
-    Eigen::Matrix<float,6,1> mJtWr;
+    Mat66 JtWJ;
+    Vec6  mJtWr;
+
+    PoseSE3 T10_optimized  = T01_init.inverse();
     for(uint32_t iter = 0; iter < MAX_ITER; ++iter)
     {
         mJtWr.setZero();
@@ -751,8 +748,8 @@ bool MotionEstimator::poseOnlyBundleAdjustment(const PointVec& X, const PixelVec
                 mask_inlier[i] = true;
 
             // JtWJ, JtWr for x
-            Eigen::Matrix<float,6,1> Jt; Jt.setZero();
-            Eigen::Matrix<float,6,6> JtJ_tmp; JtJ_tmp.setZero();
+            Vec6 Jt; Jt.setZero();
+            Mat66 JtJ_tmp; JtJ_tmp.setZero();
             
             Jt(0) = fx*iz;
             Jt(1) = 0.0f;
@@ -829,19 +826,18 @@ bool MotionEstimator::poseOnlyBundleAdjustment(const PointVec& X, const PixelVec
         // std::cout << "reproj. err. (avg): " << err_curr << ", step: " << delta_xi.transpose() << std::endl;
         if(delta_xi.norm() < THRES_DELTA_XI || delta_err < THRES_DELTA_ERROR)
         {
-            std::cout << "poseonly BA stops at: " << iter <<", err: " << err_curr <<", derr: " << delta_err << ", deltaxi: " << delta_xi.norm() << ", # invalid: " << cnt_invalid << "\n";
+            std::cout << "    poseonly BA stops at: " << iter <<", err: " << err_curr <<", derr: " << delta_err << ", deltaxi: " << delta_xi.norm() << ", # invalid: " << cnt_invalid << "\n";
             break;
         }
         if(iter == MAX_ITER-1)
         {
-            std::cout << "!! WARNING !! poseonly BA stops at full iterations!!" <<", err: " << err_curr <<", derr: " << delta_err << ", # invalid: " << cnt_invalid << "\n";
+            std::cout << "    !! WARNING !! poseonly BA stops at full iterations!!" <<", err: " << err_curr <<", derr: " << delta_err << ", # invalid: " << cnt_invalid << "\n";
         }
     }
 
     if(!std::isnan(T10_optimized.norm()))
     {
         PoseSE3 T01_update;
-        // geometry::se3Exp_f(-xi10, T01_update);
         T01_update << geometry::inverseSE3_f(T10_optimized);
         R01_true = T01_update.block<3,3>(0,0);
         t01_true = T01_update.block<3,1>(0,3);
@@ -1197,7 +1193,8 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     sparse_ba_solver_->reset();
     // double dt_reset = timer::toc(0);
 
-    if(0){
+    if(0)
+    {
         std::cout << "==== Show Translations: \n";
         for(int j = 0; j < ba_params->getNumOfOptimizeFrames(); ++j)
         {
@@ -1216,10 +1213,11 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
         }
     }
 
+
     for(const auto& f : ba_params->getAllFrameset())
     {
         std::cout << f->getID() << "-th frame is " << 
-        (f->isPoseOnlySuccess() ? "TRUE" : "FALSE") << std::endl;
+                    (f->isPoseOnlySuccess() ? "TRUE" : "FALSE") << std::endl;
     }
     
     
