@@ -138,3 +138,10 @@ add_executable(image_cropper
   src/image_cropper/main_cropper.cpp
   src/image_cropper/image_cropper.cpp)
 target_link_libraries (image_cropper ${catkin_LIBRARIES} ${Eigen_LIBRARIES})
+
+
+# executable for the additional modules
+add_executable(test_pose3d 
+  src/test/main_test_pose3d.cpp)
+target_link_libraries (test_pose3d ${catkin_LIBRARIES} ${Eigen_LIBRARIES})
+
