@@ -15,9 +15,8 @@ int main()
 
     std::cout << "R_mat:\n" << R_mat << std::endl;
 
-    Rotation3 rot;
-    rot.initByRotation(R_mat);
-    
+    Rotation3 rot(R_mat);
+
     std::cout << rot.R() << std::endl;
     std::cout << rot.q() << std::endl;
     std::cout << rot.determinant() << std::endl;
@@ -43,8 +42,18 @@ int main()
 
 // Pose3d
 // 1) initialize test
-    
+    Position3 t;
+    t << 0.22, 0.44, 0.11;
 
+    Rotation3 rot2(R_mat);
+
+    Pose3 pose;
+    pose << (rot2,t);
+
+    std::cout << pose << std::endl;
+    std::cout << pose.inverse() << std::endl;
+
+    std::cout << pose.rotation().determinant() << std::endl;
 
 // 2) 
 
