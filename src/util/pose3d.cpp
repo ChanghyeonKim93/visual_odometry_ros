@@ -119,9 +119,9 @@ void Rotation3::operator<<(const so3& w){
     initByAxisAngle(w);
 };
 
-Pose3 Rotation3::operator,(const Position3& t)
+Pose3D Rotation3::operator,(const Position3& t)
 {
-    return Pose3(*this, t);
+    return Pose3D(*this, t);
 };
 
 std::ostream& operator << (std::ostream& os, const Rotation3& rot){
@@ -291,32 +291,32 @@ Quaternion4 Rotation3::q1_mult_q2(const Quaternion4& q1, const Quaternion4& q2) 
 
 /*
 =============================================
-pose3
+Pose3D
 =============================================
 */
-Pose3::Pose3() 
+Pose3D::Pose3D() 
 : rot_() {
     t_.setZero();
     T_.setZero();
 };
 
-Pose3::Pose3(const Rotation3& rot, const Position3& t) {
+Pose3D::Pose3D(const Rotation3& rot, const Position3& t) {
     initByQuaternionAndTranslation(rot.q(), t);
 };
 
-Pose3::Pose3(const SO3& R, const Position3& t) {
+Pose3D::Pose3D(const SO3& R, const Position3& t) {
     initByRotationAndTranslation(R, t);
 };
 
-Pose3::Pose3(const Quaternion4& q, const Position3& t) {
+Pose3D::Pose3D(const Quaternion4& q, const Position3& t) {
     initByQuaternionAndTranslation(q,t);
 };
 
-Pose3::Pose3(const so3& w, const Position3& t){
+Pose3D::Pose3D(const so3& w, const Position3& t){
     initByAxisAngleAndTranslation(w,t);
 };
 
-Pose3::Pose3(const Pose3& pose)
+Pose3D::Pose3D(const Pose3D& pose)
 {
     rot_ = pose.rotation();
     t_  << pose.t();
@@ -324,28 +324,28 @@ Pose3::Pose3(const Pose3& pose)
 };
 
 
-const Rotation3& Pose3::rotation() const { return rot_; };
-const Quaternion4&      Pose3::q() const { return rot_.q(); };
+const Rotation3& Pose3D::rotation() const { return rot_; };
+const Quaternion4&      Pose3D::q() const { return rot_.q(); };
 
-const SO3&       Pose3::R() const { return rot_.R(); };
-const Position3& Pose3::t() const { return t_; };
-const SE3&       Pose3::T() const { return T_; };
+const SO3&       Pose3D::R() const { return rot_.R(); };
+const Position3& Pose3D::t() const { return t_; };
+const SE3&       Pose3D::T() const { return T_; };
 
-Pose3 Pose3::inverse() const {
+Pose3D Pose3D::inverse() const {
     Rotation3 rot_inv = rot_.inverse();
-    Pose3 pose_inv( rot_inv, -rot_inv.R()*t_);
-    
+    Pose3D pose_inv( rot_inv, -rot_inv.R()*t_);
+
     return pose_inv;
 };
 
-void Pose3::setIdentity()
+void Pose3D::setIdentity()
 {
     rot_.setIdentity();
     t_ << 0,0,0;
     T_ << rot_.R(), t_, 0.0, 0.0, 0.0, 1.0;
 };
 
-void Pose3::initByRotationAndTranslation(const SO3& R, const Position3& t)
+void Pose3D::initByRotationAndTranslation(const SO3& R, const Position3& t)
 {
     rot_ << R;
     t_ << t;
@@ -353,7 +353,7 @@ void Pose3::initByRotationAndTranslation(const SO3& R, const Position3& t)
     T_ << rot_.R(), t_, 0,0,0,1;
 };
 
-void Pose3::initByQuaternionAndTranslation(const Quaternion4& q, const Position3& t)
+void Pose3D::initByQuaternionAndTranslation(const Quaternion4& q, const Position3& t)
 {
     rot_ << q;
     t_ << t;
@@ -361,7 +361,7 @@ void Pose3::initByQuaternionAndTranslation(const Quaternion4& q, const Position3
     T_ << rot_.R(), t_, 0,0,0,1;
 };
 
-void Pose3::initByAxisAngleAndTranslation(const so3& w, const Position3& t)
+void Pose3D::initByAxisAngleAndTranslation(const so3& w, const Position3& t)
 {
     rot_ << w;
     t_ << t;
@@ -370,14 +370,14 @@ void Pose3::initByAxisAngleAndTranslation(const so3& w, const Position3& t)
 };
 
 
-Pose3& Pose3::operator=(const Pose3& pose)
+Pose3D& Pose3D::operator=(const Pose3D& pose)
 {
     initByQuaternionAndTranslation(pose.rotation().q(), pose.t());
     return *this;
 };
 
 // 곱셈 연산자
-Pose3 Pose3::operator*(const Pose3& pose) const
+Pose3D Pose3D::operator*(const Pose3D& pose) const
 {
     Rotation3 rot_res;
     rot_res = rot_ * pose.rotation();
@@ -385,14 +385,14 @@ Pose3 Pose3::operator*(const Pose3& pose) const
     Position3 t_res;
     t_res << t_ + rot_.R()*pose.t();
 
-    Pose3 pose_res;
+    Pose3D pose_res;
     pose_res.initByQuaternionAndTranslation(rot_res.q(), t_res);
 
     return pose_res;  
 };
 
 // 곱셈 대입 연산자
-Pose3& Pose3::operator*=(const Pose3& pose)
+Pose3D& Pose3D::operator*=(const Pose3D& pose)
 {
     t_.noalias() = t_ + rot_.R()*pose.t();
 
@@ -405,12 +405,12 @@ Pose3& Pose3::operator*=(const Pose3& pose)
 
 
 // 대입 연산자.
-void Pose3::operator<<(const Pose3& pose){ // 대입 rot
+void Pose3D::operator<<(const Pose3D& pose){ // 대입 rot
     initByQuaternionAndTranslation(pose.q(), pose.t());
 };
 
 
-std::ostream& operator << (std::ostream& os, const Pose3& pose)
+std::ostream& operator << (std::ostream& os, const Pose3D& pose)
 {
     os << pose.T();
     return os;

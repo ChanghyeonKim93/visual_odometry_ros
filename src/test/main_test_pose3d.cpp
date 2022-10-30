@@ -47,7 +47,7 @@ int main()
 
     Rotation3 rot2(R_mat);
 
-    Pose3 pose;
+    Pose3D pose;
     pose << (rot2,t);
 
     std::cout << pose << std::endl;

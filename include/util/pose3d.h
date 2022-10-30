@@ -29,7 +29,7 @@ typedef Eigen::Matrix<_mat_numeric,4,4> SE3;
 // multiplication by rotvec: w -> R -> q and q1*q2
 
 class Rotation3;
-class Pose3;
+class Pose3D;
 
 class Rotation3
 {
@@ -70,11 +70,9 @@ private:
 // 곱셈 연산
 // 곱셈 대입 연산 (자기 자신에게 곱셈하고 자기 자신을 리턴)
 public:
-    Rotation3& operator=(const Rotation3& Rotation3);
-    // 곱셈 연산자.
-    Rotation3 operator*(const Rotation3& rot) const;
-    // 곱셈 대입 연산자.
-    Rotation3& operator*=(const Rotation3& rot);
+    Rotation3& operator  = (const Rotation3& Rotation3); // 대입 복사 연산자.
+    Rotation3  operator  * (const Rotation3& rot) const; // 곱셈 연산자.
+    Rotation3& operator *= (const Rotation3& rot); // 곱셈 대입 연산자.
 
     // 대입 연산자.
     void operator<<(const Rotation3& rot);
@@ -82,7 +80,7 @@ public:
 
     void operator<<(const Quaternion4& q);
     void operator<<(const so3& w);
-    Pose3 operator,(const Position3& t);
+    Pose3D operator,(const Position3& t);
 
     friend std::ostream& operator << (std::ostream& os, const Rotation3& rot);
 
@@ -96,7 +94,7 @@ private:
 };
 
 
-class Pose3
+class Pose3D
 {
 private:
     Rotation3 rot_; // SO3
@@ -105,12 +103,12 @@ private:
     SE3 T_;
 
 public:
-    Pose3();
-    Pose3(const Rotation3& rot, const Position3& t);
-    Pose3(const SO3& R, const Position3& t);
-    Pose3(const Quaternion4& q, const Position3& t);
-    Pose3(const so3& w, const Position3& t);
-    Pose3(const Pose3& pose);
+    Pose3D();
+    Pose3D(const Rotation3& rot, const Position3& t);
+    Pose3D(const SO3& R, const Position3& t);
+    Pose3D(const Quaternion4& q, const Position3& t);
+    Pose3D(const so3& w, const Position3& t);
+    Pose3D(const Pose3D& pose);
     
 
 // Get method (const)
@@ -122,7 +120,7 @@ public:
     const Position3& t() const;
     const SE3&       T() const;
     
-    Pose3 inverse() const;
+    Pose3D inverse() const;
 
 // Set methods
 public:
@@ -136,14 +134,14 @@ private:
 
 // Operator overloading
 public:
-    Pose3& operator=(const Pose3& pose);
+    Pose3D& operator=(const Pose3D& pose);
     // 곱셈 연산자
-    Pose3 operator*(const Pose3& pose) const;
+    Pose3D operator*(const Pose3D& pose) const;
     // 곱셈 대입 연산자
-    Pose3& operator*=(const Pose3& pose);
+    Pose3D& operator*=(const Pose3D& pose);
     // 대입 연산자.
-    void operator<<(const Pose3& pose);
-    friend std::ostream& operator << (std::ostream& os, const Pose3& pose);
+    void operator<<(const Pose3D& pose);
+    friend std::ostream& operator << (std::ostream& os, const Pose3D& pose);
 };
 
 #endif
