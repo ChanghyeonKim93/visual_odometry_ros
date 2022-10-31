@@ -79,5 +79,5 @@ motion_estimator.lba.max_iter: 6
 keyframe_update.thres_alive_ratio: 0.6
 keyframe_update.thres_mean_parallax: 1.0
 keyframe_update.thres_trans: 10.0 # meters
-keyframe_update.thres_rotation: 10.0 # degrees
+keyframe_update.thres_rotation: 15.0 # degrees
 keyframe_update.n_max_keyframes_in_window: 9

@@ -232,7 +232,6 @@ const cv::Mat& StereoVO::getDebugImage()
     return img_debug_;
 };
 
-
 void StereoVO::showTracking(const std::string& window_name, const cv::Mat& img, const PixelVec& pts0, const PixelVec& pts1, const PixelVec& pts1_new)
 {
 	cv::namedWindow(window_name);

@@ -24,7 +24,7 @@ bool MotionEstimator::calcPose5PointsAlgorithm(
     Rot3& R10_true, Pos3& t10_true, PointVec& X0_true, MaskVec& mask_inlier)
 {
     // std::cout <<" - MotionEstimator - 'calcPose5PointsAlgorithm()'\n";
-    if(pts0.size() != pts1.size()) 
+    if( pts0.size() != pts1.size() )
     {
         throw std::runtime_error("calcPose5PointsAlgorithm(): pts0.size() != pts1.size()");
     }
