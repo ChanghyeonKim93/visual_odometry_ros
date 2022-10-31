@@ -110,7 +110,8 @@ public:
         const float& L, /* car rear axle to camera distance (meter)*/
         const std::shared_ptr<std::mutex> mut,  /* mutex for sync */
         const std::shared_ptr<std::condition_variable> cond_var, /* condition variable for sync*/
-        bool flag_do_ASR);
+        bool flag_do_ASR,
+        float  THRES_CNT_TURN, float THRES_PSI);
 
     /// @brief Destructor of ScaleEstimator
     ~ScaleEstimator();

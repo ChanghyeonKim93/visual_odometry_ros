@@ -122,6 +122,8 @@ public:
     
     Pose3D inverse() const;
 
+
+
 // Set methods
 public:
     void setIdentity();

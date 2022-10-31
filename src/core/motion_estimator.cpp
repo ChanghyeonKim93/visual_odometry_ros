@@ -1025,8 +1025,8 @@ bool MotionEstimator::poseOnlyBundleAdjustment_Stereo(const PointVec& X, const P
             err_curr += ry_r*ry_r;
         } // END FOR
 
-        err_curr *= (inv_npts*0.5f);
-        err_curr = std::sqrt(err_curr);
+        err_curr       *= (inv_npts*0.5f);
+        err_curr        = std::sqrt(err_curr);
         float delta_err = abs(err_curr - err_prev);
 
 
@@ -1137,6 +1137,8 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     float THRES_HUBER       = 0.5f;
     float THRES_HUBER_MIN   = 0.3f;
     float THRES_HUBER_MAX   = 20.0f;
+
+    float THRES_TOO_FAR     = 100.0f;
 
     // optimization status flags
     bool DO_RECALC          = true;

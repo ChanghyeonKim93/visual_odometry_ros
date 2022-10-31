@@ -74,6 +74,9 @@ public:
 
 public:
     void setMaxStereoKeyframes(int max_kf); // set maximum keyframes in window.
+    void setThresTranslation(float val);
+    void setThresRotation(float val); 
+    void setThresOverlapRatio(float val); 
 
 public:
     void addNewStereoKeyframe(const StereoFramePtr& stframe); // delete the oldest keyframe and add new keyframe.

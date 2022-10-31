@@ -335,6 +335,12 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER)
                     const _BA_Pos3& t_jw = T_jw.block<3,1>(0,3);
                     
                     _BA_Point Xij = R_jw*Xi + t_jw; // transform a 3D point.
+
+                    // if(Xij(2) > 50.0) 
+                    // {
+                    //     std::cout << Xij.transpose() << std::endl;
+                    //     continue;
+                    // }
                 
                     // 1) Qij and Rij calculation.
                     const _BA_Numeric& xj = Xij(0), yj = Xij(1), zj = Xij(2);
@@ -369,7 +375,7 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER)
                     const _BA_Numeric& r21 = R_jw(1,0), r22 = R_jw(1,1), r23 = R_jw(1,2);
                     const _BA_Numeric& r31 = R_jw(2,0), r32 = R_jw(2,1), r33 = R_jw(2,2);
                     Rij << fxinvz*r11-fx_xinvz2*r31, fxinvz*r12-fx_xinvz2*r32, fxinvz*r13-fx_xinvz2*r33, 
-                        fyinvz*r21-fy_yinvz2*r31, fyinvz*r22-fy_yinvz2*r32, fyinvz*r23-fy_yinvz2*r33;
+                           fyinvz*r21-fy_yinvz2*r31, fyinvz*r22-fy_yinvz2*r32, fyinvz*r23-fy_yinvz2*r33;
                     
                     _BA_Mat32 Rij_t = Rij.transpose();
 

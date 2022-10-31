@@ -5,8 +5,10 @@ ScaleEstimator::ScaleEstimator(
     const float& L,
     const std::shared_ptr<std::mutex> mut, 
     const std::shared_ptr<std::condition_variable> cond_var,
-    bool flag_do_ASR)
-: frame_prev_(nullptr), L_(L), cnt_turn_(0)
+    bool flag_do_ASR, 
+    float  THRES_CNT_TURN, float THRES_PSI)
+: frame_prev_(nullptr), L_(L), cnt_turn_(0),
+THRES_CNT_TURN_(THRES_CNT_TURN), THRES_PSI_(THRES_PSI)
 {
     // Setting camera
     this->cam_ = cam;
@@ -26,8 +28,12 @@ ScaleEstimator::ScaleEstimator(
         std::cout << " - SCALE_ESTIMATOR: 'ASR' module is OFF.\n";
 
     // Detecting turn region variables
-    this->setTurnRegion_ThresPsi(2.0*M_PI/180.0);
-    this->setTurnRegion_ThresCountTurn(12);
+    // this->setTurnRegion_ThresPsi(2.0*M_PI/180.0);
+    // this->setTurnRegion_ThresCountTurn(12);
+
+    this->setTurnRegion_ThresPsi(THRES_CNT_TURN_*M_PI/180.0);
+    this->setTurnRegion_ThresCountTurn(THRES_CNT_TURN_);
+
 
     // Run process thread.
     this->terminate_future_ = terminate_promise_.get_future();

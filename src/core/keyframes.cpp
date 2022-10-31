@@ -158,6 +158,21 @@ void StereoKeyframes::setMaxStereoKeyframes(int max_kf)
     N_MAX_KEYFRAMES_IN_WINDOW_ = max_kf;
 };
 
+void StereoKeyframes::setThresTranslation(float val)
+{
+    THRES_TRANSLATION_ = val;
+};
+
+void StereoKeyframes::setThresRotation(float val)
+{
+    THRES_ROTATION_  = val;
+};
+
+void StereoKeyframes::setThresOverlapRatio(float val)
+{
+    THRES_OVERLAP_FEATURE_RATIO_ = val;
+};
+
 
 void StereoKeyframes::addNewStereoKeyframe(const StereoFramePtr& stframe)
 {
@@ -232,9 +247,12 @@ bool StereoKeyframes::checkUpdateRule(const StereoFramePtr& stframe_curr)
             for(const auto& lm : frame_left->getRelatedLandmarkPtr())
             {
                 ++cnt_total_lms;
-
-                if(lm->getRelatedFramePtr().back() == frame_left 
-                 ||lm->getRelatedFramePtr().back() == frame_right) 
+                
+                int len = lm->getRelatedFramePtr().size();
+                if(lm->getRelatedFramePtr()[len-1] == stframe_curr->getLeft() 
+                 ||lm->getRelatedFramePtr()[len-1] == stframe_curr->getRight()
+                 ||lm->getRelatedFramePtr()[len-2] == stframe_curr->getLeft() 
+                 ||lm->getRelatedFramePtr()[len-2] == stframe_curr->getRight() ) 
                     ++cnt_tracked; // kf의 landmark가 현재 프레임으로 추적 되었는지.
             }
 

@@ -46,6 +46,10 @@ StereoVO::StereoVO(std::string mode, std::string directory_intrinsic)
 
 	// Initialize stereo keyframes class
 	stkeyframes_ = std::make_shared<StereoKeyframes>();
+	stkeyframes_->setMaxStereoKeyframes(params_.keyframe_update.n_max_keyframes_in_window);
+	stkeyframes_->setThresOverlapRatio(params_.keyframe_update.thres_alive_ratio);
+	stkeyframes_->setThresRotation(params_.keyframe_update.thres_rotation*D2R);
+	stkeyframes_->setThresTranslation(params_.keyframe_update.thres_trans);
 };
 
 StereoVO::~StereoVO()
@@ -176,6 +180,7 @@ void StereoVO::loadStereoCameraIntrinsicAndUserParameters(const std::string& dir
 	params_.keyframe_update.thres_mean_parallax    = fs["keyframe_update.thres_mean_parallax"];
 	params_.keyframe_update.thres_trans            = fs["keyframe_update.thres_trans"];
 	params_.keyframe_update.thres_rotation         = fs["keyframe_update.thres_rotation"];
+	params_.keyframe_update.n_max_keyframes_in_window = (int)fs["keyframe_update.n_max_keyframes_in_window"];
 
 	std::cout << " - 'loadStereoCameraIntrinsicAndUserParameters()' - loaded.\n";
 };

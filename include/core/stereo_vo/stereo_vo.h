@@ -77,6 +77,7 @@ private:
 			float thres_mean_parallax   = 3.0*D2R;
 			float thres_trans           = 1.0; //meter
 			float thres_rotation        = 3.0*D2R; // radian
+			int n_max_keyframes_in_window = 9;
 		};
 		struct MappingParameters{
 			float thres_parallax      = 1.0*D2R;

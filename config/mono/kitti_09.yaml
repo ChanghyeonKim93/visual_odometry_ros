@@ -28,7 +28,7 @@ Camera.height: 370
 # Parameters of feature tracker
 feature_tracker.thres_error: 100.0      
 feature_tracker.thres_bidirection: 1.0
-feature_tracker.thres_sampson: 1.0
+feature_tracker.thres_sampson: 100.0
 feature_tracker.window_size: 15
 feature_tracker.max_level: 6
 
@@ -48,11 +48,11 @@ motion_estimator.thres_5p_error: 1.0 # pixels
 motion_estimator.thres_poseba_error: 5.0 # pixels
 
 # Parameters of scale estimator
-scale_estimator.flag_asr_on: 0
-scale_estimator.cam_to_rear_axle_length: 0.95 # KITTI; 1.05 m, MYDATA: 1.45 m
-scale_estimator.initial_scale: 0.76 # meters
-scale_estimator.thres_turn_psi: 1.2 # degrees
-scale_estimator.thres_cnt_turns: 7
+scale_estimator.flag_asr_on: 1
+scale_estimator.cam_to_rear_axle_length: 0.82 # KITTI; 0.85 m, MYDATA: 1.45 m
+scale_estimator.initial_scale: 0.3  # meters
+scale_estimator.thres_turn_psi: 3.5 # degrees
+scale_estimator.thres_cnt_turns: 8
 
 scale_estimator.thres_age_past_horizon: 20
 scale_estimator.thres_age_use: 2
@@ -61,7 +61,7 @@ scale_estimator.thres_parallax_use: 0.5 # degrees
 scale_estimator.thres_parallax_recon: 20.0 # degrees
 
 # Parameters of keyframe update
-keyframe_update.thres_overlap_ratio: 0.7
-keyframe_update.thres_translation: 3.0
-keyframe_update.thres_rotation: 4.0
+keyframe_update.thres_overlap_ratio: 0.6
+keyframe_update.thres_translation: 4.0
+keyframe_update.thres_rotation: 6.0
 keyframe_update.n_max_keyframes_in_window: 9

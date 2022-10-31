@@ -685,7 +685,7 @@ bool SparseBundleAdjustmentScaleSQPSolver::solveForFiniteIterations(int MAX_ITER
             X_update_float << X_updated(0),X_updated(1),X_updated(2);
 
             lm->set3DPoint(X_update_float);
-            if(X_update_float.norm() <= 200)
+            if(X_update_float.norm() <= 3000)
                 lm->setBundled();
             else {
                 ++cnt_invalid_lms;

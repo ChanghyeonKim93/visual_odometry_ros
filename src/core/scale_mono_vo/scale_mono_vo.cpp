@@ -53,7 +53,7 @@ ScaleMonoVO::ScaleMonoVO(std::string mode, std::string directory_intrinsic)
 	mut_scale_estimator_      = std::make_shared<std::mutex>();
 	cond_var_scale_estimator_ = std::make_shared<std::condition_variable>(); // New pose 가 도
 	
-	scale_estimator_          = std::make_shared<ScaleEstimator>(cam_, L, mut_scale_estimator_, cond_var_scale_estimator_, flag_do_ASR_);
+	scale_estimator_          = std::make_shared<ScaleEstimator>(cam_, L, mut_scale_estimator_, cond_var_scale_estimator_, flag_do_ASR_, params_.scale_estimator.thres_cnt_turns, params_.scale_estimator.thres_turn_psi);
 	
 	// Initialize keyframes class
 	keyframes_ = std::make_shared<Keyframes>();
