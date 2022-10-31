@@ -676,6 +676,9 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER)
             }
         }
         
+
+        _BA_Index num_bundled = 0;
+
         for(_BA_Index i = 0; i < M_; ++i)
         {
             const LandmarkBA& lmba = ba_params_->getLandmarkBA(i);
@@ -700,11 +703,15 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER)
             X_update_float << X_updated(0),X_updated(1),X_updated(2);
 
             lm->set3DPoint(X_update_float);
-            if(X_update_float.norm() <= 1000)
+            if(X_update_float.norm() <= 3000){
                 lm->setBundled();
+                ++num_bundled;
+            }
             else
                 lm->setDead();
         }
+
+        std::cout << "The number of bundled: " << num_bundled <<" / " << M_ << std::endl;
 
         if(flag_large_update)
         {

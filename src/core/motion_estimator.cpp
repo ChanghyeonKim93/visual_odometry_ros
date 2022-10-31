@@ -823,7 +823,8 @@ bool MotionEstimator::poseOnlyBundleAdjustment(const PointVec& X, const PixelVec
         T10_optimized.noalias() = dT*T10_optimized;
         
         err_prev = err_curr;
-        // std::cout << "reproj. err. (avg): " << err_curr << ", step: " << delta_xi.transpose() << std::endl;
+
+        std::cout << "reproj. err. (avg): " << err_curr << ", step: " << delta_xi.transpose() <<", det: " << T10_optimized.block<3,3>(0,0).determinant() << std::endl;
         if(delta_xi.norm() < THRES_DELTA_XI || delta_err < THRES_DELTA_ERROR)
         {
             std::cout << "    poseonly BA stops at: " << iter <<", err: " << err_curr <<", derr: " << delta_err << ", deltaxi: " << delta_xi.norm() << ", # invalid: " << cnt_invalid << "\n";

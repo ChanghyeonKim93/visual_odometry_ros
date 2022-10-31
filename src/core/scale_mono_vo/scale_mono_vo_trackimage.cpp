@@ -330,7 +330,8 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 		Rot3 dR10; Pos3 dt10; PoseSE3 dT10;
 		Rot3 dR01; Pos3 dt01; PoseSE3 dT01;
 		bool poseonlyBA_success = false;
-		if(index_ba.size() > 10)
+		bool has_sufficient_points = index_ba.size() > 10;
+		if(has_sufficient_points)
 		{
 			// Do Local BA
 			int n_pts_ba = index_ba.size();
@@ -403,12 +404,25 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			frame_curr->setPoseOnlyFailed();
 
 			// do 5 point algorihtm (scale is of the previous frame)
-			std::cout << colorcode::text_red;
-			std::cout << "\n\n\n";
-			std::cout << "!!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!!\n";
-			std::cout << " !!! !!! !! WARNING ! Because of pose-only BA is failed, 5-points algorithm runs... !! !!! !!! \n";
-			std::cout << "!!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!!\n\n\n";
-			std::cout << colorcode::cout_reset << std::endl;
+			if(!has_sufficient_points)
+			{
+				std::cout << colorcode::text_red;
+				std::cout << "\n\n\n";
+				std::cout << "!!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!!\n";
+				std::cout << " !!! !!! !! WARNING ! Because of insufficient points, 5-points algorithm runs... !! !!! !!! \n";
+				std::cout << "!!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!!\n\n\n";
+				std::cout << colorcode::cout_reset << std::endl;
+			}
+			else
+			{
+				std::cout << colorcode::text_red;
+				std::cout << "\n\n\n";
+				std::cout << "!!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!!\n";
+				std::cout << " !!! !!! !! WARNING ! Because of pose-only BA is failed, 5-points algorithm runs... !! !!! !!! \n";
+				std::cout << "!!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!!\n\n\n";
+				std::cout << colorcode::cout_reset << std::endl;
+			}
+			
 
 			PointVec X0_inlier(lmtrack_scaleok.n_pts);
 
