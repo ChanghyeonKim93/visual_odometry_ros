@@ -11,8 +11,8 @@ namespace Mapping{
 
         int n_pts = pts0.size(); 
 
-        float fx = cam->fx(); float fy = cam->fy();
-        float cx = cam->cx(); float cy = cam->cy();
+        const float& fx = cam->fx(), fy = cam->fy();
+        const float& cx = cam->cx(), cy = cam->cy();
 
         Eigen::Matrix<float,3,4> P00;
         Eigen::Matrix<float,3,4> P10;
@@ -53,8 +53,8 @@ namespace Mapping{
                         const Eigen::Matrix3f& R10, const Eigen::Vector3f& t10, const std::shared_ptr<Camera>& cam, 
                         Point& X0, Point& X1)
     {
-        const float& fx = cam->fx(); const float& fy = cam->fy();
-        const float& cx = cam->cx(); const float& cy = cam->cy();
+        const float& fx = cam->fx(), fy = cam->fy();
+        const float& cx = cam->cx(), cy = cam->cy();
         const Mat33& K = cam->K();
 
         Eigen::Matrix<float,3,4> P00;
@@ -68,8 +68,8 @@ namespace Mapping{
         M(0,0) = -fx; M(0,1) =   0; M(0,3) = 0; 
         M(1,0) =   0; M(1,1) = -fy; M(1,3) = 0; 
 
-        const float& u0 = pt0.x; const float& v0 = pt0.y;
-        const float& u1 = pt1.x; const float& v1 = pt1.y;
+        const float& u0 = pt0.x, v0 = pt0.y;
+        const float& u1 = pt1.x, v1 = pt1.y;
 
         // M(0,0) = -fx; M(0,1) =   0; M(0,2) = u0-cx; M(0,3) = 0; 
         // M(1,0) =   0; M(1,1) = -fy; M(1,2) = v0-cy; M(1,3) = 0; 

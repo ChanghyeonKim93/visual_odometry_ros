@@ -3,7 +3,6 @@
 void StereoVO::trackStereoImages(
     const cv::Mat& img_left, const cv::Mat& img_right, const double& timestamp)
 {
-
 	float THRES_SAMPSON  = params_.feature_tracker.thres_sampson;
 	float THRES_PARALLAX = params_.map_update.thres_parallax;
 
@@ -12,17 +11,15 @@ void StereoVO::trackStereoImages(
 	AlgorithmStatistics::FrameStatistics     statcurr_frame;
 	AlgorithmStatistics::KeyframeStatistics  statcurr_keyframe;
 	AlgorithmStatistics::ExecutionStatistics statcurr_execution;
-			
     
 	// 이미지 undistort (KITTI는 할 필요 X)
     PoseSE3 T_lr;
     PoseSE3 T_rl;
 
     // Left and Right Cameras.
-    CameraPtr cam_left; 
+    CameraPtr cam_left;
     CameraPtr cam_right;
     
-
     timer::tic();
 	cv::Mat img_left_undist, img_right_undist;
 	if( system_flags_.flagDoUndistortion )
@@ -37,8 +34,8 @@ void StereoVO::trackStereoImages(
         T_lr = stereo_cam_->getRectifiedStereoPoseLeft2Right();
         T_rl = stereo_cam_->getRectifiedStereoPoseRight2Left();
 
-        cam_left  = stereo_cam_->getRectifiedCamera(); 
-        cam_right = stereo_cam_->getRectifiedCamera(); 
+        cam_left  = stereo_cam_->getRectifiedCamera();
+        cam_right = stereo_cam_->getRectifiedCamera();
 
 	}
 	else
@@ -52,12 +49,10 @@ void StereoVO::trackStereoImages(
 	}
     std::cout << colorcode::text_green << "Time [stereo undistort ]: " << timer::toc(0) << " [ms]\n" << colorcode::cout_reset;
 
-
     // Algorithm implementation
     // Make new stereo frame for current images.
 	StereoFramePtr stframe_curr = std::make_shared<StereoFrame>(img_left_undist, img_right_undist, cam_left, cam_right, timestamp);
-	
-	this->saveStereoFrame(stframe_curr);      
+	this->saveStereoFrame(stframe_curr);
 
     // Algorithm
     if( this->system_flags_.flagFirstImageGot )

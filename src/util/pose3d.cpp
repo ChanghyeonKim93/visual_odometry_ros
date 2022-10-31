@@ -1,20 +1,24 @@
 #include "util/pose3d.h"
 
-Rotation3:: Rotation3() {
+Rotation3:: Rotation3() 
+{
     R_= SO3::Identity();
     q_ << 1.0, 0.0, 0.0, 0.0;
     w_ << 0.0, 0.0, 0.0;
 };
 
-Rotation3::Rotation3(const SO3& R) {
+Rotation3::Rotation3(const SO3& R) 
+{
     initByRotation(R);
 };
 
-Rotation3::Rotation3(const so3& w) {
+Rotation3::Rotation3(const so3& w) 
+{
     initByAxisAngle(w);
 };
 
-Rotation3::Rotation3(const Quaternion4& q){
+Rotation3::Rotation3(const Quaternion4& q) 
+{
     initByQuaternion(q);
 };
 
