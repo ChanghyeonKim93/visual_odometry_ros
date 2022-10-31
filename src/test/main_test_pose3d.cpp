@@ -9,11 +9,10 @@ int main()
 // Rotation
 // 1) initialize test.
     SO3 R_mat;
-    R_mat << 0.306185853,-0.250000803, 0.918557021,
-             0.8838825,  0.433011621, -0.176776249,
-            -0.35355216, 0.866024084,  0.353553866;
+    R_mat <<  0.9987510,-0.0009691, 0.0499554,
+              0.0010291, 0.9999988,-0.0011739,
+             -0.0499542, 0.0012239, 0.9987507;
 
-    std::cout << "R_mat:\n" << R_mat << std::endl;
 
     Rotation3 rot(R_mat);
 
@@ -43,7 +42,7 @@ int main()
 // Pose3d
 // 1) initialize test
     Position3 t;
-    t << 0.22, 0.44, 0.11;
+    t << 0.1, 0.2, 0.3;
 
     Rotation3 rot2(R_mat);
 
@@ -57,14 +56,14 @@ int main()
 
 // 2) 
     Rotation3 drot;
-    float angle = 2.0*3.1415926535897932384626433832795028841971693*0.001;
+    float angle = 2.0*3.1415926535897932384626433832795028841971693*0.00001;
     so3 w(angle,0,0);
 
     drot << w;
 
     std::cout << drot.R() << std::endl;
     Rotation3 rot_tmp = rot;
-    for(int i = 0; i < 1000; ++i){
+    for(int i = 0; i < 100000; ++i){
         rot_tmp *= drot;
 
         std::cout << i << "-th rot mult:\n";

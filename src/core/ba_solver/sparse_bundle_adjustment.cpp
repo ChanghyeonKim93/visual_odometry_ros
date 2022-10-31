@@ -579,7 +579,14 @@ bool SparseBundleAdjustmentSolver::solveForFiniteIterations(int MAX_ITER)
         {
             _BA_PoseSE3 dT;
             geometry::se3Exp(x_[j], dT);
-            params_poses_[j].noalias() = (dT*params_poses_[j]);
+
+            _BA_PoseSE3Tangent xi;
+            geometry::SE3Log( (params_poses_[j]), xi);
+            geometry::addFrontse3(xi, x_[j]);
+
+            _BA_PoseSE3 T_tmp;
+            geometry::se3Exp(xi, T_tmp);
+            params_poses_[j].noalias() = T_tmp;
         }
 
         for(_BA_Index i = 0; i < M_; ++i)
