@@ -510,6 +510,7 @@ void StereoCamera::generateStereoImagesUndistortAndRectifyMaps()
     this->T_lr_rect_ << Rot3::Identity(), R_ln.transpose()*t_clcr, 0, 0, 0, 1;
     this->T_rl_rect_ << Rot3::Identity(), -R_ln.transpose()*t_clcr, 0, 0, 0, 1;
 
+	std::cout << "K_rect_:\n" << K_rect << std::endl;
 	std::cout << "T_lr_rect_:\n" << T_lr_rect_ << std::endl;
 	
 	is_initialized_to_stereo_rectify_ = true;

@@ -139,6 +139,13 @@ add_executable(image_cropper
   src/image_cropper/image_cropper.cpp)
 target_link_libraries (image_cropper ${catkin_LIBRARIES} ${Eigen_LIBRARIES})
 
+add_executable(stereo_rectifier 
+  src/core/camera.cpp
+  src/core/image_processing.cpp
+  src/stereo_rectifier/main_stereo_rectifier.cpp
+  src/stereo_rectifier/stereo_rectifier.cpp)
+target_link_libraries (stereo_rectifier ${catkin_LIBRARIES} ${Eigen_LIBRARIES})
+
 
 # executable for the additional modules
 add_executable(test_pose3d 

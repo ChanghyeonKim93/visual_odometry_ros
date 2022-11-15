@@ -1,0 +1,14 @@
+<launch>
+    <node pkg="scale_mono_vo_ros" name="stereo_rectifier" type="stereo_rectifier" output="screen">
+        <!-- Image topicname to be subscribed -->
+        <param name="topicname_image_left"  type="string" value="/0/image_raw"/>
+        <param name="topicname_image_right" type="string" value="/1/image_raw"/>
+
+
+        <param name="topicname_image_left_rect"  type="string" value="/0/image_raw/stereo_rect"/>
+        <param name="topicname_image_right_rect" type="string" value="/1/image_raw/stereo_rect"/>
+
+
+        <param name="directory_intrinsic" type="string" value="$(find scale_mono_vo_ros)/config/stereo/exp_stereo2.yaml"/>
+    </node>
+</launch> 
