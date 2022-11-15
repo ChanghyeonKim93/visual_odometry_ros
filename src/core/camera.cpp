@@ -512,6 +512,7 @@ void StereoCamera::generateStereoImagesUndistortAndRectifyMaps()
 
 	std::cout << "K_rect_:\n" << K_rect << std::endl;
 	std::cout << "T_lr_rect_:\n" << T_lr_rect_ << std::endl;
+	std::cout << "fx * baseline: " << K_rect(0,0)* T_lr_rect_(0,3) << std::endl;
 	
 	is_initialized_to_stereo_rectify_ = true;
     std::cout << "[** INFO **] StereoCamera: stereo rectification maps are generated.\n";
