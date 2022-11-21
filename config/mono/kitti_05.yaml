@@ -26,10 +26,10 @@ Camera.height: 370
 #--------------------------------------------------------------------------------------------
 
 # Parameters of feature tracker
-feature_tracker.thres_error: 50.0      
+feature_tracker.thres_error: 60.0      
 feature_tracker.thres_bidirection: 0.5
 feature_tracker.thres_sampson: 1.0
-feature_tracker.window_size: 13
+feature_tracker.window_size: 15
 feature_tracker.max_level: 6
 
 # Parameters of map update
@@ -49,10 +49,10 @@ motion_estimator.thres_poseba_error: 5.0 # pixels
 
 # Parameters of scale estimator
 scale_estimator.flag_asr_on: 1
-scale_estimator.cam_to_rear_axle_length: 0.85 # KITTI; 0.85 m, MYDATA: 1.45 m
+scale_estimator.cam_to_rear_axle_length: 0.93 # KITTI; 0.85 m, MYDATA: 1.45 m
 scale_estimator.initial_scale: 0.53 # meters
-scale_estimator.thres_turn_psi: 2.5 # degrees
-scale_estimator.thres_cnt_turns: 7
+scale_estimator.thres_turn_psi: 1.0 # degrees
+scale_estimator.thres_cnt_turns: 5
 
 scale_estimator.thres_age_past_horizon: 20
 scale_estimator.thres_age_use: 2
