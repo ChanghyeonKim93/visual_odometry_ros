@@ -72,6 +72,64 @@ ScaleMonoVO::ScaleMonoVO(std::string mode, std::string directory_intrinsic)
  */
 ScaleMonoVO::~ScaleMonoVO() 
 {
+	std::cout << "Save all frames trajectory...\n";
+	std::string filedir_frame_poses = "/home/kch/frame_poses.txt";
+	std::ofstream of_frame_poses(filedir_frame_poses, std::ios::trunc);
+    of_frame_poses.precision(4);
+    of_frame_poses.setf(std::ios_base::fixed, std::ios_base::floatfield);
+    if(of_frame_poses.is_open())
+	{
+		for(int j = 0; j < this->all_frames_.size(); ++j)
+		{
+			of_frame_poses  << all_frames_[j]->getID() << " "
+							<< all_frames_[j]->getPose()(0,0) << " " 
+							<< all_frames_[j]->getPose()(0,1) << " " 
+							<< all_frames_[j]->getPose()(0,2) << " " 
+							<< all_frames_[j]->getPose()(0,3) << " " 
+							<< all_frames_[j]->getPose()(1,0) << " " 
+							<< all_frames_[j]->getPose()(1,1) << " " 
+							<< all_frames_[j]->getPose()(1,2) << " " 
+							<< all_frames_[j]->getPose()(1,3) << " " 
+							<< all_frames_[j]->getPose()(2,0) << " " 
+							<< all_frames_[j]->getPose()(2,1) << " " 
+							<< all_frames_[j]->getPose()(2,2) << " " 
+							<< all_frames_[j]->getPose()(2,3) << std::endl;
+		}
+    }
+    else {
+        throw std::runtime_error("file_dir cannot be opened!");
+    }
+	std::cout << " DONE!\n";
+
+	std::cout << "Save all keyframes trajectory...\n";
+	std::string filedir_keyframe_poses = "/home/kch/keyframe_poses.txt";
+	std::ofstream of_keyframe_poses(filedir_keyframe_poses, std::ios::trunc);
+    of_keyframe_poses.precision(4);
+    of_keyframe_poses.setf(std::ios_base::fixed, std::ios_base::floatfield);
+    if(of_keyframe_poses.is_open())
+	{
+		for(int j = 0; j < this->all_keyframes_.size(); ++j)
+		{
+			of_keyframe_poses   << all_keyframes_[j]->getID() << " "
+								<< all_keyframes_[j]->getPose()(0,0) << " " 
+								<< all_keyframes_[j]->getPose()(0,1) << " " 
+								<< all_keyframes_[j]->getPose()(0,2) << " " 
+								<< all_keyframes_[j]->getPose()(0,3) << " " 
+								<< all_keyframes_[j]->getPose()(1,0) << " " 
+								<< all_keyframes_[j]->getPose()(1,1) << " " 
+								<< all_keyframes_[j]->getPose()(1,2) << " " 
+								<< all_keyframes_[j]->getPose()(1,3) << " " 
+								<< all_keyframes_[j]->getPose()(2,0) << " " 
+								<< all_keyframes_[j]->getPose()(2,1) << " " 
+								<< all_keyframes_[j]->getPose()(2,2) << " " 
+								<< all_keyframes_[j]->getPose()(2,3) << std::endl;
+		}
+    }
+    else {
+        throw std::runtime_error("file_dir cannot be opened!");
+    }
+	std::cout << " DONE!\n";
+
 	std::cout << "Scale mono VO is terminated.\n";
 };
 
