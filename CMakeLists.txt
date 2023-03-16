@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 3.5.1)
-project(scale_mono_vo_ros)
+cmake_minimum_required(VERSION 3.8)
+project(visual_odometry_ros)
 set(CMAKE_BUILD_TYPE Release) # Release, RelWithDebInfo
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -O2 -pthread -pg")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}) 
@@ -39,7 +39,7 @@ catkin_package(
   INCLUDE_DIRS include
 )
 
-
+# Source files for the mono VO
 set(SRC_MONO ${SRC_MONO} 
   src/ros_wrapper/mononode.cpp
   src/ros_wrapper/ros_print_in_color.cpp
@@ -77,7 +77,7 @@ set(SRC_MONO ${SRC_MONO}
   src/core/stereo_vo/stereo_vo.cpp
 )
 
-
+# Source files for the stereo VO
 set(SRC_STEREO ${SRC_STEREO} 
   src/ros_wrapper/stereonode.cpp
   src/ros_wrapper/ros_print_in_color.cpp
@@ -114,23 +114,17 @@ include_directories( ${includeDirs} )
 include_directories( ${catkin_INCLUDE_DIRS} )
 include_directories( ${Eigen_INCLUDE_DIRS} )
 
-# executable for 'scale_mono_vo' node
-add_executable(vo_node src/ros_wrapper/main_scale_mono_vo.cpp ${SRC_MONO})
-target_link_libraries (vo_node ${catkin_LIBRARIES} ${Eigen_LIBRARIES})
-
-# executable for 'backend only' node
-add_executable(backend_node src/ros_wrapper/main_backend_only.cpp src/ros_wrapper/backend_node.cpp ${SRC_MONO})
-target_link_libraries (backend_node ${catkin_LIBRARIES} ${Eigen_LIBRARIES})
-
-# executable for 'test orb matching' node
-add_executable(test_orb_matching_node src/ros_wrapper/main_orbmatching_test.cpp ${SRC_MONO})
-target_link_libraries (test_orb_matching_node ${catkin_LIBRARIES} ${Eigen_LIBRARIES})
-
+# executable for 'mono_vo' node
+add_executable(mono_vo_node src/ros_wrapper/main_mono_vo.cpp ${SRC_MONO})
+target_link_libraries (mono_vo_node ${catkin_LIBRARIES} ${Eigen_LIBRARIES})
 
 # executable for 'stereo_vo' node
 add_executable(stereo_vo_node src/ros_wrapper/main_stereo_vo.cpp ${SRC_STEREO})
 target_link_libraries (stereo_vo_node ${catkin_LIBRARIES} ${Eigen_LIBRARIES})
 
+# # executable for 'test orb matching' node
+# add_executable(test_orb_matching_node src/ros_wrapper/main_orbmatching_test.cpp ${SRC_MONO})
+# target_link_libraries (test_orb_matching_node ${catkin_LIBRARIES} ${Eigen_LIBRARIES})
 
 
 # executable for the additional modules
@@ -140,17 +134,15 @@ add_executable(image_cropper
 target_link_libraries (image_cropper ${catkin_LIBRARIES} ${Eigen_LIBRARIES})
 
 add_executable(stereo_rectifier 
+  src/stereo_rectifier/main_stereo_rectifier.cpp
   src/core/camera.cpp
   src/core/image_processing.cpp
-  src/stereo_rectifier/main_stereo_rectifier.cpp
   src/stereo_rectifier/stereo_rectifier.cpp)
 target_link_libraries (stereo_rectifier ${catkin_LIBRARIES} ${Eigen_LIBRARIES})
 
-
-# executable for the additional modules
 add_executable(test_pose3d 
-  src/util/pose3d.cpp
   src/test/main_test_pose3d.cpp
+  src/util/pose3d.cpp
 )
 target_link_libraries (test_pose3d ${catkin_LIBRARIES} ${Eigen_LIBRARIES})
 

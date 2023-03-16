@@ -30,7 +30,7 @@ StereoNode::StereoNode(ros::NodeHandle& nh) : nh_(nh)
     pub_trajectory_gt_ = nh_.advertise<nav_msgs::Path>(topicname_trajectory_gt_,1);
 
     topicname_statistics_ = "/stereo_vo/statistics";
-    pub_statistics_ = nh_.advertise<scale_mono_vo_ros::statisticsStamped>(topicname_statistics_,1);
+    pub_statistics_ = nh_.advertise<visual_odometry_ros::statisticsStamped>(topicname_statistics_,1);
 
     pub_debug_image_ = nh_.advertise<sensor_msgs::Image>("/stereo_vo/debug_image",1);
         
@@ -107,7 +107,7 @@ void StereoNode::imageStereoCallback(
     // Show statistics & get odometry results
     const StereoVO::AlgorithmStatistics& stat = stereo_vo_->getStatistics();
     
-    scale_mono_vo_ros::statisticsStamped msg_stats;
+    visual_odometry_ros::statisticsStamped msg_stats;
     msg_stats.time_total         = stat.stats_execution.back().time_total; 
     msg_stats.time_track         = stat.stats_execution.back().time_track; 
     msg_stats.time_1p            = stat.stats_execution.back().time_1p;    

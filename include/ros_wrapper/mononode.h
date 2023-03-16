@@ -30,7 +30,7 @@
 
 #include "util/timer.h"
 
-#include "scale_mono_vo_ros/statisticsStamped.h"
+#include "visual_odometry_ros/statisticsStamped.h"
 #include "util/geometry_library.h"
 
 #include "ros_wrapper/ros_print_in_color.h"

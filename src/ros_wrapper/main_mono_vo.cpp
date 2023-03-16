@@ -10,12 +10,12 @@
 #include "ros_wrapper/mononode.h"
 
 int main(int argc, char **argv) {
-    ros::init(argc, argv, "vo_node");
+    ros::init(argc, argv, "mono_vo_node");
     // ros::init(argc, argv, "vo_node", ros::init_options::NoSigintHandler);
     // SignalHandle::initSignalHandler();
 
     ros::NodeHandle nh("~");
-    ROS_INFO_STREAM("vo_node - starts.");
+    ROS_INFO_STREAM("mono_vo_node - starts.");
    
     try {  
         MonoNode node(nh);
@@ -24,6 +24,6 @@ int main(int argc, char **argv) {
         ROS_ERROR(e.what());
     }
    
-    ROS_INFO_STREAM("vo_node - TERMINATED.");
+    ROS_INFO_STREAM("mono_vo_node - TERMINATED.");
     return -1;
 }
