@@ -13,6 +13,6 @@
         <param name="topicname_map_points"      type="string" value="/stereo_vo/map_points"/>
 
         <!-- intrinsic parameter yaml file directory -->
-        <param name="directory_intrinsic" type="string" value="$(find scale_mono_vo_ros)/config/stereo/exp_stereo2.yaml"/>
+        <param name="directory_intrinsic" type="string" value="$(find visual_odometry_ros)/config/stereo/exp_stereo2.yaml"/>
     </node>
 </launch>

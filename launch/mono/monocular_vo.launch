@@ -12,6 +12,6 @@
         <param name="topicname_map_points"      type="string" value="/mono_vo/map_points"/>
 
         <!-- intrinsic parameter yaml file directory -->
-        <param name="directory_intrinsic" type="string" value="$(find scale_mono_vo_ros)/config/mono/exp_cam0.yaml"/>
+        <param name="directory_intrinsic" type="string" value="$(find visual_odometry_ros)/config/mono/exp_cam0.yaml"/>
     </node>
 </launch>
