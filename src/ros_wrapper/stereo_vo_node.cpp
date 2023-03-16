@@ -1,80 +1,61 @@
-#include "ros_wrapper/mononode.h"
+#include "ros_wrapper/stereo_vo_node.h"
 
-/**
- * @brief MonoNode 생성자. ROS wrapper for scale mono vo.
- * @details In this function, ROS parameters are get by 'getParameters()'. 
- *          Then, scale_mono_vo object is constructed, and 'run()' function is called.
- * @param nh ros::Nodehandle. 
- * @return none
- * @author Changhyeon Kim (hyun91015@gmail.com)
- * @date 10-July-2022
- */
-MonoNode::MonoNode(ros::NodeHandle& nh) : nh_(nh) 
+
+StereoNode::StereoNode(ros::NodeHandle& nh) : nh_(nh)
 {
     // Get user pamareters
     this->getParameters();
 
     // Make scale mono vo object
     std::string mode = "rosbag";
-    scale_mono_vo_ = std::make_unique<ScaleMonoVO>(mode, directory_intrinsic_);
+    stereo_vo_ = std::make_unique<StereoVO>(mode, directory_intrinsic_);
 
     // Subscriber    
-    img_sub_ = nh_.subscribe<sensor_msgs::Image>(topicname_image_, 1, &MonoNode::imageCallback, this);
-    gt_sub_  = nh_.subscribe<geometry_msgs::PoseStamped>(topicname_gt_, 1, &MonoNode::groundtruthCallback, this);
+	left_img_sub_  = new message_filters::Subscriber<sensor_msgs::Image>(
+        nh_, topicname_image_left_, 1);
+	right_img_sub_ = new message_filters::Subscriber<sensor_msgs::Image>(
+        nh_, topicname_image_right_, 1);
+	sync_stereo_   = new message_filters::Synchronizer<MySyncPolicy>(
+        MySyncPolicy(2), *left_img_sub_, *right_img_sub_);
+    sync_stereo_->registerCallback(boost::bind(&StereoNode::imageStereoCallback, this, _1, _2));  
+    
+    gt_sub_  = nh_.subscribe<geometry_msgs::PoseStamped>(topicname_gt_, 1, &StereoNode::groundtruthCallback, this);
 
-    // Publisher
+    // // Publisher
     pub_pose_       = nh_.advertise<nav_msgs::Odometry>(topicname_pose_, 1);
     pub_trajectory_ = nh_.advertise<nav_msgs::Path>(topicname_trajectory_, 1);
     pub_map_points_ = nh_.advertise<sensor_msgs::PointCloud2>(topicname_map_points_, 1);
 
-    topicname_turns_ = "/kitti_odometry/turns";
-    pub_turns_ = nh_.advertise<sensor_msgs::PointCloud2>(topicname_turns_,1);
-
     topicname_trajectory_gt_ = "/kitti_odometry/groundtruth_path";
     pub_trajectory_gt_ = nh_.advertise<nav_msgs::Path>(topicname_trajectory_gt_,1);
 
-    topicname_statistics_ = "/scale_mono_vo/statistics";
+    topicname_statistics_ = "/stereo_vo/statistics";
     pub_statistics_ = nh_.advertise<visual_odometry_ros::statisticsStamped>(topicname_statistics_,1);
 
-    pub_debug_image_ = nh_.advertise<sensor_msgs::Image>("/scale_mono_vo/debug_image",1);
-
-    // scale publisher
-    trans_prev_gt_ << 0,0,0;
-    scale_gt_ = 0;
+    pub_debug_image_ = nh_.advertise<sensor_msgs::Image>("/stereo_vo/debug_image",1);
         
-    ROS_INFO_STREAM("MonoNode - generate Scale Mono VO object. Starts.");
+    ROS_INFO_STREAM("StereoNode - generate Stereo VO object. Starts.");
 
     // Set static
     int half_win_sz = 7;
     Landmark::setPatch(half_win_sz);
 
-    mappoints_.reserve(150000);
+    mappoints_.reserve(500000);
 
     // spin .
     this->run();
 };
 
-/**
- * @brief MonoNode 소멸자.
- * @details MonoNode 소멸자. 
- * @return none
- * @author Changhyeon Kim (hyun91015@gmail.com)
- * @date 10-July-2022
- */
-MonoNode::~MonoNode(){
+StereoNode::~StereoNode()
+{
 
 };
 
-/**
- * @brief function to get the ROS parameters from the launch file.
- * @details function to get the ROS parameters from the launch file. 만약 파라미터가 세팅되지 않았다면, runtime_error를 throw 함.
- * @return none
- * @author Changhyeon Kim (hyun91015@gmail.com)
- * @date 10-July-2022
- */
-void MonoNode::getParameters(){
-    if(!ros::param::has("~topicname_image"))
-        throw std::runtime_error("'topicname_image' is not set.");
+void StereoNode::getParameters(){
+    if(!ros::param::has("~topicname_image_left"))
+        throw std::runtime_error("'topicname_image_left' is not set.");
+    if(!ros::param::has("~topicname_image_right"))
+        throw std::runtime_error("'topicname_image_right' is not set.");
     if(!ros::param::has("~topicname_gt"))
         throw std::runtime_error("'topicname_gt' is not set.");
     if(!ros::param::has("~topicname_pose"))
@@ -86,7 +67,8 @@ void MonoNode::getParameters(){
     if(!ros::param::has("~directory_intrinsic"))
         throw std::runtime_error("'directory_intrinsic' is not set.");
 
-    ros::param::get("~topicname_image", topicname_image_);
+    ros::param::get("~topicname_image_left", topicname_image_left_);
+    ros::param::get("~topicname_image_right", topicname_image_right_);
     ros::param::get("~topicname_gt", topicname_gt_);
 
     ros::param::get("~topicname_pose",       topicname_pose_);
@@ -96,39 +78,34 @@ void MonoNode::getParameters(){
     ros::param::get("~directory_intrinsic", directory_intrinsic_);
 };
 
-/**
- * @brief image callback function .
- * @details It is called when a new image arrives. In this function, 'scale_mono_vo->track()' function is called.
- * @param msg sensor_msgs::ImageConstPtr
- * @return none
- * @author Changhyeon Kim (hyun91015@gmail.com)
- * @date 10-July-2022
- */
-void MonoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
 
+void StereoNode::imageStereoCallback(
+    const sensor_msgs::ImageConstPtr &msg_left, const sensor_msgs::ImageConstPtr &msg_right)
+{
     ros::Time t_callback_start = ros::Time::now();
 
-    cv_bridge::CvImageConstPtr cv_ptr;
+    cv_bridge::CvImageConstPtr cv_left_ptr, cv_right_ptr;
     try {
-        cv_ptr = cv_bridge::toCvShare(msg);
+        cv_left_ptr  = cv_bridge::toCvShare(msg_left);
+        cv_right_ptr = cv_bridge::toCvShare(msg_right);
     } 
     catch (cv_bridge::Exception& e) {
         ROS_ERROR("cv_bridge exception: %s", e.what());
         throw std::runtime_error("ERR!!!!");
         return;
     }    
+    
     // update camera pose.
     ros::Time t_track_start = ros::Time::now();
-    double time_now = cv_ptr->header.stamp.toSec();
-    scale_mono_vo_->trackImage(cv_ptr->image, time_now);
+    double time_now = cv_left_ptr->header.stamp.toSec();
+    stereo_vo_->trackStereoImages(cv_left_ptr->image, cv_right_ptr->image, time_now);
     ros::Time t_track_end = ros::Time::now();
 
     ROS_GREEN_STREAM("Time for track: " << (t_track_end.toSec() - t_track_start.toSec()) * 1000.0 << " [ms]");
 
-    
-    // Show statistics & get odometry results
 
-    const ScaleMonoVO::AlgorithmStatistics& stat = scale_mono_vo_->getStatistics();
+    // Show statistics & get odometry results
+    const StereoVO::AlgorithmStatistics& stat = stereo_vo_->getStatistics();
     
     visual_odometry_ros::statisticsStamped msg_stats;
     msg_stats.time_total         = stat.stats_execution.back().time_total; 
@@ -136,7 +113,6 @@ void MonoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
     msg_stats.time_1p            = stat.stats_execution.back().time_1p;    
     msg_stats.time_5p            = stat.stats_execution.back().time_5p;
     msg_stats.time_new           = stat.stats_execution.back().time_new;
-
 
     msg_stats.n_initial          = stat.stats_landmark.back().n_initial;
     msg_stats.n_pass_bidirection = stat.stats_landmark.back().n_pass_bidirection;
@@ -146,17 +122,9 @@ void MonoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
     msg_stats.n_final            = stat.stats_landmark.back().n_final;
     msg_stats.n_ok_parallax      = stat.stats_landmark.back().n_ok_parallax;
 
-
     msg_stats.avg_parallax       = stat.stats_landmark.back().avg_parallax;
     msg_stats.avg_age            = stat.stats_landmark.back().avg_age;
-
-
-    msg_stats.steering_angle     = stat.stats_frame.back().steering_angle;
-
-
-    msg_stats.scale_est          = stat.stats_frame.back().dT_01.block<3,1>(0,3).norm();
-    msg_stats.scale_gt           = scale_gt_;
-
+    
     pub_statistics_.publish(msg_stats);
 
 
@@ -203,7 +171,6 @@ void MonoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
 
     pub_trajectory_.publish(msg_trajectory_);
 
-
     // Publish mappoints
     sensor_msgs::PointCloud2 msg_mappoint;
     int cnt_total_pts = 0;
@@ -221,35 +188,22 @@ void MonoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
     }
     convertPointVecToPointCloud2(mappoints_,msg_mappoint, "map");
     pub_map_points_.publish(msg_mappoint);
-    
+
     ros::Time t_stat_end = ros::Time::now();
 
     ROS_GREEN_STREAM("Time for STATISTICS: " << (t_stat_end.toSec() - t_stat_start.toSec()) * 1000.0 << " [ms]");   
 
 
 
-    // Turn region display
-    // msg_turns_.header.frame_id = "map";
-    // msg_turns_.header.stamp = ros::Time::now();
-    // PointVec X;
-    // for(auto f : stat.stat_turn.turn_regions){
-    //     X.push_back(f->getPose().block<3,1>(0,3));
-    // }
-    // convertPointVecToPointCloud2(X,msg_turns_, "map");
-    // pub_turns_.publish(msg_turns_);
-
-
     // Debug image
-    
-    const cv::Mat& img_debug = scale_mono_vo_->getDebugImage();
-    cv_bridge::CvImage reduced_msg;
-    reduced_msg.header.stamp = ros::Time::now(); // Same timestamp and tf frame as input image
-    reduced_msg.header.frame_id = "debug_image";
-    reduced_msg.encoding        = "bgr8"; // Or whatever
-    reduced_msg.image           = img_debug; // Your cv::Mat
+    const cv::Mat& img_debug = stereo_vo_->getDebugImage();
+    cv_bridge::CvImage msg_img_debug;
+    msg_img_debug.header.stamp = ros::Time::now(); // Same timestamp and tf frame as input image
+    msg_img_debug.header.frame_id = "debug_image";
+    msg_img_debug.encoding        = "bgr8"; // Or whatever
+    msg_img_debug.image           = img_debug; // Your cv::Mat
 
-    pub_debug_image_.publish(reduced_msg.toImageMsg());
-
+    pub_debug_image_.publish(msg_img_debug.toImageMsg());
 
 
     ros::Time t_callback_end = ros::Time::now();
@@ -257,14 +211,11 @@ void MonoNode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
     ROS_GREEN_STREAM("Time for CALLBACK: " << (t_callback_end.toSec() - t_callback_start.toSec()) * 1000.0 << " [ms]\n");   
 };
 
-void MonoNode::groundtruthCallback(const geometry_msgs::PoseStampedConstPtr& msg){
+void StereoNode::groundtruthCallback(const geometry_msgs::PoseStampedConstPtr& msg){
     geometry_msgs::PoseStamped p;
     p.header.frame_id = "map";
     p.header.stamp = ros::Time::now();
     p.pose = msg->pose;
-    trans_curr_gt_ << p.pose.position.x, p.pose.position.y, p.pose.position.z;
-    scale_gt_ = (trans_curr_gt_-trans_prev_gt_).norm();
-    trans_prev_gt_ = trans_curr_gt_;
 
     msg_trajectory_gt_.header.frame_id = "map";
     msg_trajectory_gt_.header.stamp = ros::Time::now();
@@ -273,14 +224,7 @@ void MonoNode::groundtruthCallback(const geometry_msgs::PoseStampedConstPtr& msg
     pub_trajectory_gt_.publish(msg_trajectory_gt_);
 };
 
-/**
- * @brief member method including ROS spin at 200 Hz rate.
- * @details ROS spin at 200 Hz.
- * @return none
- * @author Changhyeon Kim (hyun91015@gmail.com)
- * @date 10-July-2022
- */
-void MonoNode::run(){
+void StereoNode::run(){
     ros::Rate rate(200);
     while(ros::ok()){
         ros::spinOnce();
@@ -288,7 +232,7 @@ void MonoNode::run(){
     }
 };
 
-void MonoNode::convertPointVecToPointCloud2(const PointVec& X, sensor_msgs::PointCloud2& dst, std::string frame_id){
+void StereoNode::convertPointVecToPointCloud2(const PointVec& X, sensor_msgs::PointCloud2& dst, std::string frame_id){
     int n_pts = X.size();
     
     // intensity mapping (-3 m ~ 3 m to 0~255)

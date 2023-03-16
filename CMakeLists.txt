@@ -41,7 +41,7 @@ catkin_package(
 
 # Source files for the mono VO
 set(SRC_MONO ${SRC_MONO} 
-  src/ros_wrapper/mononode.cpp
+  src/ros_wrapper/mono_vo_node.cpp
   src/ros_wrapper/ros_print_in_color.cpp
 
   src/core/feature_extractor.cpp
@@ -78,7 +78,7 @@ set(SRC_MONO ${SRC_MONO}
 
 # Source files for the stereo VO
 set(SRC_STEREO ${SRC_STEREO} 
-  src/ros_wrapper/stereonode.cpp
+  src/ros_wrapper/stereo_vo_node.cpp
   src/ros_wrapper/ros_print_in_color.cpp
 
   src/core/feature_extractor.cpp

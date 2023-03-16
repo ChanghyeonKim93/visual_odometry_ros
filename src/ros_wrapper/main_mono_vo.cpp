@@ -7,7 +7,7 @@
 
 #include "util/signal_handler_linux.h"
 
-#include "ros_wrapper/mononode.h"
+#include "ros_wrapper/mono_vo_node.h"
 
 int main(int argc, char **argv) {
     ros::init(argc, argv, "mono_vo_node");
