@@ -32,6 +32,7 @@
 #include <sstream>
 
 
+/// @brief This class is for estimating camera motion via 2D-2D, 3D-2D feature correspondences. This class supports the 'stereo mode'.
 class MotionEstimator 
 {
 private:
@@ -67,14 +68,12 @@ public:
     // bool localBundleAdjustmentSparseSolver(const std::shared_ptr<Keyframes>& kfs, CameraConstPtr& cam);
 
 public:
-    void calcSampsonDistance(const PixelVec& pts0, const PixelVec& pts1, CameraConstPtr& cam, 
+    void  calcSampsonDistance(const PixelVec& pts0, const PixelVec& pts1, CameraConstPtr& cam, 
                             const Rot3& R10, const Pos3& t10, std::vector<float>& sampson_dist);
-
-    void calcSampsonDistance(const PixelVec& pts0, const PixelVec& pts1,const Mat33& F10, 
+    void  calcSampsonDistance(const PixelVec& pts0, const PixelVec& pts1,const Mat33& F10, 
                             std::vector<float>& sampson_dist);
     float calcSampsonDistance(const Pixel& pt0, const Pixel& pt1,const Mat33& F10);
-
-    void calcSymmetricEpipolarDistance(const PixelVec& pts0, const PixelVec& pts1, CameraConstPtr& cam, 
+    void  calcSymmetricEpipolarDistance(const PixelVec& pts0, const PixelVec& pts1, CameraConstPtr& cam, 
                             const Rot3& R10, const Pos3& t10, std::vector<float>& sym_epi_dist);
     
 public:
@@ -100,7 +99,7 @@ private:
     inline void fillTriplet(SpTripletList& Tri, const int& idx_hori0, const int& idx_hori1, 
         const int& idx_vert0, const int& idx_vert1, const Eigen::MatrixXf& mat);
 
-
+// Hessian related functions.
 private:
     inline void calcJtJ_x(const Eigen::Matrix<float,6,1>& Jt, Eigen::Matrix<float,6,6>& JtJ_tmp);
     inline void calcJtJ_y(const Eigen::Matrix<float,6,1>& Jt, Eigen::Matrix<float,6,6>& JtJ_tmp);

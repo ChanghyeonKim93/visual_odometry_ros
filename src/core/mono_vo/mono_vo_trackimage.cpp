@@ -189,7 +189,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 
 					// Reconstruct points
 					Point X0, X1;
-					Mapping::triangulateDLT(pt0, pt1, R10, t10, cam_, X0, X1);
+					mapping::triangulateDLT(pt0, pt1, R10, t10, cam_, X0, X1);
 
 					if(X0(2) > 0) {
 						Point Xworld = Tw0.block<3,3>(0,0) * X0 + Tw0.block<3,1>(0,3);
@@ -544,7 +544,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 
 					// Reconstruct points
 					Point X0, X1;
-					Mapping::triangulateDLT(pt0, pt1, R10_tmp, t10_tmp, cam_, X0, X1);
+					mapping::triangulateDLT(pt0, pt1, R10_tmp, t10_tmp, cam_, X0, X1);
 
 					// Check reprojection error for the first image
 					Pixel pt0_proj = cam_->projectToPixel(X0);

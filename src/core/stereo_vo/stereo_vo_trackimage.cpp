@@ -311,7 +311,7 @@ void StereoVO::trackStereoImages(
 
                     // Reconstruct 3D point
                     Point Xl, Xr;
-                    Mapping::triangulateDLT(pt_l1_new, pt_r1_new, T_rl.block<3,3>(0,0), T_rl.block<3,1>(0,3), cam_left, cam_right, Xl, Xr);
+                    mapping::triangulateDLT(pt_l1_new, pt_r1_new, T_rl.block<3,3>(0,0), T_rl.block<3,1>(0,3), cam_left, cam_right, Xl, Xr);
 
                     if( Xl(2) > 0 && Xr(2) > 0)
                     {
@@ -359,7 +359,7 @@ void StereoVO::trackStereoImages(
                 
                 // Reconstruct points
                 Point Xl, Xr;
-                Mapping::triangulateDLT(pt0, pt1, R_rl, t_rl, cam_left, cam_right, Xl, Xr);
+                mapping::triangulateDLT(pt0, pt1, R_rl, t_rl, cam_left, cam_right, Xl, Xr);
 
                 // Check reprojection error for the first image
                 Pixel pt0_proj = cam_left->projectToPixel(Xl);
@@ -499,7 +499,7 @@ std::cout << colorcode::text_green << "Time [RECORD KEYFR STAT]: " << timer::toc
             
             // Reconstruct points
             Point Xl, Xr;
-            Mapping::triangulateDLT(pt0, pt1, R_rl, t_rl, cam_left, cam_right, Xl, Xr);
+            mapping::triangulateDLT(pt0, pt1, R_rl, t_rl, cam_left, cam_right, Xl, Xr);
 
             // Check reprojection error for the first image
             Pixel pt0_proj = cam_left->projectToPixel(Xl);

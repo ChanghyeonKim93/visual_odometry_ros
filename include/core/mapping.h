@@ -9,7 +9,8 @@
 
 #include "core/type_defines.h"
 
-namespace Mapping{
+namespace mapping
+{
     void triangulateDLT(const PixelVec& pts0, const PixelVec& pts1, 
                         const Rot3& R10, const Pos3& t10, CameraConstPtr& cam, 
                         PointVec& X0, PointVec& X1);
@@ -23,8 +24,6 @@ namespace Mapping{
                         Point& X0, Point& X1);
 // TODO
     void calcStereoDisparity_RectifiedStatic(const PixelVec& pts0, CameraConstPtr& cam_rect);
-
-    void a();
 
     Eigen::Matrix3f skew(const Eigen::Vector3f& vec);
 };

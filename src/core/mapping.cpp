@@ -1,6 +1,6 @@
 #include "core/mapping.h"
 
-namespace Mapping{
+namespace mapping{
     Eigen::MatrixXf m_matrix_template_;
     void triangulateDLT(const PixelVec& pts0, const PixelVec& pts1, 
                         const Eigen::Matrix3f& R10, const Eigen::Vector3f& t10, const std::shared_ptr<Camera>& cam, 

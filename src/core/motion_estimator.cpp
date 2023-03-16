@@ -220,7 +220,7 @@ bool MotionEstimator::findCorrectRT(
         // Triangulate by the i-th pose candidate
 		PointVec X0, X1;
 		MaskVec maskvec_inlier(n_pts, false);
-        Mapping::triangulateDLT(pxvec0, pxvec1, R10, t10, cam,
+        mapping::triangulateDLT(pxvec0, pxvec1, R10, t10, cam,
                                 X0, X1);
 
         // Check chirality
@@ -549,7 +549,7 @@ void MotionEstimator::calcSampsonDistance(const PixelVec& pts0, const PixelVec& 
 
     Eigen::Matrix3f E10,F10, F10t;
 
-    E10 = Mapping::skew(t10)*R10;
+    E10 = mapping::skew(t10)*R10;
     F10 = cam->Kinv().transpose()*E10*cam->Kinv();
     F10t = F10.transpose();
 
@@ -633,7 +633,7 @@ void MotionEstimator::calcSymmetricEpipolarDistance(
     // Calculate Fundamental matrix
     Mat33 E10, F10, F10t;
 
-    E10 = Mapping::skew(t10)*R10;
+    E10 = mapping::skew(t10)*R10;
     F10 = cam->Kinv().transpose()*E10*cam->Kinv();
     F10t = F10.transpose();
 

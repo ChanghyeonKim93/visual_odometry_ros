@@ -37,10 +37,10 @@
 
 typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> MySyncPolicy;
 
-class StereoNode{
+class StereoVONode{
 public:
-    StereoNode(ros::NodeHandle& nh);
-    ~StereoNode();
+    StereoVONode(ros::NodeHandle& nh);
+    ~StereoVONode();
 
 private:
     void getParameters();

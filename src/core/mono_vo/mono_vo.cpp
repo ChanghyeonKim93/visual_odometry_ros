@@ -409,7 +409,9 @@ void MonoVO::showTrackingBA(const std::string& window_name, const cv::Mat& img, 
 		cv::circle(img_debug_, pts1[i], 1.0, color_red, circle_radius); // alived magenta
 	}
 	for(int i = 0; i < pts1_project.size(); ++i){
-		cv::rectangle(img_debug_, cv::Point2f(pts1_project[i].x-rect_half,pts1_project[i].y-rect_half),cv::Point2f(pts1_project[i].x+rect_half,pts1_project[i].y+rect_half), 
+		cv::rectangle(img_debug_, 
+			cv::Point2f(pts1_project[i].x-rect_half,pts1_project[i].y-rect_half),
+			cv::Point2f(pts1_project[i].x+rect_half,pts1_project[i].y+rect_half), 
 			color_green, 2);
 	}
 	

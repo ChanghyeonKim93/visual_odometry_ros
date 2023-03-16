@@ -1,7 +1,7 @@
 #include "ros_wrapper/stereo_vo_node.h"
 
 
-StereoNode::StereoNode(ros::NodeHandle& nh) : nh_(nh)
+StereoVONode::StereoVONode(ros::NodeHandle& nh) : nh_(nh)
 {
     // Get user pamareters
     this->getParameters();
@@ -17,9 +17,9 @@ StereoNode::StereoNode(ros::NodeHandle& nh) : nh_(nh)
         nh_, topicname_image_right_, 1);
 	sync_stereo_   = new message_filters::Synchronizer<MySyncPolicy>(
         MySyncPolicy(2), *left_img_sub_, *right_img_sub_);
-    sync_stereo_->registerCallback(boost::bind(&StereoNode::imageStereoCallback, this, _1, _2));  
+    sync_stereo_->registerCallback(boost::bind(&StereoVONode::imageStereoCallback, this, _1, _2));  
     
-    gt_sub_  = nh_.subscribe<geometry_msgs::PoseStamped>(topicname_gt_, 1, &StereoNode::groundtruthCallback, this);
+    gt_sub_  = nh_.subscribe<geometry_msgs::PoseStamped>(topicname_gt_, 1, &StereoVONode::groundtruthCallback, this);
 
     // // Publisher
     pub_pose_       = nh_.advertise<nav_msgs::Odometry>(topicname_pose_, 1);
@@ -34,7 +34,7 @@ StereoNode::StereoNode(ros::NodeHandle& nh) : nh_(nh)
 
     pub_debug_image_ = nh_.advertise<sensor_msgs::Image>("/stereo_vo/debug_image",1);
         
-    ROS_INFO_STREAM("StereoNode - generate Stereo VO object. Starts.");
+    ROS_INFO_STREAM("StereoVONode - generate Stereo VO object. Starts.");
 
     // Set static
     int half_win_sz = 7;
@@ -46,12 +46,12 @@ StereoNode::StereoNode(ros::NodeHandle& nh) : nh_(nh)
     this->run();
 };
 
-StereoNode::~StereoNode()
+StereoVONode::~StereoVONode()
 {
 
 };
 
-void StereoNode::getParameters(){
+void StereoVONode::getParameters(){
     if(!ros::param::has("~topicname_image_left"))
         throw std::runtime_error("'topicname_image_left' is not set.");
     if(!ros::param::has("~topicname_image_right"))
@@ -79,7 +79,7 @@ void StereoNode::getParameters(){
 };
 
 
-void StereoNode::imageStereoCallback(
+void StereoVONode::imageStereoCallback(
     const sensor_msgs::ImageConstPtr &msg_left, const sensor_msgs::ImageConstPtr &msg_right)
 {
     ros::Time t_callback_start = ros::Time::now();
@@ -211,7 +211,7 @@ void StereoNode::imageStereoCallback(
     ROS_GREEN_STREAM("Time for CALLBACK: " << (t_callback_end.toSec() - t_callback_start.toSec()) * 1000.0 << " [ms]\n");   
 };
 
-void StereoNode::groundtruthCallback(const geometry_msgs::PoseStampedConstPtr& msg){
+void StereoVONode::groundtruthCallback(const geometry_msgs::PoseStampedConstPtr& msg){
     geometry_msgs::PoseStamped p;
     p.header.frame_id = "map";
     p.header.stamp = ros::Time::now();
@@ -224,7 +224,7 @@ void StereoNode::groundtruthCallback(const geometry_msgs::PoseStampedConstPtr& m
     pub_trajectory_gt_.publish(msg_trajectory_gt_);
 };
 
-void StereoNode::run(){
+void StereoVONode::run(){
     ros::Rate rate(200);
     while(ros::ok()){
         ros::spinOnce();
@@ -232,7 +232,7 @@ void StereoNode::run(){
     }
 };
 
-void StereoNode::convertPointVecToPointCloud2(const PointVec& X, sensor_msgs::PointCloud2& dst, std::string frame_id){
+void StereoVONode::convertPointVecToPointCloud2(const PointVec& X, sensor_msgs::PointCloud2& dst, std::string frame_id){
     int n_pts = X.size();
     
     // intensity mapping (-3 m ~ 3 m to 0~255)

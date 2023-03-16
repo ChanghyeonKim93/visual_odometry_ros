@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
     ROS_INFO_STREAM("stereo_vo_node - starts.");
    
     try {  
-        StereoNode node(nh);
+        StereoVONode node(nh);
     }
     catch (std::exception& e) {
         ROS_ERROR(e.what());
