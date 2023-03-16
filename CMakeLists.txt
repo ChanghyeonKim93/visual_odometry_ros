@@ -71,7 +71,6 @@ set(SRC_MONO ${SRC_MONO}
   src/core/scale_estimator/absolute_scale_recovery.cpp
   
   src/core/scale_mono_vo/scale_mono_vo.cpp
-  src/core/scale_mono_vo/scale_mono_vo_backend.cpp
   src/core/scale_mono_vo/scale_mono_vo_trackimage.cpp
 
   src/core/stereo_vo/stereo_vo.cpp
