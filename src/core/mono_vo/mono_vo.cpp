@@ -1,17 +1,17 @@
-#include "core/scale_mono_vo/scale_mono_vo.h"
+#include "core/mono_vo/mono_vo.h"
 
 /**
- * @brief Scale mono VO object
- * @details Constructor of a scale mono VO object 
+ * @brief Mono VO object
+ * @details Constructor of a Mono VO object 
  * @param mode mode == "dataset": dataset mode, mode == "rosbag": rosbag mode. (callback based)
  * @return none
  * @author Changhyeon Kim (hyun91015@gmail.com)
  * @date 10-July-2022
  */
-ScaleMonoVO::ScaleMonoVO(std::string mode, std::string directory_intrinsic)
+MonoVO::MonoVO(std::string mode, std::string directory_intrinsic)
 : cam_(nullptr), system_flags_(), frame_prev_(nullptr), keyframe_ref_(nullptr)
 {
-	std::cout << "Scale mono VO starts\n";
+	std::cout << "Mono VO starts\n";
 		
 	// Initialize camera
 	cam_ = std::make_shared<Camera>();
@@ -22,13 +22,13 @@ ScaleMonoVO::ScaleMonoVO(std::string mode, std::string directory_intrinsic)
 	}
 	else if(mode == "rosbag")
 	{
-		std::cout << "ScaleMonoVO - 'rosbag' mode.\n";
+		std::cout << "MonoVO - 'rosbag' mode.\n";
 		
 		this->loadCameraIntrinsicAndUserParameters(directory_intrinsic);
 		// wait callback ...
 	}
 	else 
-		throw std::runtime_error("ScaleMonoVO - unknown mode.");
+		throw std::runtime_error("MonoVO - unknown mode.");
 
 	// Initialize feature extractor (ORB-based)
 	extractor_ = std::make_shared<FeatureExtractor>();
@@ -46,15 +46,6 @@ ScaleMonoVO::ScaleMonoVO(std::string mode, std::string directory_intrinsic)
 	motion_estimator_->setThres1p(params_.motion_estimator.thres_1p_error);
 	motion_estimator_->setThres5p(params_.motion_estimator.thres_5p_error);
 
-	// Initialize scale estimator
-	double L = params_.scale_estimator.cam_to_rear_axle_length; // CAR experiment.
-	flag_do_ASR_ = params_.scale_estimator.flag_do_ASR;
-
-	mut_scale_estimator_      = std::make_shared<std::mutex>();
-	cond_var_scale_estimator_ = std::make_shared<std::condition_variable>(); // New pose 가 도
-	
-	scale_estimator_          = std::make_shared<ScaleEstimator>(cam_, L, mut_scale_estimator_, cond_var_scale_estimator_, flag_do_ASR_, params_.scale_estimator.thres_cnt_turns, params_.scale_estimator.thres_turn_psi);
-	
 	// Initialize keyframes class
 	keyframes_ = std::make_shared<Keyframes>();
 	keyframes_->setMaxKeyframes(params_.keyframe_update.n_max_keyframes_in_window);
@@ -70,7 +61,7 @@ ScaleMonoVO::ScaleMonoVO(std::string mode, std::string directory_intrinsic)
  * @author Changhyeon Kim (hyun91015@gmail.com)
  * @date 10-July-2022
  */
-ScaleMonoVO::~ScaleMonoVO() 
+MonoVO::~MonoVO() 
 {
 	std::cout << "Save all frames trajectory...\n";
 	std::string filedir_frame_poses = "/home/kch/frame_poses.txt";
@@ -141,7 +132,7 @@ ScaleMonoVO::~ScaleMonoVO()
  * @author Changhyeon Kim (hyun91015@gmail.com)
  * @date 11-July-2022
  */
-void ScaleMonoVO::loadCameraIntrinsicAndUserParameters(const std::string& dir) {
+void MonoVO::loadCameraIntrinsicAndUserParameters(const std::string& dir) {
 	cv::FileStorage fs(dir, cv::FileStorage::READ);
 	if (!fs.isOpened()) throw std::runtime_error("intrinsic file cannot be found!\n");
 
@@ -200,18 +191,6 @@ void ScaleMonoVO::loadCameraIntrinsicAndUserParameters(const std::string& dir) {
 	params_.motion_estimator.thres_5p_error        = fs["motion_estimator.thres_5p_error"];
 	params_.motion_estimator.thres_poseba_error    = fs["motion_estimator.thres_poseba_error"];
 
-	// Scale estimator
-	params_.scale_estimator.flag_do_ASR             = (int)fs["scale_estimator.flag_asr_on"];
-	params_.scale_estimator.cam_to_rear_axle_length = fs["scale_estimator.cam_to_rear_axle_length"];
-	params_.scale_estimator.initial_scale           = fs["scale_estimator.initial_scale"];
-	params_.scale_estimator.thres_turn_psi          = fs["scale_estimator.thres_turn_psi"];
-	params_.scale_estimator.thres_cnt_turns         = (int)fs["scale_estimator.thres_cnt_turns"];
-	params_.scale_estimator.thres_age_past_horizon  = (int)fs["scale_estimator.thres_age_past_horizon"];
-	params_.scale_estimator.thres_age_use           = (int)fs["scale_estimator.thres_age_use"];
-	params_.scale_estimator.thres_age_recon         = (int)fs["scale_estimator.thres_age_recon"];
-	params_.scale_estimator.thres_parallax_use      = fs["scale_estimator.thres_parallax_use"];
-	params_.scale_estimator.thres_parallax_recon    = fs["scale_estimator.thres_parallax_recon"];
-
 	// Keyframe update
 	params_.keyframe_update.thres_translation         = fs["keyframe_update.thres_translation"];
 	params_.keyframe_update.thres_rotation            = fs["keyframe_update.thres_rotation"]; 
@@ -236,7 +215,7 @@ void ScaleMonoVO::loadCameraIntrinsicAndUserParameters(const std::string& dir) {
  * @author Changhyeon Kim (hyun91015@gmail.com)
  * @date 06-August-2022
  */
-int ScaleMonoVO::pruneInvalidLandmarks(const PixelVec& pts0, const PixelVec& pts1, const LandmarkPtrVec& lms, const MaskVec& mask,
+int MonoVO::pruneInvalidLandmarks(const PixelVec& pts0, const PixelVec& pts1, const LandmarkPtrVec& lms, const MaskVec& mask,
 	PixelVec& pts0_alive, PixelVec& pts1_alive, LandmarkPtrVec& lms_alive)
 {
 	if(pts0.size() != pts1.size() || pts0.size() != lms.size())
@@ -271,7 +250,7 @@ int ScaleMonoVO::pruneInvalidLandmarks(const PixelVec& pts0, const PixelVec& pts
  * @author Changhyeon Kim (hyun91015@gmail.com)
  * @date 06-August-2022
  */
-int ScaleMonoVO::pruneInvalidLandmarks(const LandmarkTracking& lmtrack, const MaskVec& mask,
+int MonoVO::pruneInvalidLandmarks(const LandmarkTracking& lmtrack, const MaskVec& mask,
 	LandmarkTracking& lmtrack_alive)
 {
 	if(lmtrack.pts0.size() != lmtrack.pts1.size() || lmtrack.pts0.size() != lmtrack.lms.size())
@@ -339,10 +318,10 @@ int ScaleMonoVO::pruneInvalidLandmarks(const LandmarkTracking& lmtrack, const Ma
  * @author Changhyeon Kim (hyun91015@gmail.com)
  * @date 12-July-2022
  */
-void ScaleMonoVO::updateKeyframe(const FramePtr& frame){
+void MonoVO::updateKeyframe(const FramePtr& frame){
 };
 
-void ScaleMonoVO::saveLandmarks(const LandmarkPtrVec& lms, bool verbose){
+void MonoVO::saveLandmarks(const LandmarkPtrVec& lms, bool verbose){
 	for(auto lm : lms)	
 		all_landmarks_.push_back(lm);
 
@@ -350,14 +329,14 @@ void ScaleMonoVO::saveLandmarks(const LandmarkPtrVec& lms, bool verbose){
 		std::cout << "# of all accumulated landmarks: " << all_landmarks_.size() << std::endl;
 };
 
-void ScaleMonoVO::saveLandmark(const LandmarkPtr& lm, bool verbose){
+void MonoVO::saveLandmark(const LandmarkPtr& lm, bool verbose){
 	all_landmarks_.push_back(lm);
 	
 	if(verbose)
 		std::cout << "# of all accumulated landmarks: " << all_landmarks_.size() << std::endl;
 };
 
-void ScaleMonoVO::saveFrames(const FramePtrVec& frames, bool verbose){
+void MonoVO::saveFrames(const FramePtrVec& frames, bool verbose){
 	for(auto f : frames)
 		all_frames_.push_back(f);
 	
@@ -365,14 +344,14 @@ void ScaleMonoVO::saveFrames(const FramePtrVec& frames, bool verbose){
 		std::cout << "# of all accumulated frames   : " << all_frames_.size() << std::endl;
 };
 
-void ScaleMonoVO::saveFrame(const FramePtr& frame, bool verbose){
+void MonoVO::saveFrame(const FramePtr& frame, bool verbose){
 	all_frames_.push_back(frame);
 	
 	if(verbose)
 		std::cout << "# of all accumulated frames   : " << all_frames_.size() << std::endl;
 };
 
-void ScaleMonoVO::saveKeyframe(const FramePtr& frame, bool verbose)
+void MonoVO::saveKeyframe(const FramePtr& frame, bool verbose)
 {
 	all_keyframes_.push_back(frame);
 	
@@ -380,7 +359,7 @@ void ScaleMonoVO::saveKeyframe(const FramePtr& frame, bool verbose)
 		std::cout << "# of all accumulated keyframes   : " << all_keyframes_.size() << std::endl;	
 };
 
-float ScaleMonoVO::calcLandmarksMeanAge(const LandmarkPtrVec& lms){
+float MonoVO::calcLandmarksMeanAge(const LandmarkPtrVec& lms){
 	float mean_age = 0.0f;
 	float n_lms = lms.size();
 
@@ -392,7 +371,7 @@ float ScaleMonoVO::calcLandmarksMeanAge(const LandmarkPtrVec& lms){
 	return mean_age;
 };
 
-void ScaleMonoVO::showTracking(const std::string& window_name, const cv::Mat& img, const PixelVec& pts0, const PixelVec& pts1, const PixelVec& pts1_new){
+void MonoVO::showTracking(const std::string& window_name, const cv::Mat& img, const PixelVec& pts0, const PixelVec& pts1, const PixelVec& pts1_new){
 	cv::namedWindow(window_name);
 	img.copyTo(img_debug_);
 	cv::cvtColor(img_debug_, img_debug_, CV_GRAY2RGB);
@@ -416,7 +395,7 @@ void ScaleMonoVO::showTracking(const std::string& window_name, const cv::Mat& im
 	cv::waitKey(2);
 };
 
-void ScaleMonoVO::showTrackingBA(const std::string& window_name, const cv::Mat& img, const PixelVec& pts1, const PixelVec& pts1_project){	
+void MonoVO::showTrackingBA(const std::string& window_name, const cv::Mat& img, const PixelVec& pts1, const PixelVec& pts1_project){	
 	int rect_half = 6;
 	int circle_radius = 4;
 
@@ -438,7 +417,7 @@ void ScaleMonoVO::showTrackingBA(const std::string& window_name, const cv::Mat& 
 	cv::waitKey(2);
 };
 
-void ScaleMonoVO::showTracking(const std::string& window_name, const cv::Mat& img, const LandmarkPtrVec& lms){
+void MonoVO::showTracking(const std::string& window_name, const cv::Mat& img, const LandmarkPtrVec& lms){
 	cv::namedWindow(window_name);
 	img.copyTo(img_debug_);
 	cv::cvtColor(img_debug_, img_debug_, CV_GRAY2RGB);
@@ -464,11 +443,11 @@ void ScaleMonoVO::showTracking(const std::string& window_name, const cv::Mat& im
 };
 
 
-const ScaleMonoVO::AlgorithmStatistics& ScaleMonoVO::getStatistics() const{
+const MonoVO::AlgorithmStatistics& MonoVO::getStatistics() const{
 	return stat_;
 };
 
-const cv::Mat& ScaleMonoVO::getDebugImage()
+const cv::Mat& MonoVO::getDebugImage()
 {
 	return img_debug_;
 };

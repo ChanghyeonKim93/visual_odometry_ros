@@ -1,5 +1,5 @@
-#ifndef _STEREO_NODE_H_
-#define _STEREO_NODE_H_
+#ifndef _STEREO_VO_NODE_H_
+#define _STEREO_VO_NODE_H_
 
 #include <iostream>
 #include <algorithm>
@@ -22,11 +22,10 @@
 
 #include <message_filters/sync_policies/approximate_time.h>
 
-
-
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/core/core.hpp>
 
+// My custom code
 #include "core/stereo_vo/stereo_vo.h"
 
 #include "util/timer.h"

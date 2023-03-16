@@ -49,7 +49,6 @@ set(SRC_MONO ${SRC_MONO}
   src/core/motion_estimator.cpp
 
   src/core/ba_solver/sparse_bundle_adjustment.cpp
-  src/core/ba_solver/sparse_bundle_adjustment_scale_sqp.cpp
 
   src/core/camera.cpp
   src/core/frame.cpp
@@ -65,15 +64,9 @@ set(SRC_MONO ${SRC_MONO}
   src/util/geometry_library.cpp
   src/util/histogram.cpp
   src/util/trigonometry_fast.cpp
-
-  src/core/scale_estimator/scale_estimator.cpp
-  src/core/scale_estimator/scale_forward_propagation.cpp
-  src/core/scale_estimator/absolute_scale_recovery.cpp
   
-  src/core/scale_mono_vo/scale_mono_vo.cpp
-  src/core/scale_mono_vo/scale_mono_vo_trackimage.cpp
-
-  src/core/stereo_vo/stereo_vo.cpp
+  src/core/mono_vo/mono_vo.cpp
+  src/core/mono_vo/mono_vo_trackimage.cpp
 )
 
 # Source files for the stereo VO

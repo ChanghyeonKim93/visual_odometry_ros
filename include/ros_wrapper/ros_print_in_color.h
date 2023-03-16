@@ -1,5 +1,4 @@
 #ifndef _ROS_PRINT_IN_COLOR_H_
-
 #define _ROS_PRINT_IN_COLOR_H_
 
 #include <iostream>

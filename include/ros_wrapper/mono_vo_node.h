@@ -1,5 +1,5 @@
-#ifndef _NODE_H_
-#define _NODE_H_
+#ifndef _MONO_VO_NODE_H_
+#define _MONO_VO_NODE_H_
 
 #include <iostream>
 #include <algorithm>
@@ -22,11 +22,11 @@
 
 #include <message_filters/sync_policies/approximate_time.h>
 
-
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/core/core.hpp>
 
-#include "core/scale_mono_vo/scale_mono_vo.h"
+// My custom code
+#include "core/mono_vo/mono_vo.h"
 
 #include "util/timer.h"
 
@@ -35,10 +35,10 @@
 
 #include "ros_wrapper/ros_print_in_color.h"
 
-class MonoNode{
+class MonoVONode{
 public:
-    MonoNode(ros::NodeHandle& nh);
-    ~MonoNode();
+    MonoVONode(ros::NodeHandle& nh);
+    ~MonoVONode();
 
 private:
     void getParameters();
@@ -101,7 +101,7 @@ private:
     std::string directory_intrinsic_;
 
 private:
-    std::unique_ptr<ScaleMonoVO> scale_mono_vo_;
+    std::unique_ptr<MonoVO> mono_vo_;
 };
 
 #endif

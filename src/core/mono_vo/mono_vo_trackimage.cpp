@@ -1,15 +1,15 @@
-#include "core/scale_mono_vo/scale_mono_vo.h"
+#include "core/mono_vo/mono_vo.h"
 
 /**
  * @brief function to track a new image (local bundle mode)
- * @details 새로 들어온 이미지의 자세를 구하는 함수. 만약, scale mono vo가 초기화되지 않은 경우, 해당 이미지를 초기 이미지로 설정. 
+ * @details 새로 들어온 이미지의 자세를 구하는 함수. 만약, mono vo가 초기화되지 않은 경우, 해당 이미지를 초기 이미지로 설정. 
  * @param img 입력 이미지 (CV_8UC1)
  * @param timestamp 입력 이미지의 timestamp.
  * @return none
  * @author Changhyeon Kim (hyun91015@gmail.com)
  * @date 10-July-2022
  */
-void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp)
+void MonoVO::trackImage(const cv::Mat& img, const double& timestamp)
 {
 	float THRES_SAMPSON  = params_.feature_tracker.thres_sampson;
 	float THRES_PARALLAX = params_.map_update.thres_parallax;
@@ -118,7 +118,7 @@ void ScaleMonoVO::trackImage(const cv::Mat& img, const double& timestamp)
 				lmtrack_final.lms[i]->addObservationAndRelatedFrame(lmtrack_final.pts1[i], frame_curr);
 			
 			// Frame_curr의 자세를 넣는다.
-			dt10 = dt10/dt10.norm()*params_.scale_estimator.initial_scale;
+			dt10 = dt10/dt10.norm()*1.0f;
 			PoseSE3 dT10; dT10 << dR10, dt10, 0.0f, 0.0f, 0.0f, 1.0f;
 			PoseSE3 dT01 = geometry::inverseSE3_f(dT10);
 
@@ -573,11 +573,6 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 		motion_estimator_->localBundleAdjustmentSparseSolver(keyframes_, cam_);
 		std::cout << colorcode::text_green << "Time [keyframe addition]: " << timer::toc(0) << " [ms]\n" << colorcode::cout_reset;
 
-		// Add this frame to the scale estimator
-		timer::tic();
-		bool flag_turn_detected = scale_estimator_->insertNewFrame(frame_curr);
-		std::cout << colorcode::text_green << "Time [Turning frame add]: " << timer::toc(0) << " [ms]\n" << colorcode::cout_reset;
-		
 		// Make variables for refine tracking
 		const LandmarkPtrVec& lms_final = frame_curr->getRelatedLandmarkPtr();
 		FloatVec scale_estimated(lms_final.size(), 1.0f);
@@ -621,16 +616,6 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 			if(mask_final[i])
 				lm->changeLastObservation(pts_refine[i]);
 		}
-
-
-		// Do local bundle adjustment for keyframes.
-		if(flag_turn_detected)
-		{
-			timer::tic();
-			motion_estimator_->localBundleAdjustmentSparseSolver(keyframes_, cam_);
-			std::cout << colorcode::text_green << "Time [LBA              ]: " << timer::toc(0) << " [ms]\n" << colorcode::cout_reset;
-		}
-		
 
 #ifdef RECORD_KEYFRAME_STAT
 timer::tic();
@@ -695,7 +680,7 @@ statcurr_frame.mappoints = X_world_recon;
 	std::cout << "Statistics Updated. size: " << stat_.stats_landmark.size() << "\n";
 
 	// Notify a thread.
-	mut_scale_estimator_->lock();
-	mut_scale_estimator_->unlock();
-	cond_var_scale_estimator_->notify_all();
+	// mut_scale_estimator_->lock();
+	// mut_scale_estimator_->unlock();
+	// cond_var_scale_estimator_->notify_all();
 };

@@ -1,5 +1,5 @@
-#ifndef _SCALE_MONO_VO_H_
-#define _SCALE_MONO_VO_H_
+#ifndef _MONO_VO_H_
+#define _MONO_VO_H_
 
 #define RECORD_LANDMARK_STAT  // Recording the statistics
 #define RECORD_FRAME_STAT     // Recording the statistics
@@ -38,15 +38,13 @@
 #include "core/feature_tracker.h"
 #include "core/motion_estimator.h"
 
-#include "core/scale_estimator/scale_estimator.h"
-
 #include "core/image_processing.h"
 #include "core/mapping.h"
 
 #include "util/timer.h"
 #include "util/cout_color.h"
 
-class ScaleMonoVO 
+class MonoVO 
 {
 public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -60,13 +58,6 @@ private:
 	std::shared_ptr<FeatureExtractor> extractor_;
 	std::shared_ptr<FeatureTracker>   tracker_;
 	std::shared_ptr<MotionEstimator>  motion_estimator_;
-	std::shared_ptr<ScaleEstimator>   scale_estimator_;
-
-// For scale recovery thread
-private:
-	std::shared_ptr<std::mutex> mut_scale_estimator_;
-	std::shared_ptr<std::condition_variable> cond_var_scale_estimator_;
-	bool flag_do_ASR_;
 
 private:
 	struct SystemFlags {
@@ -96,21 +87,6 @@ private:
 			float thres_5p_error     = 2.0; // sampson error threshold	
 			float thres_poseba_error = 5.0; // reprojection error.		
 		};
-		struct ScaleEstimatorParameters{
-			float cam_to_rear_axle_length = 1.05;
-			float initial_scale        = 1.0; // Initial velocity.
-			float thres_turn_psi       = 0.02; // rad
-			uint32_t thres_cnt_turns   = 0.02; // rad
-
-			uint32_t thres_age_past_horizon = 15; // 
-			uint32_t thres_age_use     = 3; // 
-			uint32_t thres_age_recon   = 8; // 
-
-			float thres_parallax_use   = 1.0; // degrees
-			float thres_parallax_recon = 20.0; // degrees
-
-			bool flag_do_ASR = false;
-		};
 		struct KeyframeUpdateParameters{
 			float thres_translation       = 1.0; // meter
 			float thres_rotation          = 3.0*D2R; // radian
@@ -124,7 +100,6 @@ private:
 		FeatureTrackerParameters   feature_tracker;
 		FeatureExtractorParameters feature_extractor;
 		MotionEstimatorParameters  motion_estimator;
-		ScaleEstimatorParameters   scale_estimator;
 		KeyframeUpdateParameters   keyframe_update;
 		MappingParameters          map_update;
 	};
@@ -196,19 +171,10 @@ public:
 			time_track(0.0f), time_1p(0.0f), time_5p(0.0f), time_localba(0.0f), time_new(0.0f) {};
 		};
 
-		struct TurnRegionStatistics{
-			FramePtrVec turn_regions;
-
-			TurnRegionStatistics() {
-				turn_regions.resize(0);
-			};
-		};
-
 		std::vector<LandmarkStatistics>  stats_landmark;
 		std::vector<FrameStatistics>     stats_frame;
 		std::vector<KeyframeStatistics>  stats_keyframe;
 		std::vector<ExecutionStatistics> stats_execution;
-		TurnRegionStatistics stat_turn;
 
 		AlgorithmStatistics() {
 			stats_landmark.reserve(5000);
@@ -251,8 +217,8 @@ private:
 	cv::Mat img_debug_;
 
 public:
-	ScaleMonoVO(std::string mode, std::string directory_intrinsic);
-	~ScaleMonoVO();
+	MonoVO(std::string mode, std::string directory_intrinsic);
+	~MonoVO();
 
 	void trackImage(const cv::Mat& img, const double& timestamp);
 	void trackImageBackend(const cv::Mat& img, const double& timestamp, const PoseSE3& pose, const PoseSE3& dT01);
