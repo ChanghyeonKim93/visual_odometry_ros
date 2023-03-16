@@ -1,0 +1,81 @@
+%YAML:1.0
+#--------------------------------------------------------------------------------------------
+# Camera Parameters
+#--------------------------------------------------------------------------------------------
+
+# Flag do undistortion
+flagDoUndistortion: 1 # 0: do not undistort an image (KITTI), 1: undistort an image
+
+# Camera calibration and distortion parameters (OpenCV) 
+# Left camera
+Camera.left.fx: 667.996718397864
+Camera.left.fy: 667.897046777980
+Camera.left.cx: 545.962424742217
+Camera.left.cy: 395.009211833006
+# Camera.left.cy: 395.109211833006
+
+Camera.left.k1: -0.321228281190158
+Camera.left.k2: 0.168829730797736
+Camera.left.k3: -0.0593916215970953
+Camera.left.p1: 0.000333342561423721
+Camera.left.p2: -0.0000921663355027036
+
+Camera.left.width: 1032
+Camera.left.height: 772
+
+# Right camera
+Camera.right.fx: 668.268563958765
+Camera.right.fy: 668.318252074066
+Camera.right.cx: 522.499226032714
+Camera.right.cy: 410.349049368375
+# Camera.right.cy: 410.949049368375
+
+
+Camera.right.k1: -0.318303994811522
+Camera.right.k2: 0.156334115904764
+Camera.right.k3: -0.0471411127343415
+Camera.right.p1: 0.000188304604518822
+Camera.right.p2: -0.0000439644417875838
+
+Camera.right.width: 1032
+Camera.right.height: 772
+
+T_lr: !!opencv-matrix # this statement is necessary.
+  rows: 4
+  cols: 4
+  dt: f
+  data: [0.999999053145654, -0.00129593309891480, -0.000462887888932720, 0.254680732094097, 0.00129681244351772, 0.999997345630180, 0.00190447107649274, 0.0000943718223901332, 0.000460418593153149, -0.00190506955201034, 0.999998079360516, -0.000595096962302827, 0,0,0,1]
+#--------------------------------------------------------------------------------------------
+# User setting Parameters
+#--------------------------------------------------------------------------------------------
+
+# Parameters of feature tracker
+feature_tracker.thres_error: 20.0
+feature_tracker.thres_bidirection: 0.5
+feature_tracker.thres_sampson: 60.0
+feature_tracker.window_size: 15
+feature_tracker.max_level: 6
+
+# Parameters of map update
+map_update.thres_parallax: 1.0
+
+# Parameters of feature extractor
+feature_extractor.n_features: 2000
+feature_extractor.n_bins_u: 24
+feature_extractor.n_bins_v: 18
+feature_extractor.thres_fastscore: 15.0
+feature_extractor.radius: 5.0
+
+# Parameters of motion estimator
+motion_estimator.thres_1p_error: 120.0   # pixels
+motion_estimator.thres_5p_error: 1.0     # pixels
+motion_estimator.thres_poseba_error: 3.0 # pixels
+
+motion_estimator.lba.max_iter: 6
+
+# Parameters of keyframe update
+keyframe_update.thres_alive_ratio: 0.6
+keyframe_update.thres_mean_parallax: 1.0
+keyframe_update.thres_trans: 3.0 # meters
+keyframe_update.thres_rotation: 10.0 # degrees
+keyframe_update.n_max_keyframes_in_window: 9

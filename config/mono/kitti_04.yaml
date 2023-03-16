@@ -1,0 +1,67 @@
+%YAML:1.0
+#--------------------------------------------------------------------------------------------
+# Camera Parameters
+#--------------------------------------------------------------------------------------------
+
+# Flag do undistortion
+flagDoUndistortion: 0 # 0: do not undistort an image (KITTI), 1: undistort an image
+
+# Camera calibration and distortion parameters (OpenCV) 
+Camera.fx: 707.0912
+Camera.fy: 707.0912
+Camera.cx: 601.8873
+Camera.cy: 183.1104
+
+Camera.k1: 0.0
+Camera.k2: 0.0
+Camera.k3: 0.0
+Camera.p1: 0.0
+Camera.p2: 0.0
+
+Camera.width: 1226
+Camera.height: 370
+
+#--------------------------------------------------------------------------------------------
+# User setting Parameters
+#--------------------------------------------------------------------------------------------
+
+# Parameters of feature tracker
+feature_tracker.thres_error: 50.0      
+feature_tracker.thres_bidirection: 0.5
+feature_tracker.thres_sampson: 1.0
+feature_tracker.window_size: 13
+feature_tracker.max_level: 6
+
+# Parameters of map update
+map_update.thres_parallax: 1.0
+
+# Parameters of feature extractor
+feature_extractor.n_features: 2000
+feature_extractor.n_bins_u: 24
+feature_extractor.n_bins_v: 12
+feature_extractor.thres_fastscore: 15.0
+feature_extractor.radius: 10.0
+
+# Parameters of motion estimator
+motion_estimator.thres_1p_error: 120.0 # pixels
+motion_estimator.thres_5p_error: 1.0 # pixels
+motion_estimator.thres_poseba_error: 5.0 # pixels
+
+# Parameters of scale estimator
+scale_estimator.flag_asr_on: 0
+scale_estimator.cam_to_rear_axle_length: 0.95 # KITTI; 1.05 m, MYDATA: 1.45 m
+scale_estimator.initial_scale: 0.76 # meters
+scale_estimator.thres_turn_psi: 1.2 # degrees
+scale_estimator.thres_cnt_turns: 7
+
+scale_estimator.thres_age_past_horizon: 20
+scale_estimator.thres_age_use: 2
+scale_estimator.thres_age_recon: 2
+scale_estimator.thres_parallax_use: 0.5 # degrees
+scale_estimator.thres_parallax_recon: 20.0 # degrees
+
+# Parameters of keyframe update
+keyframe_update.thres_overlap_ratio: 0.7
+keyframe_update.thres_translation: 3.0
+keyframe_update.thres_rotation: 4.0
+keyframe_update.n_max_keyframes_in_window: 9

@@ -1,0 +1,18 @@
+<launch>
+    <node pkg="scale_mono_vo_ros" name="stereo_vo_node" type="stereo_vo_node" output="screen">
+        <!-- Image topicname to be subscribed -->
+        <param name="topicname_image_left"  type="string" value="/kitti_odometry/left/image_raw"/>
+        <param name="topicname_image_right" type="string" value="/kitti_odometry/right/image_raw"/>
+        
+        <!-- Topicname of the groundtruth -->
+        <param name="topicname_gt" type="string" value="/kitti_odometry/groundtruth"/>
+
+        <!-- topicname of the VO pose estimation to be published -->
+        <param name="topicname_pose"            type="string" value="/stereo_vo/pose"/>
+        <param name="topicname_trajectory"      type="string" value="/stereo_vo/trajectory"/>
+        <param name="topicname_map_points"      type="string" value="/stereo_vo/map_points"/>
+
+        <!-- intrinsic parameter yaml file directory -->
+        <param name="directory_intrinsic" type="string" value="$(find scale_mono_vo_ros)/config/stereo/kitti_06_stereo.yaml"/>
+    </node>
+</launch>

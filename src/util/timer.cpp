@@ -1,8 +1,9 @@
 #include "util/timer.h"
+
 namespace timer{
-    auto start = std::chrono::high_resolution_clock::now();
-    auto finish = std::chrono::high_resolution_clock::now();
-    auto gap = finish - start;
+    std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
+    std::chrono::high_resolution_clock::time_point finish = std::chrono::high_resolution_clock::now();
+    std::chrono::high_resolution_clock::duration gap = finish - start;
 
     void tic(){
         start = std::chrono::high_resolution_clock::now();

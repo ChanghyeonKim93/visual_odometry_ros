@@ -13,12 +13,18 @@
 #include "core/frame.h"
 #include "core/camera.h"
 
-/** @brief - Landmark
-    2d pixel point hisotry over image
-    Address of fraems where the landmark was seen.
-    3D coordinate of the landmark represented in the global frame. It can be obtained by scale propagation and recovery modules.
-*/
-class Landmark{
+
+class Landmark;
+class LandmarkTracking;
+class StereoLandmarkTracking;
+
+// 2d pixel point hisotry over image
+// Address of fraems where the landmark was seen.
+// 3D coordinate of the landmark represented in the global frame. It can be obtained by scale propagation and recovery modules.
+
+/// @brief Landmark class
+class Landmark
+{
 private:
     uint32_t id_; // feature unique id
     Point    Xw_; // 3D point represented in the global frame.
@@ -30,12 +36,11 @@ private:
     std::vector<float> dv0_patt_;// 최초로 관측 된 위치에서의 patch (derivative along v)
     MaskVec mask_patt_; // valid mask
     
-    float invd_; // inverse depth of the 3D point represented in the first seen image.
-    float cov_invd_; // covariance of the inverse depth 
-
     PixelVec observations_; // 2D pixel observation history of this landmark
     std::vector<float> view_sizes_; // (approx.) 2D patch size compared to the firstly observed image. (s1 = s2*d1/d2)
     FramePtrVec related_frames_; // frame history where this landmark was seen
+  
+    std::shared_ptr<Camera> cam_; // camera object.
 
 // keyframes
 private:
@@ -44,9 +49,10 @@ private:
 
 // status
 private:
-    bool is_alive_; // alive flag
-    bool is_triangulated_; // triangulated flag
-    bool is_bundled_; // bundled flag
+    bool is_alive_;   // alive flag. 추적이 끝났고, bundle 등 결과, 점의 퀄리티가 너무 안좋으면 dead 로 만들어서 앞으로 사용하지 않는다. (ex- SQP 이후 점 좌표가 너무 커진 경우 등)
+    bool is_tracked_; // track flag. 추적이 끝났음을 알리는 것. dead와는 무관하다. (local bundle & SQP 등에서 사용되기 때문.)
+    bool is_triangulated_; // triangulated flag. 3D point를 가지고 있는지 여부. 
+    bool is_bundled_; // bundled flag. Bundle에 참여했었는지 여부.
 
     uint32_t age_; // tracking age
 
@@ -55,16 +61,10 @@ private:
     float avg_parallax_; // average parallax
     float last_parallax_; // the last parallax
  
-    float min_optflow_;
-    float max_optflow_;
-    float avg_optflow_;
-    float last_optflow_;
-
     // Eigen::Vector3f normal_vector_;
 
 public: // static counter
     inline static uint32_t landmark_counter_ = 0; // unique id counter.
-    static std::shared_ptr<Camera> cam_; // camera object.
     static PixelVec patt_;
 
     static void setPatch(int half_win_sz) {
@@ -87,8 +87,8 @@ public: // static counter
 
 
 public:
-    Landmark(); // cosntructor
-    Landmark(const Pixel& p, const FramePtr& frame); // constructor with observation.
+    Landmark(const std::shared_ptr<Camera>& cam); // cosntructor
+    Landmark(const Pixel& p, const FramePtr& frame, const std::shared_ptr<Camera>& cam); // constructor with observation.
     ~Landmark();// destructor
 
 // Set methods
@@ -99,25 +99,15 @@ public:
     void changeLastObservation(const Pixel& p);
     
     void set3DPoint(const Point& Xw);
-
+    
+    void setUntracked();
     void setBundled();
-    void setInverseDepth(float invd_curr);
     void setDead();
     
-    void updateInverseDepth(float invd_curr, float cov_invd_curr);
-    void setCovarianceInverseDepth(float cov_invd_curr);
-    
-    // void setTrackInView(bool value);
-    // void setTrackProjUV(float u, float v);
-    // void setTrackScaleLevel(uint32_t lvl);
-    // void setTrackViewCos(float vcos);
-
 // Get methods
 public:
     uint32_t           getID() const;
     uint32_t           getAge() const;
-    float              getInverseDepth() const;
-    float              getCovarianceInverseDepth() const;
     const Point&       get3DPoint() const;
     const PixelVec&    getObservations() const;
     const PixelVec&    getObservationsOnKeyframes() const;
@@ -130,6 +120,7 @@ public:
     const MaskVec&            getMaskPatchVec() const;
 
     const bool&        isAlive() const;
+    const bool&        isTracked() const;
     const bool&        isTriangulated() const;
     const bool&        isBundled() const;
 
@@ -137,25 +128,48 @@ public:
     float              getMaxParallax() const;  
     float              getAvgParallax() const;  
     float              getLastParallax() const;  
-
-    float              getMinOptFlow() const;
-    float              getMaxOptFlow() const;
-    float              getAvgOptFlow() const;
-    float              getLastOptFlow() const;
 };
 
-struct LandmarkTracking{
+class LandmarkTracking
+{
+public:
     PixelVec pts0;
     PixelVec pts1;
     LandmarkPtrVec lms;
     std::vector<float> scale_change;
 
-    LandmarkTracking(){
-        pts0.reserve(1000);
-        pts1.reserve(1000);
-        lms.reserve(1000);
-        scale_change.reserve(1000);
-    };
+    int n_pts;
+
+// Various constructors
+public:
+    LandmarkTracking();
+    LandmarkTracking(const LandmarkTracking& lmtrack, const MaskVec& mask);
+    LandmarkTracking(const PixelVec& pts0_in, const PixelVec& pts1_in, const LandmarkPtrVec& lms_in);
+};
+
+
+
+/// @brief A temporal structur for stereo feature tracking 
+class StereoLandmarkTracking 
+{
+public:
+    //  left camera prev. and current.
+    PixelVec pts_l0;
+    PixelVec pts_l1;
+
+    // right camera prev. and current.
+    PixelVec pts_r0;
+    PixelVec pts_r1;
+
+    // LandmarkPtr vector.
+    LandmarkPtrVec lms;
+
+    int n_pts;
+
+public:
+    /// @brief Constructor of StereoLandmarkTracking
+    StereoLandmarkTracking();
+    StereoLandmarkTracking(const StereoLandmarkTracking& slmtrack, const MaskVec& mask);
 };
 
 #endif

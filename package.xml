@@ -1,12 +1,12 @@
 <?xml version="1.0"?>
 <package>
-  <name>scale_mono_vo_ros</name>
+  <name>visual_odometry_ros</name>
   <version>0.0.0</version>
-  <description>scale_mono_vo_ros package</description>
+  <description>visual_odometry_ros package</description>
 
   <maintainer email="Changhyeon@gmail.com">ChanghyeonKim</maintainer>
 
-  <license>GPL2</license>
+  <license>Apache</license>
 
   <build_depend>roscpp</build_depend>
   <build_depend>cmake_modules</build_depend>

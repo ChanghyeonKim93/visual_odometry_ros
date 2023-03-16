@@ -1,0 +1,84 @@
+%YAML:1.0
+#--------------------------------------------------------------------------------------------
+# Camera Parameters
+#--------------------------------------------------------------------------------------------
+
+# Flag do undistortion
+flagDoUndistortion: 1 # 0: do not undistort an image (KITTI), 1: undistort an image
+
+# Camera calibration and distortion parameters (OpenCV) 
+# Camera.fx: 667.59708
+# Camera.fy: 667.40554
+# Camera.cx: 545.66678
+# Camera.cy: 395.18554
+
+# Camera.k1: -0.296981
+# Camera.k2: 0.097228
+# Camera.k3: 0.000187
+# Camera.p1: -0.000192
+# Camera.p2: 0.0
+
+Camera.fx: 667.996718397864
+Camera.fy: 667.897046777980
+Camera.cx: 545.962424742217
+Camera.cy: 395.009211833006
+
+Camera.k1: -0.321228281190158
+Camera.k2: 0.168829730797736
+Camera.k3: -0.0593916215970953
+Camera.p1: 0.000333342561423721
+Camera.p2: -0.0000921663355027036
+
+Camera.width: 1032
+Camera.height: 772
+
+#--------------------------------------------------------------------------------------------
+# User setting Parameters
+#--------------------------------------------------------------------------------------------
+
+# Parameters of feature tracker
+feature_tracker.thres_error: 60.0      
+feature_tracker.thres_bidirection: 0.5
+feature_tracker.thres_sampson: 1000.0
+feature_tracker.window_size: 15
+feature_tracker.max_level: 6
+
+# Parameters of map update
+map_update.thres_parallax: 1.0
+
+# Parameters of feature extractor
+feature_extractor.n_features: 5000
+# feature_extractor.n_bins_u: 64
+# feature_extractor.n_bins_v: 40
+# feature_extractor.n_bins_u: 24
+# feature_extractor.n_bins_v: 16
+feature_extractor.n_bins_u: 32
+feature_extractor.n_bins_v: 20
+# feature_extractor.n_bins_u: 20
+# feature_extractor.n_bins_v: 12
+feature_extractor.thres_fastscore: 15.0
+feature_extractor.radius: 5.0
+
+# Parameters of motion estimator
+motion_estimator.thres_1p_error: 120.0 # pixels
+motion_estimator.thres_5p_error: 1.0 # pixels
+motion_estimator.thres_poseba_error: 5.0 # pixels
+
+# Parameters of scale estimator
+scale_estimator.flag_asr_on: 1
+scale_estimator.cam_to_rear_axle_length: 1.45 # KITTI; 1.05 m, MYDATA: 1.45 m
+scale_estimator.initial_scale: 0.28 # meters
+scale_estimator.thres_turn_psi: 1.5 # degrees
+scale_estimator.thres_cnt_turns: 4
+
+scale_estimator.thres_age_past_horizon: 20
+scale_estimator.thres_age_use: 2
+scale_estimator.thres_age_recon: 2
+scale_estimator.thres_parallax_use: 1.0 # degrees
+scale_estimator.thres_parallax_recon: 1.0 # degrees
+
+# Parameters of keyframe update
+keyframe_update.thres_overlap_ratio: 0.6
+keyframe_update.thres_translation: 1.0
+keyframe_update.thres_rotation: 5.0
+keyframe_update.n_max_keyframes_in_window: 9

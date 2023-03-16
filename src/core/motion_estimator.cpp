@@ -1,11 +1,17 @@
 #include "core/motion_estimator.h"
 
-MotionEstimator::MotionEstimator()
+MotionEstimator::MotionEstimator(bool is_stereo_mode, const PoseSE3& T_lr)
+:is_stereo_mode_(is_stereo_mode), T_lr_(T_lr)
 {
-    thres_1p_ = 10.0; // pixels
-    thres_5p_ = 1.5; // pixels
+    this->thres_1p_ = 10.0; // pixels
+    this->thres_5p_ = 1.5; // pixels
 
-    sparse_ba_solver_ = std::make_shared<SparseBundleAdjustmentSolver>();
+    this->sparse_ba_solver_ = std::make_shared<SparseBundleAdjustmentSolver>(is_stereo_mode_);
+
+    if(is_stereo_mode_)
+        std::cout << "Motion Estimator is set to 'stereo' mode.\n";
+    else
+        std::cout << "Motion Estimator is set to 'monocular' mode.\n";
 };
 
 MotionEstimator::~MotionEstimator()
@@ -14,20 +20,18 @@ MotionEstimator::~MotionEstimator()
 };
 
 bool MotionEstimator::calcPose5PointsAlgorithm(
-    const PixelVec& pts0, const PixelVec& pts1, const std::shared_ptr<Camera>& cam,
+    const PixelVec& pts0, const PixelVec& pts1, CameraConstPtr& cam,
     Rot3& R10_true, Pos3& t10_true, PointVec& X0_true, MaskVec& mask_inlier)
 {
     // std::cout <<" - MotionEstimator - 'calcPose5PointsAlgorithm()'\n";
-    if(pts0.size() != pts1.size()) 
+    if( pts0.size() != pts1.size() )
     {
         throw std::runtime_error("calcPose5PointsAlgorithm(): pts0.size() != pts1.size()");
-        return false;
     }
 
     if(pts0.size() == 0) 
     {
         throw std::runtime_error("calcPose5PointsAlgorithm(): pts0.size() == pts1.size() == 0");
-        return false;
     }
 
     int n_pts = pts0.size();
@@ -75,7 +79,9 @@ bool MotionEstimator::calcPose5PointsAlgorithm(
         V.block(0, 2, 3, 1) = -V.block(0, 2, 3, 1);
 
     Eigen::Matrix3f W;
-    W << 0, -1, 0, 1, 0, 0, 0, 0, 1;
+    W << 0,-1, 0,
+         1, 0, 0,
+         0, 0, 1;
 
     // Four possibilities.
     std::vector<Rot3> R10_vec(4);
@@ -87,7 +93,7 @@ bool MotionEstimator::calcPose5PointsAlgorithm(
 
     t10_vec[0] = U.block<3,1>(0, 2);
     t10_vec[1] = -t10_vec[0];
-    t10_vec[2] = t10_vec[0];
+    t10_vec[2] =  t10_vec[0];
     t10_vec[3] = -t10_vec[0];
 
     // Solve two-fold ambiguity
@@ -125,7 +131,7 @@ bool MotionEstimator::calcPose5PointsAlgorithm(
  * @author Changhyeon Kim (hyun91015@gmail.com)
  * @date 12-July-2022
  */
-bool MotionEstimator::calcPosePnPAlgorithm(const PointVec& Xw, const PixelVec& pts_c, const std::shared_ptr<Camera>& cam, 
+bool MotionEstimator::calcPosePnPAlgorithm(const PointVec& Xw, const PixelVec& pts_c, CameraConstPtr& cam, 
     Rot3& Rwc, Pos3& twc, MaskVec& maskvec_inlier){
     if(Xw.size() != pts_c.size())
         throw std::runtime_error("Error in 'calcPosePnPAlgorithm()': Xw.size() != pts_c.size()");
@@ -192,7 +198,7 @@ bool MotionEstimator::calcPosePnPAlgorithm(const PointVec& Xw, const PixelVec& p
 
 bool MotionEstimator::findCorrectRT(
     const std::vector<Rot3>& R10_vec, const std::vector<Pos3>& t10_vec, 
-    const PixelVec& pxvec0, const PixelVec& pxvec1, const std::shared_ptr<Camera>& cam,
+    const PixelVec& pxvec0, const PixelVec& pxvec1, CameraConstPtr& cam,
     Rot3& R10_true, Pos3& t10_true, 
     MaskVec& maskvec_true, PointVec& X0_true)
 {
@@ -214,7 +220,7 @@ bool MotionEstimator::findCorrectRT(
         // Triangulate by the i-th pose candidate
 		PointVec X0, X1;
 		MaskVec maskvec_inlier(n_pts, false);
-        Mapping::triangulateDLT(pxvec0, pxvec1, R10, t10, cam,
+        mapping::triangulateDLT(pxvec0, pxvec1, R10, t10, cam,
                                 X0, X1);
 
         // Check chirality
@@ -249,7 +255,7 @@ bool MotionEstimator::findCorrectRT(
 };
 
 
-void MotionEstimator::refineEssentialMat(const PixelVec& pts0, const PixelVec& pts1, const MaskVec& mask, const std::shared_ptr<Camera>& cam,
+void MotionEstimator::refineEssentialMat(const PixelVec& pts0, const PixelVec& pts1, const MaskVec& mask, CameraConstPtr& cam,
     Mat33& E)
 {
 
@@ -340,7 +346,7 @@ void MotionEstimator::refineEssentialMat(const PixelVec& pts0, const PixelVec& p
 };
 
 
-void MotionEstimator::refineEssentialMatIRLS(const PixelVec& pts0, const PixelVec& pts1, const MaskVec& mask, const std::shared_ptr<Camera>& cam,
+void MotionEstimator::refineEssentialMatIRLS(const PixelVec& pts0, const PixelVec& pts1, const MaskVec& mask, CameraConstPtr& cam,
     Mat33& E)
 {
 
@@ -466,7 +472,7 @@ void MotionEstimator::refineEssentialMatIRLS(const PixelVec& pts0, const PixelVe
 
 };
 
-float MotionEstimator::findInliers1PointHistogram(const PixelVec& pts0, const PixelVec& pts1, const std::shared_ptr<Camera>& cam,
+float MotionEstimator::findInliers1PointHistogram(const PixelVec& pts0, const PixelVec& pts1, CameraConstPtr& cam,
     MaskVec& maskvec_inlier){
     
     if(pts0.size() != pts1.size()) {
@@ -478,10 +484,10 @@ float MotionEstimator::findInliers1PointHistogram(const PixelVec& pts0, const Pi
 
     maskvec_inlier.resize(n_pts,false);
 
-    float invfx = cam->fxinv();
-    float invfy = cam->fyinv();
-    float cx = cam->cx();
-    float cy = cam->cy();
+    const float& invfx = cam->fxinv();
+    const float& invfy = cam->fyinv();
+    const float& cx = cam->cx();
+    const float& cy = cam->cy();
 
     std::vector<float> theta(n_pts);
     for(int i = 0; i < n_pts; ++i)
@@ -507,7 +513,6 @@ float MotionEstimator::findInliers1PointHistogram(const PixelVec& pts0, const Pi
     float th_opt = histogram::medianHistogram(hist_centers, hist_counts);
 
     // std::cout << "theta_optimal: " << th_opt << " rad\n";
-
     Rot3 R10;
     Pos3 t10;
     float costh = cos(th_opt);
@@ -528,12 +533,11 @@ float MotionEstimator::findInliers1PointHistogram(const PixelVec& pts0, const Pi
         // std::cout << i << " -th sampson dist: " << sampson_dist[i] << " px\n";
     }
 
-
     return th_opt;
 };
 
 
-void MotionEstimator::calcSampsonDistance(const PixelVec& pts0, const PixelVec& pts1, const std::shared_ptr<Camera>& cam, 
+void MotionEstimator::calcSampsonDistance(const PixelVec& pts0, const PixelVec& pts1, CameraConstPtr& cam, 
     const Rot3& R10, const Pos3& t10, std::vector<float>& sampson_dist)
 {
     if(pts0.size() != pts1.size()) 
@@ -545,7 +549,7 @@ void MotionEstimator::calcSampsonDistance(const PixelVec& pts0, const PixelVec& 
 
     Eigen::Matrix3f E10,F10, F10t;
 
-    E10 = Mapping::skew(t10)*R10;
+    E10 = mapping::skew(t10)*R10;
     F10 = cam->Kinv().transpose()*E10*cam->Kinv();
     F10t = F10.transpose();
 
@@ -616,19 +620,20 @@ float MotionEstimator::calcSampsonDistance(const Pixel& pt0, const Pixel& pt1,co
     return dist_tmp;
 };
 
-void MotionEstimator::calcSymmetricEpipolarDistance(const PixelVec& pts0, const PixelVec& pts1, const std::shared_ptr<Camera>& cam, 
+void MotionEstimator::calcSymmetricEpipolarDistance(
+    const PixelVec& pts0, const PixelVec& pts1, CameraConstPtr& cam, 
     const Rot3& R10, const Pos3& t10, std::vector<float>& sym_epi_dist)
 {
     if(pts0.size() != pts1.size()) 
-        throw std::runtime_error("Error in 'fineInliers1PointHistogram()': pts0.size() != pts1.size()");
+        throw std::runtime_error("In 'calcSymmetricEpipolarDistance()', pts0.size() != pts1.size()");
     
     int n_pts = pts0.size();
-    
     sym_epi_dist.resize(n_pts);
 
-    Eigen::Matrix3f E10,F10, F10t;
+    // Calculate Fundamental matrix
+    Mat33 E10, F10, F10t;
 
-    E10 = Mapping::skew(t10)*R10;
+    E10 = mapping::skew(t10)*R10;
     F10 = cam->Kinv().transpose()*E10*cam->Kinv();
     F10t = F10.transpose();
 
@@ -641,9 +646,10 @@ void MotionEstimator::calcSymmetricEpipolarDistance(const PixelVec& pts0, const 
         Point F10p0  = F10*p0;
         Point F10tp1 = F10t*p1;
         
-        float numerator = p1.transpose()*F10p0;
-        numerator *= numerator;
-        float denominator = 1.0f/(F10p0(0)*F10p0(0) + F10p0(1)*F10p0(1)) + 1.0f*(F10tp1(0)*F10tp1(0) + F10tp1(1)*F10tp1(1));
+        float numerator = fabs(p1.transpose()*F10p0);
+        float denominator =
+              1.0f/std::sqrt(F10p0(0)*F10p0(0) + F10p0(1)*F10p0(1)) 
+            + 1.0f/std::sqrt(F10tp1(0)*F10tp1(0) + F10tp1(1)*F10tp1(1));
         float dist_tmp = numerator * denominator;
         sym_epi_dist[i] = dist_tmp;
     }
@@ -659,45 +665,42 @@ void MotionEstimator::setThres5p(float thres_5p)
     thres_5p_ = thres_5p; // pixels
 };
 
-bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const PixelVec& pts1, const std::shared_ptr<Camera>& cam, const int& thres_reproj_outlier, 
+bool MotionEstimator::poseOnlyBundleAdjustment(const PointVec& X, const PixelVec& pts1, CameraConstPtr& cam, const int& thres_reproj_outlier, 
     Rot3& R01_true, Pos3& t01_true, MaskVec& mask_inlier)
 {
     // X is represented in the world frame.
     if(X.size() != pts1.size()) 
-        throw std::runtime_error("In 'calcPoseOnlyBundleAdjustment()': X.size() != pts1.size().");
+        throw std::runtime_error("In 'poseOnlyBundleAdjustment()': X.size() != pts1.size().");
     
     bool is_success = true;
 
     int n_pts = X.size();
     mask_inlier.resize(n_pts);
     
-    int MAX_ITER = 250;
+    int MAX_ITER = 100;
     float THRES_HUBER        = 0.5f; // pixels
-    float THRES_DELTA_XI     = 1e-5;
-    float THRES_DELTA_ERROR  = 1e-6;
+    float THRES_DELTA_XI     = 1e-6;
+    float THRES_DELTA_ERROR  = 1e-7;
     float THRES_REPROJ_ERROR = thres_reproj_outlier; // pixels
 
-    float lambda = 0.01f;
-    float step_size = 1.0f;
+    float lambda = 0.00001f;
     
-    float fx = cam->fx(); float fy = cam->fy();
-    float cx = cam->cx(); float cy = cam->cy();
-    float fxinv = cam->fxinv(); float fyinv = cam->fyinv();
+    const float& fx = cam->fx(); const float& fy = cam->fy();
+    const float& cx = cam->cx(); const float& cy = cam->cy();
+    const float& fxinv = cam->fxinv(); const float& fyinv = cam->fyinv();
 
-    PoseSE3 T10_init;
     PoseSE3 T01_init;
     T01_init << R01_true, t01_true, 0,0,0,1;
-    T10_init = T01_init.inverse();
 
-    PoseSE3Tangent xi10; // se3
-    geometry::SE3Log_f(T10_init,xi10);
     
     float err_prev = 1e10f;
-    PoseSE3 T10_optimized = T10_init;
 
-    Eigen::Matrix<float,6,6> JtWJ;
-    Eigen::Matrix<float,6,1> mJtWr;
-    for(uint32_t iter = 0; iter < MAX_ITER; ++iter){
+    Mat66 JtWJ;
+    Vec6  mJtWr;
+
+    PoseSE3 T10_optimized  = T01_init.inverse();
+    for(uint32_t iter = 0; iter < MAX_ITER; ++iter)
+    {
         mJtWr.setZero();
         JtWJ.setZero();
 
@@ -708,7 +711,8 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
         float inv_npts = 1.0f/(float)n_pts;
         int cnt_invalid = 0;
         // Warp and project point & calculate error...
-        for(int i = 0; i < n_pts; ++i) {
+        for(int i = 0; i < n_pts; ++i) 
+        {
             const Pixel& pt = pts1[i];
             Point Xw = R10*X[i] + t10;
 
@@ -719,8 +723,8 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
             float fyyiz = fy*yiz;
 
             Pixel pt_warp;
-            pt_warp.x = fxxiz+cx;
-            pt_warp.y = fyyiz+cy;
+            pt_warp.x = fxxiz + cx;
+            pt_warp.y = fyyiz + cy;
 
             float rx = pt_warp.x - pt.x;
             float ry = pt_warp.y - pt.y;
@@ -740,68 +744,78 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
                 mask_inlier[i] = false;
                 ++cnt_invalid;
             }
-            else 
+            else
                 mask_inlier[i] = true;
 
             // JtWJ, JtWr for x
-            Eigen::Matrix<float,6,1> Jt;
-            Jt(0,0) = fx*iz;
-            Jt(1,0) = 0.0f;
-            Jt(2,0) = -fxxiz*iz;
-            Jt(3,0) = -fxxiz*yiz;
-            Jt(4,0) = fx*(1.0f+xiz*xiz);
-            Jt(5,0) = -fx*yiz;
+            Vec6 Jt; Jt.setZero();
+            Mat66 JtJ_tmp; JtJ_tmp.setZero();
+            
+            Jt(0) = fx*iz;
+            Jt(1) = 0.0f;
+            Jt(2) = -fxxiz*iz;
+            Jt(3) = -fxxiz*yiz;
+            Jt(4) = fx*(1.0f+xiz*xiz);
+            Jt(5) = -fx*yiz;
 
             if(flag_weight) 
             {
                 float w_rx = weight*rx;
-                float err = w_rx*rx;
-                JtWJ.noalias() += weight*(Jt*Jt.transpose());
+                float err  = w_rx*rx;
+
+                // JtWJ.noalias() += weight *(Jt*Jt.transpose());
+                this->calcJtWJ_x(weight, Jt, JtJ_tmp);
+                JtWJ.noalias()  += JtJ_tmp;
                 mJtWr.noalias() -= (w_rx)*Jt;
-                err_curr += err;
+                err_curr += rx*rx;
             }
             else 
             {
                 float err = rx*rx;
-                JtWJ.noalias() += Jt*Jt.transpose();
+                // JtWJ.noalias() += Jt*Jt.transpose();
+                this->calcJtJ_x(Jt, JtJ_tmp);
+                JtWJ.noalias()  += JtJ_tmp;
                 mJtWr.noalias() -= rx*Jt;
                 err_curr += err;
             }
 
             // JtWJ, JtWr for y
-            Jt(0,0) = 0.0f;
-            Jt(1,0) = fy*iz;
-            Jt(2,0) =-fyyiz*iz;
-            Jt(3,0) =-fy*(1.0f+yiz*yiz);
-            Jt(4,0) = fyyiz*xiz;
-            Jt(5,0) = fy*xiz;
+            Jt(0) = 0.0f;
+            Jt(1) = fy*iz;
+            Jt(2) =-fyyiz*iz;
+            Jt(3) =-fy*(1.0f+yiz*yiz);
+            Jt(4) = fyyiz*xiz;
+            Jt(5) = fy*xiz;
 
-             if(flag_weight) 
-             {
+            if(flag_weight) 
+            {
                 float w_ry = weight*ry;
-                float err = w_ry*ry;
-                JtWJ.noalias()  += weight*(Jt*Jt.transpose());
+                float err  = w_ry*ry;
+                // JtWJ.noalias()  += weight*(Jt*Jt.transpose());
+                this->calcJtWJ_y(weight, Jt, JtJ_tmp);
+                JtWJ.noalias()  += JtJ_tmp;
                 mJtWr.noalias() -= w_ry*Jt;
-                err_curr += err;
+                err_curr += ry*ry;
             }
             else 
             {
                 float err = ry*ry;
-                JtWJ.noalias()  += Jt*Jt.transpose();
+                // JtWJ.noalias()  += Jt*Jt.transpose();
+                this->calcJtJ_y(Jt, JtJ_tmp);
+                JtWJ.noalias()  += JtJ_tmp;
                 mJtWr.noalias() -= ry*Jt;
                 err_curr += err;
             }
         } // END FOR
 
         err_curr *= (inv_npts*0.5f);
-        float delta_err = abs(err_curr-err_prev);
+        float delta_err = abs(err_curr - err_prev);
 
         // Solve H^-1*Jtr;
         for(int i = 0; i < 6; ++i)
-             JtWJ(i,i) *= (1.0f+lambda); // lambda 
+            JtWJ(i,i) *= (1.0f + lambda); // lambda 
 
         PoseSE3Tangent delta_xi = JtWJ.ldlt().solve(mJtWr);
-        delta_xi *= step_size; 
 
         // Update matrix
         PoseSE3 dT;
@@ -809,211 +823,246 @@ bool MotionEstimator::calcPoseOnlyBundleAdjustment(const PointVec& X, const Pixe
         T10_optimized.noalias() = dT*T10_optimized;
         
         err_prev = err_curr;
-        // std::cout << "reproj. err. (avg): " << err_curr << ", step: " << delta_xi.transpose() << std::endl;
+
+        std::cout << "reproj. err. (avg): " << err_curr << ", step: " << delta_xi.transpose() <<", det: " << T10_optimized.block<3,3>(0,0).determinant() << std::endl;
         if(delta_xi.norm() < THRES_DELTA_XI || delta_err < THRES_DELTA_ERROR)
         {
-            std::cout << "poseonly BA stops at: " << iter <<", err: " << err_curr <<", derr: " << delta_err << ", # invalid: " << cnt_invalid << "\n";
+            std::cout << "    poseonly BA stops at: " << iter <<", err: " << err_curr <<", derr: " << delta_err << ", deltaxi: " << delta_xi.norm() << ", # invalid: " << cnt_invalid << "\n";
             break;
         }
         if(iter == MAX_ITER-1)
         {
-            std::cout << "!! WARNING !! poseonly BA stops at full iterations!!" <<", err: " << err_curr <<", derr: " << delta_err << ", # invalid: " << cnt_invalid << "\n";
+            std::cout << "    !! WARNING !! poseonly BA stops at full iterations!!" <<", err: " << err_curr <<", derr: " << delta_err << ", # invalid: " << cnt_invalid << "\n";
         }
     }
 
-    if(!std::isnan(xi10.norm()))
+    if(!std::isnan(T10_optimized.norm()))
     {
         PoseSE3 T01_update;
-        // geometry::se3Exp_f(-xi10, T01_update);
         T01_update << geometry::inverseSE3_f(T10_optimized);
         R01_true = T01_update.block<3,3>(0,0);
         t01_true = T01_update.block<3,1>(0,3);
     }
-    else is_success = false;  // if nan, do not update.
+    else{
+        std::cout << "!! WARNING !! poseonly BA yields NAN value!!" <<", T10_optimized: \n" << T10_optimized << "\n";
+        is_success = false;  // if nan, do not update.
+    }
 
     return is_success;
 };
 
-bool MotionEstimator::calcPoseOnlyBundleAdjustment(const LandmarkPtrVec& lms, const PixelVec& pts1, const std::shared_ptr<Camera>& cam,
-    Rot3& Rwc_true, Pos3& twc_true, MaskVec& mask_inlier)
+
+bool MotionEstimator::poseOnlyBundleAdjustment_Stereo(const PointVec& X, const PixelVec& pts_l1, const PixelVec& pts_r1, CameraConstPtr& cam_left, CameraConstPtr& cam_right, const PoseSE3& T_lr, float thres_reproj_outlier, 
+    PoseSE3& T01, MaskVec& mask_inlier)
 {
-    // X is represented in the world frame.
-    if(lms.size() != pts1.size()) 
-        throw std::runtime_error("In 'calcPoseOnlyBundleAdjustment()': lms.size() != pts1.size().");
+    if( !is_stereo_mode_ )
+        throw std::runtime_error("In 'poseOnlyBundleAdjustment_Stereo()', is_stereo_mode_ == false");
+    
+    PoseSE3 T_rl = geometry::inverseSE3_f(T_lr);
+
+    // X is represented in the reference frame.
+    if(X.size() != pts_l1.size()
+    || X.size() != pts_r1.size()) 
+        throw std::runtime_error("In 'poseOnlyStereoBundleAdjustment()': X.size() != pts_l1.size() || X.size() != pts_r1.size().");
     
     bool is_success = true;
 
-    int n_pts = lms.size();
-    mask_inlier.resize(n_pts, true);
-    
-    int MAX_ITER = 250;
-    float THRES_HUBER = 1.5f; // pixels
-    float THRES_DELTA_XI = 1e-7;
+    int n_pts = X.size();
+    mask_inlier.assign(n_pts, true);
 
-    float lambda = 0.01f;
-    float step_size = 1.0f;
-    float THRES_REPROJ_ERROR = 4.0; // pixels
-    float THRES_REPROJ_ERROR_INLIER = 3.0; // pixels
-    
-    float fx = cam->fx();
-    float fy = cam->fy();
-    float cx = cam->cx();
-    float cy = cam->cy();
-    float fxinv = cam->fxinv();
-    float fyinv = cam->fyinv();
+    int MAX_ITER = 100;
+    float THRES_HUBER        = 0.5f; // pixels
+    float THRES_DELTA_XI     = 1e-6;
+    float THRES_DELTA_ERROR  = 1e-7;
+    float THRES_REPROJ_ERROR = thres_reproj_outlier; // pixels
 
-    PoseSE3 Tcw_init;
-    PoseSE3 Twc_init;
-    Twc_init << Rwc_true, twc_true, 0,0,0,1;
-    Tcw_init = Tcw_init.inverse();
-
-    PoseSE3Tangent xi10; // se3
-    geometry::SE3Log_f(Tcw_init, xi10);
+    float lambda = 0.00001f;
     
-    for(uint32_t iter = 0; iter < MAX_ITER; ++iter)
+    const float& fx_l = cam_left->fx(); const float& fy_l = cam_left->fy();
+    const float& cx_l = cam_left->cx(); const float& cy_l = cam_left->cy();
+    const float& fx_l_inv = cam_left->fxinv(); const float& fy_l_inv = cam_left->fyinv();
+
+    const float& fx_r = cam_right->fx(); const float& fy_r = cam_right->fy();
+    const float& cx_r = cam_right->cx(); const float& cy_r = cam_right->cy();
+    const float& fx_r_inv = cam_right->fxinv(); const float& fy_r_inv = cam_right->fyinv();
+
+    float err_prev = 1e10f;
+    PoseSE3 T10_optimized;
+    T10_optimized << T01.block<3,3>(0,0).transpose(), -T01.block<3,3>(0,0).transpose()*T01.block<3,1>(0,3), 0,0,0,1;
+
+    Mat66 JtWJ;
+    Vec6 mJtWr;
+    for(int iter = 0; iter < MAX_ITER; ++iter)
     {
-        PoseSE3 Tcw;
-        geometry::se3Exp_f(xi10,Tcw);
-
-        Rot3 Rcw = Tcw.block<3,3>(0,0);
-        Pos3 tcw = Tcw.block<3,1>(0,3);
-
-        Eigen::Matrix<float,6,6> JtWJ;
-        Eigen::Matrix<float,6,1> mJtWr;
         JtWJ.setZero();
         mJtWr.setZero();
 
-        float err_prev = 1e15f;
+        const Rot3& R10 = T10_optimized.block<3,3>(0,0);
+        const Pos3& t10 = T10_optimized.block<3,1>(0,3);
+
         float err_curr = 0.0f;
         float inv_npts = 1.0f/(float)n_pts;
-
+        int cnt_invalid = 0;
         // Warp and project point & calculate error...
         for(int i = 0; i < n_pts; ++i) 
         {
-            const Pixel& pt = pts1[i];
-            Point Xprev = Rcw*lms[i]->get3DPoint() + tcw;
+            // Warp 3D point to left and right
+            const Pixel& pt_l = pts_l1[i];
+            const Pixel& pt_r = pts_r1[i];
+            Point Xl = R10*X[i] + t10;
+            Point Xr = T_rl.block<3,3>(0,0)*Xl + T_rl.block<3,1>(0,3);
 
-            float iz    = 1.0f/Xprev(2);
-            float xiz   = Xprev(0)*iz;
-            float yiz   = Xprev(1)*iz;
-            float fxxiz = fx*xiz;
-            float fyyiz = fy*yiz;
+            // left
+            float iz_l = 1.0f/Xl(2);
+            float xiz_l = Xl(0)*iz_l;
+            float yiz_l = Xl(1)*iz_l;
+            float fxxiz_l = fx_l*xiz_l;
+            float fyyiz_l = fy_l*yiz_l;
 
-            Pixel pt_warp;
-            pt_warp.x = fxxiz + cx;
-            pt_warp.y = fyyiz + cy;
-
-            float rx = pt_warp.x - pt.x;
-            float ry = pt_warp.y - pt.y;
+            Pixel pt_l_warp(fxxiz_l + cx_l, fyyiz_l + cy_l);
+            float rx_l = pt_l_warp.x - pt_l.x;
+            float ry_l = pt_l_warp.y - pt_l.y;
             
+            // right
+            float iz_r = 1.0f/Xr(2);
+            float xiz_r = Xr(0)*iz_r;
+            float yiz_r = Xr(1)*iz_r;
+            float fxxiz_r = fx_r*xiz_r;
+            float fyyiz_r = fy_r*yiz_r;
+
+            Pixel pt_r_warp(fxxiz_r + cx_r, fyyiz_r + cy_r);
+            float rx_r = pt_r_warp.x - pt_r.x;
+            float ry_r = pt_r_warp.y - pt_r.y;
+
             // Huber weight calculation by the Manhattan distance
             float weight     = 1.0f;
             bool flag_weight = false;
-
-            float absrxry = abs(rx)+abs(ry);
+            float absrxry = abs(rx_l) + abs(ry_l) + abs(rx_r) + abs(ry_r);
+            absrxry *= 0.5f;
             if(absrxry >= THRES_HUBER)
             {
                 weight = THRES_HUBER/absrxry; 
                 flag_weight = true;
-            } 
-
-            if(iter > 2)
-            {
-                if(absrxry >= THRES_REPROJ_ERROR_INLIER)
-                    mask_inlier[i] = false;
-                else 
-                    mask_inlier[i] = true;
             }
+
+            if(absrxry >= THRES_REPROJ_ERROR)
+            {
+                mask_inlier[i] = false;
+                ++cnt_invalid;
+            }
+            else
+                mask_inlier[i] = true;
 
             // JtWJ, JtWr for x
-            Eigen::Matrix<float,6,1> Jt;
-            Jt(0,0) = fx*iz;
-            Jt(1,0) = 0.0f;
-            Jt(2,0) = -fxxiz*iz;
-            Jt(3,0) = -fxxiz*yiz;
-            Jt(4,0) = fx*(1.0f+xiz*xiz);
-            Jt(5,0) = -fx*yiz;
+            Vec6 Jt; Jt.setZero();
+            Mat66 JtJ_tmp; JtJ_tmp.setZero();
+            
+            // Left x
+            Jt(0) = fx_l*iz_l;
+            Jt(1) = 0.0f;
+            Jt(2) = -fxxiz_l*iz_l;
+            Jt(3) = -fxxiz_l*yiz_l;
+            Jt(4) = fx_l*(1.0f+xiz_l*xiz_l);
+            Jt(5) = -fx_l*yiz_l;
 
-            if(flag_weight) 
-            {
-                float w_rx = weight*rx;
-                float err = w_rx*rx;
-                if(err <= THRES_REPROJ_ERROR)
-                {
-                    mJtWr.noalias() -= (w_rx)*Jt;
-                    JtWJ.noalias() += weight*(Jt*Jt.transpose());
-                    err_curr += err;
-                }
-            }
-            else 
-            {
-                float err = rx*rx;
-                if(err <= THRES_REPROJ_ERROR)
-                {
-                    JtWJ.noalias() += Jt*Jt.transpose();
-                    mJtWr.noalias() -= rx*Jt;
-                    err_curr += rx*rx;
-                }
-            }
+            float w_rx = weight*rx_l;
+            float err  = w_rx*rx_l;
 
-            // JtWJ, JtWr for y
-            Jt(0,0) = 0.0f;
-            Jt(1,0) = fy*iz;
-            Jt(2,0) =-fyyiz*iz;
-            Jt(3,0) =-fy*(1.0f+yiz*yiz);
-            Jt(4,0) = fyyiz*xiz;
-            Jt(5,0) = fy*xiz;
+            // JtWJ.noalias() += weight *(Jt*Jt.transpose());
+            this->calcJtWJ_x(weight, Jt, JtJ_tmp);
+            JtWJ.noalias()  += JtJ_tmp;
+            mJtWr.noalias() -= (w_rx)*Jt;
+            err_curr += rx_l*rx_l;
 
-            if(flag_weight) 
-            {
-                float w_ry = weight*ry;
-                float err = w_ry*ry;
-                if(err <= THRES_REPROJ_ERROR)
-                {
-                    JtWJ.noalias() += weight*(Jt*Jt.transpose());
-                    mJtWr.noalias() -= (w_ry)*Jt;
-                    err_curr += err;
-                }
-            }
-            else 
-            {
-                float err = ry*ry;
-                if(err <= THRES_REPROJ_ERROR)
-                {
-                    JtWJ.noalias() += Jt*Jt.transpose();
-                    mJtWr.noalias() -= ry*Jt;
-                    err_curr += err;
-                }
-            }
+            // Left y
+            Jt(0) = 0.0f;
+            Jt(1) = fy_l*iz_l;
+            Jt(2) =-fyyiz_l*iz_l;
+            Jt(3) =-fy_l*(1.0f+yiz_l*yiz_l);
+            Jt(4) = fyyiz_l*xiz_l;
+            Jt(5) = fy_l*xiz_l;
+
+            float w_ry = weight*ry_l;
+            err  = w_ry*ry_l;
+
+            this->calcJtWJ_y(weight, Jt, JtJ_tmp);
+            JtWJ.noalias()  += JtJ_tmp;
+            mJtWr.noalias() -= (w_ry)*Jt;
+            err_curr += ry_l*ry_l;
+
+
+            // Right x
+            Jt(0) = fx_r*iz_r;
+            Jt(1) = 0.0f;
+            Jt(2) = -fxxiz_r*iz_r;
+            Jt(3) = -fxxiz_r*yiz_r;
+            Jt(4) = fx_r*(1.0f+xiz_r*xiz_r);
+            Jt(5) = -fx_r*yiz_r;
+
+            w_rx = weight*rx_r;
+            err  = w_rx*rx_r;
+
+            // JtWJ.noalias() += weight *(Jt*Jt.transpose());
+            this->calcJtWJ_x(weight, Jt, JtJ_tmp);
+            JtWJ.noalias()  += JtJ_tmp;
+            mJtWr.noalias() -= (w_rx)*Jt;
+            err_curr += rx_r*rx_r;
+
+            // Right y
+            Jt(0) = 0.0f;
+            Jt(1) = fy_r*iz_r;
+            Jt(2) =-fyyiz_r*iz_r;
+            Jt(3) =-fy_r*(1.0f+yiz_r*yiz_r);
+            Jt(4) = fyyiz_r*xiz_r;
+            Jt(5) = fy_r*xiz_r;
+
+            w_ry = weight*ry_r;
+            err  = w_ry*ry_r;
+
+            this->calcJtWJ_y(weight, Jt, JtJ_tmp);
+            JtWJ.noalias()  += JtJ_tmp;
+            mJtWr.noalias() -= (w_ry)*Jt;
+            err_curr += ry_r*ry_r;
         } // END FOR
 
+        err_curr       *= (inv_npts*0.5f);
+        err_curr        = std::sqrt(err_curr);
+        float delta_err = abs(err_curr - err_prev);
+
+
         // Solve H^-1*Jtr;
-        for(int i = 0; i < 6; ++i) 
-            JtWJ(i,i) += lambda*JtWJ(i,i); // lambda 
+        for(int i = 0; i < 6; ++i)
+            JtWJ(i,i) *= (1.0f + lambda); // lambda 
 
         PoseSE3Tangent delta_xi = JtWJ.ldlt().solve(mJtWr);
-        delta_xi *= step_size; 
-        xi10 += delta_xi;
-        std::cout << "reproj. err. (avg): " << err_curr*inv_npts*0.5f << ", step: " << delta_xi.transpose() << std::endl;
-        if(delta_xi.norm() < THRES_DELTA_XI)
+
+        // Update matrix
+        PoseSE3 dT;
+        geometry::se3Exp_f(delta_xi, dT);
+        T10_optimized.noalias() = dT*T10_optimized;
+
+        err_prev = err_curr;
+        // std::cout << "reproj. err. (avg): " << err_curr << ", step: " << delta_xi.transpose() << std::endl;
+        if(delta_xi.norm() < THRES_DELTA_XI || delta_err < THRES_DELTA_ERROR)
         {
-            std::cout << "pose estimation stops at : " << iter <<"\n";
+            std::cout << "poseonly Stereo BA stops at: " << iter <<", err: " << err_curr <<", derr: " << delta_err << ", deltaxi: " << delta_xi.norm() << ", # invalid: " << cnt_invalid << "\n";
             break;
         }
-    }
+        if(iter == MAX_ITER-1)
+            std::cout << "!! WARNING !! poseonly Stereo BA stops at full iterations!!" <<", err: " << err_curr <<", derr: " << delta_err << ", # invalid: " << cnt_invalid << "\n";
+    } //END iter
 
-    if(!std::isnan(xi10.norm()))
+
+    if( !std::isnan(T10_optimized.norm()) )
     {
         PoseSE3 T01_update;
-        geometry::se3Exp_f(-xi10, T01_update);
-        Rwc_true = T01_update.block<3,3>(0,0);
-        twc_true = T01_update.block<3,1>(0,3);
-
-        std::cout <<"BA result:\n";
-        std::cout << "R01_ba:\n" << Rwc_true <<"\n";
-        std::cout << "t01_ba:\n" << twc_true <<"\n";
+        T01_update << geometry::inverseSE3_f(T10_optimized);
+        T01 = T01_update;
     }
-    else is_success = false;
+    else{
+        std::cout << "!! WARNING !! poseonly BA yields NAN value!!" <<", T10_optimized: \n" << T10_optimized << "\n";
+        is_success = false;  // if nan, do not update.
+    }
 
     return is_success;
 };
@@ -1064,7 +1113,7 @@ inline void MotionEstimator::fillTriplet(SpTripletList& Tri, const int& idx_hori
     }
 };
 
-bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Keyframes>& kfs_window, const std::shared_ptr<Camera>& cam)
+bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Keyframes>& kfs_window, CameraConstPtr& cam)
 {
 // Variables
 // 
@@ -1075,17 +1124,13 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
 // 
 // std::map<FramePtr,int>     kfmap_optimizable
 // std::map<FramePtr,PoseSE3> Tjw_map;
-
+    std::cout << colorcode::text_cyan;
     std::cout << "===============     Local Bundle adjustment (Sparse Solver)     ===============\n";
-
-    int THRES_AGE           = 2; // landmark의 최소 age
-    int THRES_MINIMUM_SEEN  = 2; // landmark의 최소 관측 keyframes
-    float THRES_PARALLAX    = 0.7*D2R; // landmark의 최소 parallax
 
     // Optimization paraameters
     int   MAX_ITER          = 10;
 
-    float lam               = 1e-3;  // for Levenberg-Marquardt algorithm
+    float lam               = 1e-5;  // for Levenberg-Marquardt algorithm
     float MAX_LAM           = 1.0f;  // for Levenberg-Marquardt algorithm
     float MIN_LAM           = 1e-4f; // for Levenberg-Marquardt algorithm
 
@@ -1093,7 +1138,7 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     float THRES_HUBER_MIN   = 0.3f;
     float THRES_HUBER_MAX   = 20.0f;
 
-    int   THRES_NUM_MAXIMUM_PAST_KEYFRAME_ID = 15;
+    float THRES_TOO_FAR     = 100.0f;
 
     // optimization status flags
     bool DO_RECALC          = true;
@@ -1104,13 +1149,13 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     float THRES_DELTA_THETA = 1e-7;
     float THRES_ERROR       = 1e-7;
 
-    int NUM_MINIMUM_REQUIRED_KEYFRAMES = 2; // 최소 keyframe 갯수.
-    int NUM_FIX_KEYFRAMES_IN_WINDOW    = 1; // optimization에서 제외 할 keyframe 갯수. 과거 순.
+    int NUM_MINIMUM_REQUIRED_KEYFRAMES = 3; // 최소 keyframe 갯수.
+    int NUM_FIX_KEYFRAMES_IN_WINDOW    = 2; // optimization에서 제외 할 keyframe 갯수. 과거 순.
 
     // Check whether there are enough keyframes
     if(kfs_window->getCurrentNumOfKeyframes() < NUM_MINIMUM_REQUIRED_KEYFRAMES)
     {
-        std::cout << "  -- Not enough keyframes... at least four keyframes are needed. local BA is skipped.\n";
+        std::cout << "  ---- Not enough keyframes... at least four keyframes are needed. local BA is skipped.\n";
         return false;
     }
 
@@ -1136,25 +1181,458 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     ba_params->setPosesAndPoints(frames, idx_fix, idx_opt);
 
     // BA sparse solver
-    timer::tic();
+    // timer::tic();
     sparse_ba_solver_->reset(); // reset the solver
     sparse_ba_solver_->setCamera(cam); // set 
     sparse_ba_solver_->setBAParameters(ba_params);
     sparse_ba_solver_->setHuberThreshold(THRES_HUBER);
-    double dt_prepare = timer::toc(0);
+    // double dt_prepare = timer::toc(0);
 
-    timer::tic();
+    // timer::tic();
     sparse_ba_solver_->solveForFiniteIterations(MAX_ITER);
-    double dt_solve = timer::toc(0);
+    // double dt_solve = timer::toc(0);
 
-    timer::tic();
+    // timer::tic();
     sparse_ba_solver_->reset();
-    double dt_reset = timer::toc(0);
+    // double dt_reset = timer::toc(0);
 
+    if(0)
+    {
+        std::cout << "==== Show Translations: \n";
+        for(int j = 0; j < ba_params->getNumOfOptimizeFrames(); ++j)
+        {
+            const FramePtr& f = ba_params->getOptFramePtr(j);
+
+            std::cout << "[" << f->getID() << "] frame's trans: " 
+                             << f->getPose().block<3,1>(0,3).transpose() << "\n";
+        }
+
+        std::cout << "==== Show Points: \n";
+        for(int i = 0; i < ba_params->getNumOfOptimizeLandmarks(); ++i)
+        {
+            const LandmarkPtr& lm = ba_params->getOptLandmarkPtr(i);
+
+            std::cout << "[" << lm->getID() << "] point: " << lm->get3DPoint().transpose() << "\n";
+        }
+    }
+
+
+    for(const auto& f : ba_params->getAllFrameset())
+    {
+        std::cout << f->getID() << "-th frame is " << 
+                    (f->isPoseOnlySuccess() ? "TRUE" : "FALSE") << std::endl;
+    }
+    
+    
     // Time analysis
-    std::cout << "== LBA time to prepare: " << dt_prepare << " [ms]\n";
-    std::cout << "== LBA time to solve: "   << dt_solve   << " [ms]\n";
-    std::cout << "== LBA time to reset: "   << dt_reset   << " [ms]\n\n";
+    // std::cout << "== LBA time to prepare: " << dt_prepare << " [ms]\n";
+    // std::cout << "== LBA time to solve: "   << dt_solve   << " [ms]\n";
+    // std::cout << "== LBA time to reset: "   << dt_reset   << " [ms]\n\n";
+    std::cout << colorcode::cout_reset;
 
     return true;
+};
+
+
+
+bool MotionEstimator::localBundleAdjustmentSparseSolver_Stereo(const std::shared_ptr<StereoKeyframes>& stkfs_window, CameraConstPtr& cam_left, CameraConstPtr& cam_right, const PoseSE3& T_lr)
+{
+// Variables
+// 
+// LandmarkBAVec lms_ba; 
+//  - Xi
+//  - pts_on_kfs
+//  - kfs_seen
+// 
+// std::map<FramePtr,int>     kfmap_optimizable
+// std::map<FramePtr,PoseSE3> Tjw_map;
+
+    if( !is_stereo_mode_ )
+        throw std::runtime_error("In 'MotionEstimator::localBundleAdjustmentSparseSolver_Stereo()', is_stereo_mode_ == false.");
+
+    std::cout << colorcode::text_cyan;
+    std::cout << "===============     Local Bundle adjustment (Sparse Solver, Stereo version)     ===============\n";
+
+    // Optimization paraameters
+    int   MAX_ITER          = 10;
+
+    float lam               = 1e-5;  // for Levenberg-Marquardt algorithm
+    float MAX_LAM           = 1.0f;  // for Levenberg-Marquardt algorithm
+    float MIN_LAM           = 1e-4f; // for Levenberg-Marquardt algorithm
+
+    float THRES_HUBER       = 0.5f;
+    float THRES_HUBER_MIN   = 0.3f;
+    float THRES_HUBER_MAX   = 20.0f;
+
+    // optimization status flags
+    bool DO_RECALC          = true;
+    bool IS_DECREASE        = false;
+    bool IS_STRICT_DECREASE = false;
+    bool IS_BAD_DIVERGE     = false;
+
+    float THRES_DELTA_THETA = 1e-7;
+    float THRES_ERROR       = 1e-7;
+
+    int NUM_MINIMUM_REQUIRED_KEYFRAMES = 3; // 최소 stereo keyframe 갯수.
+    int NUM_FIX_KEYFRAMES_IN_WINDOW    = 2; // optimization에서 제외 할 keyframe 갯수. 과거 순.
+
+
+    // Check whether there are enough keyframes
+    if(stkfs_window->getCurrentNumOfStereoKeyframes() < NUM_MINIMUM_REQUIRED_KEYFRAMES)
+    {
+        std::cout << "  ---- Not enough keyframes... at least four keyframes are needed. local BA is skipped.\n";
+        return false;
+    }
+
+    // Do Local Bundle Adjustment.
+    bool flag_success = true; // Local BA success flag.
+
+    // make opt and non opt images
+    FramePtrVec frames_ba; // left and right 모두 합친 것.
+    std::vector<int> idx_fix; // left 초반만.
+    std::vector<int> idx_opt;
+
+    /* 
+        - monocular mode
+
+        n(idx_fix) + n(idx_opt) === n(frames)
+
+        
+        - stereo mode 
+        n(idx_fix) + n(idx_opt) =/= n(frames)
+        n(idx_fix) + n(idx_opt) === n(frames)/2
+        
+            * stereo mode 일 때는 left image의 포즈만 업데이트 하기 때문임.
+              하지만 right frames 역시 residual 을 만들어주기때문에 frames 에 다 넣어주긴해야함.
+
+    */
+
+
+   // Left 먼저 저장해야한다.
+    for(const auto& stkf : stkfs_window->getList())
+        frames_ba.push_back(stkf->getLeft());
+    
+    for(const auto& stkf : stkfs_window->getList())
+        frames_ba.push_back(stkf->getRight());
+    
+    int N = frames_ba.size();
+   
+    for(int j = 0; j < NUM_FIX_KEYFRAMES_IN_WINDOW; ++j)
+        idx_fix.push_back(j);
+
+    for(int j = NUM_FIX_KEYFRAMES_IN_WINDOW; j < frames_ba.size(); ++j)
+    {
+        if( !frames_ba[j]->isRightImage() )
+            idx_opt.push_back(j);
+    }
+        
+    std::cout << "fixed frame indexes: ";
+    for(int j = 0; j < idx_fix.size(); ++j)
+        std::cout << idx_fix[j] <<" ";
+    std::cout << std::endl;
+
+    std::cout << "  Opt frame indexes: ";
+    for(int j = 0; j < idx_opt.size(); ++j)
+        std::cout << idx_opt[j] <<" ";
+    std::cout << std::endl;
+
+
+    std::cout << "# of window stereo kfs: " << stkfs_window->getList().size() << ", N: " << N << ", n(idx_fix): " << idx_fix.size() << ", n(idx_opt): " << idx_opt.size() << std::endl;
+
+    // Make Sparse BA Parameters
+    std::shared_ptr<SparseBAParameters> ba_params;
+    ba_params = std::make_shared<SparseBAParameters>(is_stereo_mode_, T_lr);
+    ba_params->setPosesAndPoints(frames_ba, idx_fix, idx_opt);
+
+    // BA sparse solver
+    // timer::tic();
+    sparse_ba_solver_->reset(); // reset the solver
+    sparse_ba_solver_->setStereoCameras(cam_left, cam_right);
+    sparse_ba_solver_->setBAParameters(ba_params);
+    sparse_ba_solver_->setHuberThreshold(THRES_HUBER);
+    // double dt_prepare = timer::toc(0);
+
+    // timer::tic();
+    sparse_ba_solver_->solveForFiniteIterations(MAX_ITER);
+    // double dt_solve = timer::toc(0);
+
+    // timer::tic();
+    sparse_ba_solver_->reset();
+    // double dt_reset = timer::toc(0);
+
+    if(0){
+        std::cout << "==== Show Translations: \n";
+        for(int j = 0; j < ba_params->getNumOfOptimizeFrames(); ++j)
+        {
+            const FramePtr& f = ba_params->getOptFramePtr(j);
+
+            std::cout << "[" << f->getID() << "] frame's trans: " 
+                             << f->getPose().block<3,1>(0,3).transpose() << "\n";
+        }
+
+        std::cout << "==== Show Points: \n";
+        for(int i = 0; i < ba_params->getNumOfOptimizeLandmarks(); ++i)
+        {
+            const LandmarkPtr& lm = ba_params->getOptLandmarkPtr(i);
+
+            std::cout << "[" << lm->getID() << "] point: " << lm->get3DPoint().transpose() << "\n";
+        }
+    }
+
+    for(const auto& f : ba_params->getAllFrameset())
+    {
+        std::cout << f->getID() << "-th frame is " << 
+        (f->isPoseOnlySuccess() ? "TRUE" : "FALSE") << std::endl;
+    }
+    
+    
+    // Time analysis
+    // std::cout << "== LBA time to prepare: " << dt_prepare << " [ms]\n";
+    // std::cout << "== LBA time to solve: "   << dt_solve   << " [ms]\n";
+    // std::cout << "== LBA time to reset: "   << dt_reset   << " [ms]\n\n";
+    std::cout << colorcode::cout_reset;
+
+    return true;
+};
+
+
+
+inline void MotionEstimator::calcJtJ_x(const Eigen::Matrix<float,6,1>& Jt, Eigen::Matrix<float,6,6>& JtJ_tmp)
+{
+    JtJ_tmp.setZero();
+    
+    // Product 
+    // Original : 36 mult
+    // Reduced  : 15 mult + 10 insert
+    JtJ_tmp(0,0) = Jt(0)*Jt(0);
+    // JtJ_tmp(0,1) = Jt(0)*Jt(1);
+    JtJ_tmp(0,2) = Jt(0)*Jt(2);
+    JtJ_tmp(0,3) = Jt(0)*Jt(3);
+    JtJ_tmp(0,4) = Jt(0)*Jt(4);
+    JtJ_tmp(0,5) = Jt(0)*Jt(5);
+    
+    // JtJ_tmp(1,1) = Jt(1)*Jt(1);
+    // JtJ_tmp(1,2) = Jt(1)*Jt(2);
+    // JtJ_tmp(1,3) = Jt(1)*Jt(3);
+    // JtJ_tmp(1,4) = Jt(1)*Jt(4);
+    // JtJ_tmp(1,5) = Jt(1)*Jt(5);
+
+    JtJ_tmp(2,2) = Jt(2)*Jt(2);
+    JtJ_tmp(2,3) = Jt(2)*Jt(3);
+    JtJ_tmp(2,4) = Jt(2)*Jt(4);
+    JtJ_tmp(2,5) = Jt(2)*Jt(5);
+
+    JtJ_tmp(3,3) = Jt(3)*Jt(3);
+    JtJ_tmp(3,4) = Jt(3)*Jt(4);
+    JtJ_tmp(3,5) = Jt(3)*Jt(5);
+
+    JtJ_tmp(4,4) = Jt(4)*Jt(4);
+    JtJ_tmp(4,5) = Jt(4)*Jt(5);
+    
+    JtJ_tmp(5,5) = Jt(5)*Jt(5);
+
+    // Filling symmetric elements
+    // JtJ_tmp(1,0) = JtJ_tmp(0,1);
+    JtJ_tmp(2,0) = JtJ_tmp(0,2);
+    JtJ_tmp(3,0) = JtJ_tmp(0,3);
+    JtJ_tmp(4,0) = JtJ_tmp(0,4);
+    JtJ_tmp(5,0) = JtJ_tmp(0,5);
+
+    // JtJ_tmp(2,1) = JtJ_tmp(1,2);
+    // JtJ_tmp(3,1) = JtJ_tmp(1,3);
+    // JtJ_tmp(4,1) = JtJ_tmp(1,4);
+    // JtJ_tmp(5,1) = JtJ_tmp(1,5);
+
+    JtJ_tmp(3,2) = JtJ_tmp(2,3);
+    JtJ_tmp(4,2) = JtJ_tmp(2,4);
+    JtJ_tmp(5,2) = JtJ_tmp(2,5);
+
+    JtJ_tmp(4,3) = JtJ_tmp(3,4);
+    JtJ_tmp(5,3) = JtJ_tmp(3,5);
+
+    JtJ_tmp(5,4) = JtJ_tmp(4,5);
+
+};
+
+inline void MotionEstimator::calcJtWJ_x(const float weight, const Eigen::Matrix<float,6,1>& Jt, Eigen::Matrix<float,6,6>& JtJ_tmp)
+{ 
+    JtJ_tmp.setZero();
+
+    Eigen::Matrix<float,6,1> wJt;
+    wJt.setZero();
+
+    // Product the weight
+    wJt << weight*Jt(0), weight*Jt(1), weight*Jt(2), weight*Jt(3), weight*Jt(4), weight*Jt(5);
+    
+    // Product 
+    // Original : 36 + 36 mult
+    // Reduced  : 6 + 15 mult + 10 insert
+    JtJ_tmp(0,0) = wJt(0)*Jt(0);
+    // JtJ_tmp(0,1) = weight*Jt(0)*Jt(1);
+    JtJ_tmp(0,2) = wJt(0)*Jt(2);
+    JtJ_tmp(0,3) = wJt(0)*Jt(3);
+    JtJ_tmp(0,4) = wJt(0)*Jt(4);
+    JtJ_tmp(0,5) = wJt(0)*Jt(5);
+    
+    // JtJ_tmp(1,1) = weight*Jt(1)*Jt(1);
+    // JtJ_tmp(1,2) = weight*Jt(1)*Jt(2);
+    // JtJ_tmp(1,3) = weight*Jt(1)*Jt(3);
+    // JtJ_tmp(1,4) = weight*Jt(1)*Jt(4);
+    // JtJ_tmp(1,5) = weight*Jt(1)*Jt(5);
+
+    JtJ_tmp(2,2) = wJt(2)*Jt(2);
+    JtJ_tmp(2,3) = wJt(2)*Jt(3);
+    JtJ_tmp(2,4) = wJt(2)*Jt(4);
+    JtJ_tmp(2,5) = wJt(2)*Jt(5);
+
+    JtJ_tmp(3,3) = wJt(3)*Jt(3);
+    JtJ_tmp(3,4) = wJt(3)*Jt(4);
+    JtJ_tmp(3,5) = wJt(3)*Jt(5);
+
+    JtJ_tmp(4,4) = wJt(4)*Jt(4);
+    JtJ_tmp(4,5) = wJt(4)*Jt(5);
+    
+    JtJ_tmp(5,5) = wJt(5)*Jt(5);
+
+    // Filling symmetric elements
+    // JtJ_tmp(1,0) = JtJ_tmp(0,1);
+    JtJ_tmp(2,0) = JtJ_tmp(0,2);
+    JtJ_tmp(3,0) = JtJ_tmp(0,3);
+    JtJ_tmp(4,0) = JtJ_tmp(0,4);
+    JtJ_tmp(5,0) = JtJ_tmp(0,5);
+
+    // JtJ_tmp(2,1) = JtJ_tmp(1,2);
+    // JtJ_tmp(3,1) = JtJ_tmp(1,3);
+    // JtJ_tmp(4,1) = JtJ_tmp(1,4);
+    // JtJ_tmp(5,1) = JtJ_tmp(1,5);
+
+    JtJ_tmp(3,2) = JtJ_tmp(2,3);
+    JtJ_tmp(4,2) = JtJ_tmp(2,4);
+    JtJ_tmp(5,2) = JtJ_tmp(2,5);
+
+    JtJ_tmp(4,3) = JtJ_tmp(3,4);
+    JtJ_tmp(5,3) = JtJ_tmp(3,5);
+
+    JtJ_tmp(5,4) = JtJ_tmp(4,5);
+};
+
+
+
+inline void MotionEstimator::calcJtJ_y(const Eigen::Matrix<float,6,1>& Jt, Eigen::Matrix<float,6,6>& JtJ_tmp)
+{
+    JtJ_tmp.setZero();
+
+    // Product 
+    // Original : 36 + 36 mult
+    // Reduced  : 6 + 15 mult + 10 insert
+    // JtJ_tmp(0,0) = Jt(0)*Jt(0);
+    // JtJ_tmp(0,1) = Jt(0)*Jt(1);
+    // JtJ_tmp(0,2) = Jt(0)*Jt(2);
+    // JtJ_tmp(0,3) = Jt(0)*Jt(3);
+    // JtJ_tmp(0,4) = Jt(0)*Jt(4);
+    // JtJ_tmp(0,5) = Jt(0)*Jt(5);
+    
+    JtJ_tmp(1,1) = Jt(1)*Jt(1);
+    JtJ_tmp(1,2) = Jt(1)*Jt(2);
+    JtJ_tmp(1,3) = Jt(1)*Jt(3);
+    JtJ_tmp(1,4) = Jt(1)*Jt(4);
+    JtJ_tmp(1,5) = Jt(1)*Jt(5);
+
+    JtJ_tmp(2,2) = Jt(2)*Jt(2);
+    JtJ_tmp(2,3) = Jt(2)*Jt(3);
+    JtJ_tmp(2,4) = Jt(2)*Jt(4);
+    JtJ_tmp(2,5) = Jt(2)*Jt(5);
+
+    JtJ_tmp(3,3) = Jt(3)*Jt(3);
+    JtJ_tmp(3,4) = Jt(3)*Jt(4);
+    JtJ_tmp(3,5) = Jt(3)*Jt(5);
+
+    JtJ_tmp(4,4) = Jt(4)*Jt(4);
+    JtJ_tmp(4,5) = Jt(4)*Jt(5);
+    
+    JtJ_tmp(5,5) = Jt(5)*Jt(5);
+
+    // Filling symmetric elements
+    // JtJ_tmp(1,0) = JtJ_tmp(0,1);
+    // JtJ_tmp(2,0) = JtJ_tmp(0,2);
+    // JtJ_tmp(3,0) = JtJ_tmp(0,3);
+    // JtJ_tmp(4,0) = JtJ_tmp(0,4);
+    // JtJ_tmp(5,0) = JtJ_tmp(0,5);
+
+    JtJ_tmp(2,1) = JtJ_tmp(1,2);
+    JtJ_tmp(3,1) = JtJ_tmp(1,3);
+    JtJ_tmp(4,1) = JtJ_tmp(1,4);
+    JtJ_tmp(5,1) = JtJ_tmp(1,5);
+
+    JtJ_tmp(3,2) = JtJ_tmp(2,3);
+    JtJ_tmp(4,2) = JtJ_tmp(2,4);
+    JtJ_tmp(5,2) = JtJ_tmp(2,5);
+
+    JtJ_tmp(4,3) = JtJ_tmp(3,4);
+    JtJ_tmp(5,3) = JtJ_tmp(3,5);
+
+    JtJ_tmp(5,4) = JtJ_tmp(4,5);
+
+};
+
+inline void MotionEstimator::calcJtWJ_y(const float weight, const Eigen::Matrix<float,6,1>& Jt, Eigen::Matrix<float,6,6>& JtJ_tmp)
+{
+    JtJ_tmp.setZero();
+
+    Eigen::Matrix<float,6,1> wJt;
+    wJt.setZero();
+
+    // Product the weight
+    wJt << weight*Jt(0), weight*Jt(1), weight*Jt(2), weight*Jt(3), weight*Jt(4), weight*Jt(5);
+    
+    // Product 
+    // Original : 36 + 36 mult
+    // Reduced  : 6 + 15 mult + 10 insert
+    // JtJ_tmp(0,0) = wJt(0)*Jt(0);
+    // JtJ_tmp(0,1) = wJt(0)*Jt(1);
+    // JtJ_tmp(0,2) = wJt(0)*Jt(2);
+    // JtJ_tmp(0,3) = wJt(0)*Jt(3);
+    // JtJ_tmp(0,4) = wJt(0)*Jt(4);
+    // JtJ_tmp(0,5) = wJt(0)*Jt(5);
+    
+    JtJ_tmp(1,1) = wJt(1)*Jt(1);
+    JtJ_tmp(1,2) = wJt(1)*Jt(2);
+    JtJ_tmp(1,3) = wJt(1)*Jt(3);
+    JtJ_tmp(1,4) = wJt(1)*Jt(4);
+    JtJ_tmp(1,5) = wJt(1)*Jt(5);
+
+    JtJ_tmp(2,2) = wJt(2)*Jt(2);
+    JtJ_tmp(2,3) = wJt(2)*Jt(3);
+    JtJ_tmp(2,4) = wJt(2)*Jt(4);
+    JtJ_tmp(2,5) = wJt(2)*Jt(5);
+
+    JtJ_tmp(3,3) = wJt(3)*Jt(3);
+    JtJ_tmp(3,4) = wJt(3)*Jt(4);
+    JtJ_tmp(3,5) = wJt(3)*Jt(5);
+
+    JtJ_tmp(4,4) = wJt(4)*Jt(4);
+    JtJ_tmp(4,5) = wJt(4)*Jt(5);
+    
+    JtJ_tmp(5,5) = wJt(5)*Jt(5);
+
+    // Filling symmetric elements
+    // JtJ_tmp(1,0) = JtJ_tmp(0,1);
+    // JtJ_tmp(2,0) = JtJ_tmp(0,2);
+    // JtJ_tmp(3,0) = JtJ_tmp(0,3);
+    // JtJ_tmp(4,0) = JtJ_tmp(0,4);
+    // JtJ_tmp(5,0) = JtJ_tmp(0,5);
+
+    JtJ_tmp(2,1) = JtJ_tmp(1,2);
+    JtJ_tmp(3,1) = JtJ_tmp(1,3);
+    JtJ_tmp(4,1) = JtJ_tmp(1,4);
+    JtJ_tmp(5,1) = JtJ_tmp(1,5);
+
+    JtJ_tmp(3,2) = JtJ_tmp(2,3);
+    JtJ_tmp(4,2) = JtJ_tmp(2,4);
+    JtJ_tmp(5,2) = JtJ_tmp(2,5);
+
+    JtJ_tmp(4,3) = JtJ_tmp(3,4);
+    JtJ_tmp(5,3) = JtJ_tmp(3,5);
+
+    JtJ_tmp(5,4) = JtJ_tmp(4,5);
 };
