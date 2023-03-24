@@ -7,7 +7,6 @@
 #include "core/visual_odometry/frame.h"
 
 #include "core/visual_odometry/ba_solver/define_ba_type.h"
-#include "core/visual_odometry/ba_solver/ba_types.h"
 
 /// @brief landmark structure for a Sparse Local Bundle Adjustment (SLBA)
 struct LandmarkBA

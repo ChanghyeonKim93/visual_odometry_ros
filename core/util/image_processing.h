@@ -5,8 +5,8 @@
 
 #include <opencv2/core.hpp>
 
-#include "core/define_macro.h"
-#include "core/define_type.h"
+#include "core/visual_odometry/define_macro.h"
+#include "core/visual_odometry/define_type.h"
 
 namespace image_processing {
 	std::string type2str(cv::Mat img);

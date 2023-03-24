@@ -28,12 +28,12 @@
 #include "visual_odometry_ros/statisticsStamped.h"
 
 // My custom code
-#include "core/stereo_vo/stereo_vo.h"
+#include "core/visual_odometry/stereo_vo/stereo_vo.h"
 
 #include "core/util/timer.h"
 #include "core/util/geometry_library.h"
 
-#include "ros1/util/ros_print_in_color.h"
+#include "wrapper/ros1/util/ros_print_in_color.h"
 
 typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> MySyncPolicy;
 

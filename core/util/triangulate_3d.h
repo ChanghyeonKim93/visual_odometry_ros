@@ -6,9 +6,9 @@
 
 #include <Eigen/Dense>
 
-#include "core/define_type.h"
+#include "core/visual_odometry/define_type.h"
 
-#include "core/camera.h"
+#include "core/visual_odometry/camera.h"
 
 namespace mapping
 {

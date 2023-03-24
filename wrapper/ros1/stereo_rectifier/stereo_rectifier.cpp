@@ -1,4 +1,4 @@
-#include "ros1/stereo_rectifier/stereo_rectifier.h"
+#include "wrapper/ros1/stereo_rectifier/stereo_rectifier.h"
 
 StereoRectifier::StereoRectifier(ros::NodeHandle& nh)
 :stereo_cam_(nullptr), nh_(nh), directory_intrinsic_("")

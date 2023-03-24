@@ -12,7 +12,7 @@
 #include "core/visual_odometry/landmark.h"
 #include "core/visual_odometry/frame.h"
 
-#include "core/visual_odometry/ba_solver/ba_types.h"
+#include "core/visual_odometry/ba_solver/define_ba_type.h"
 #include "core/visual_odometry/ba_solver/landmark_ba.h"
 
 #include "core/util/geometry_library.h"

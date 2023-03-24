@@ -34,7 +34,7 @@
 #include "core/util/timer.h"
 #include "core/util/geometry_library.h"
 
-#include "ros1/util/ros_print_in_color.h"
+#include "wrapper/ros1/util/ros_print_in_color.h"
 
 class MonoVONode{
 public:

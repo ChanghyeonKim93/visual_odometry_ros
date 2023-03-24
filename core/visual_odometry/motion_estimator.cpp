@@ -1,4 +1,4 @@
-#include "visual_odometry/motion_estimator.h"
+#include "core/visual_odometry/motion_estimator.h"
 
 MotionEstimator::MotionEstimator(bool is_stereo_mode, const PoseSE3& T_lr)
 :is_stereo_mode_(is_stereo_mode), T_lr_(T_lr)

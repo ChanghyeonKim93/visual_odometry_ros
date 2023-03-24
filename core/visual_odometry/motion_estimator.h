@@ -22,7 +22,6 @@
 #include "core/visual_odometry/camera.h"
 #include "core/visual_odometry/frame.h"
 #include "core/visual_odometry/keyframes.h"
-#include "core/visual_odometry/mapping.h"
 #include "core/visual_odometry/landmark.h"
 
 #include "core/visual_odometry/ba_solver/sparse_bundle_adjustment.h"
@@ -30,6 +29,7 @@
 #include "core/util/histogram.h"
 #include "core/util/geometry_library.h"
 #include "core/util/timer.h"
+#include "core/util/triangulate_3d.h"
 
 /// @brief This class is for estimating camera motion via 2D-2D, 3D-2D feature correspondences. This class supports the 'stereo mode'.
 class MotionEstimator 

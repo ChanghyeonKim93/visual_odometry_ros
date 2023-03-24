@@ -13,15 +13,14 @@
 #include "core/visual_odometry/frame.h"
 #include "core/visual_odometry/define_type.h"
 
-#include "core/visual_odometry/util/geometry_library.h"
-#include "core/visual_odometry/util/timer.h"
-#include "core/visual_odometry/util/cout_color.h"
-
 // BA related headers
 #include "core/visual_odometry/ba_solver/define_ba_type.h"
 #include "core/visual_odometry/ba_solver/landmark_ba.h"
 #include "core/visual_odometry/ba_solver/sparse_ba_parameters.h"
 
+#include "core/util/geometry_library.h"
+#include "core/util/timer.h"
+#include "core/util/cout_color.h"
 
 struct LandmarkBA;
 class SparseBAParameters;

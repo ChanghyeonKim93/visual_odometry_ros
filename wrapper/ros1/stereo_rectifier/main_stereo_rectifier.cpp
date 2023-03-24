@@ -6,7 +6,7 @@
 #include <exception>
 #include <memory>
 
-#include "ros1/stereo_rectifier/stereo_rectifier.h"
+#include "wrapper/ros1/stereo_rectifier/stereo_rectifier.h"
 
 int main(int argc, char **argv) {
     ros::init(argc, argv, "stereo_rectifier");

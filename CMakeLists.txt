@@ -38,6 +38,8 @@ catkin_package(
   CATKIN_DEPENDS roscpp message_runtime
 )
 
+set(INCLUDE_DIRS ${INCLUDE_DIRS} ${PROJECT_SOURCE_DIR} )
+
 set(SRC_COMMON ${SRC_COMMON}
   core/visual_odometry/feature_extractor.cpp
   core/visual_odometry/feature_tracker.cpp
@@ -65,8 +67,8 @@ set(SRC_MONO ${SRC_MONO} ${SRC_COMMON}
 
   core/visual_odometry/mono_vo/mono_vo.cpp
 
-  ros1/visual_odometry/mono_vo_node.cpp
-  ros1/util/ros_print_in_color.cpp
+  wrapper/ros1/visual_odometry/mono_vo_node.cpp
+  wrapper/ros1/util/ros_print_in_color.cpp
 )
 
 # Source files for the stereo VO
@@ -74,23 +76,22 @@ set(SRC_STEREO ${SRC_STEREO} ${SRC_COMMON}
 
   core/visual_odometry/stereo_vo/stereo_vo.cpp
 
-  ros1/visual_odometry/stereo_vo_node.cpp
-  ros1/util/ros_print_in_color.cpp
+  wrapper/ros1/visual_odometry/stereo_vo_node.cpp
+  wrapper/ros1/util/ros_print_in_color.cpp
 )
 
-set(INCLUDE_DIRS ${INCLUDE_DIRS} ${CMAKE_CURRENT_BINARY_DIR})
-set(INCLUDE_DIRS ${INCLUDE_DIRS} core ros1)
+set(INCLUDE_DIRS ${INCLUDE_DIRS} ${CMAKE_CURRENT_BINARY_DIR} )
 
 include_directories( ${INCLUDE_DIRS} )
 include_directories( ${catkin_INCLUDE_DIRS} )
 include_directories( ${Eigen_INCLUDE_DIRS} )
 
 # executable for 'mono_vo' node
-add_executable(mono_vo_node ros1/visual_odometry/mono_vo.cpp ${SRC_MONO})
+add_executable(mono_vo_node wrapper/ros1/visual_odometry/mono_vo.cpp ${SRC_MONO})
 target_link_libraries (mono_vo_node ${catkin_LIBRARIES} ${Eigen_LIBRARIES})
 
 # executable for 'stereo_vo' node
-add_executable(stereo_vo_node ros1/visual_odometry/stereo_vo.cpp ${SRC_STEREO})
+add_executable(stereo_vo_node wrapper/ros1/visual_odometry/stereo_vo.cpp ${SRC_STEREO})
 target_link_libraries (stereo_vo_node ${catkin_LIBRARIES} ${Eigen_LIBRARIES})
 
 # # executable for 'test orb matching' node
