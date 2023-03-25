@@ -43,8 +43,7 @@ class SparseBundleAdjustmentSolver;
 */
 
 /// @brief A sparse solver for a feature-based Bundle adjustment problem.
-class SparseBundleAdjustmentSolver
-{
+class SparseBundleAdjustmentSolver {
 private:
     bool is_stereo_mode_;
 

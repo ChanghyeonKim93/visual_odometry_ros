@@ -254,7 +254,6 @@ bool MotionEstimator::findCorrectRT(
 	return success;
 };
 
-
 void MotionEstimator::refineEssentialMat(const PixelVec& pts0, const PixelVec& pts1, const MaskVec& mask, CameraConstPtr& cam,
     Mat33& E)
 {
@@ -344,7 +343,6 @@ void MotionEstimator::refineEssentialMat(const PixelVec& pts0, const PixelVec& p
     E = E_est;
 
 };
-
 
 void MotionEstimator::refineEssentialMatIRLS(const PixelVec& pts0, const PixelVec& pts1, const MaskVec& mask, CameraConstPtr& cam,
     Mat33& E)
@@ -536,7 +534,6 @@ float MotionEstimator::findInliers1PointHistogram(const PixelVec& pts0, const Pi
     return th_opt;
 };
 
-
 void MotionEstimator::calcSampsonDistance(const PixelVec& pts0, const PixelVec& pts1, CameraConstPtr& cam, 
     const Rot3& R10, const Pos3& t10, std::vector<float>& sampson_dist)
 {
@@ -569,7 +566,6 @@ void MotionEstimator::calcSampsonDistance(const PixelVec& pts0, const PixelVec& 
         sampson_dist[i] = dist_tmp;
     }
 };
-
 
 void MotionEstimator::calcSampsonDistance(const PixelVec& pts0, const PixelVec& pts1,
                         const Mat33& F10, std::vector<float>& sampson_dist)
@@ -851,7 +847,6 @@ bool MotionEstimator::poseOnlyBundleAdjustment(const PointVec& X, const PixelVec
     return is_success;
 };
 
-
 bool MotionEstimator::poseOnlyBundleAdjustment_Stereo(const PointVec& X, const PixelVec& pts_l1, const PixelVec& pts_r1, CameraConstPtr& cam_left, CameraConstPtr& cam_right, const PoseSE3& T_lr, float thres_reproj_outlier, 
     PoseSE3& T01, MaskVec& mask_inlier)
 {
@@ -1067,52 +1062,6 @@ bool MotionEstimator::poseOnlyBundleAdjustment_Stereo(const PointVec& X, const P
     return is_success;
 };
 
-void MotionEstimator::addData(SpMat& mat, const Eigen::MatrixXf& mat_part, int row_start, int col_start, int row_sz, int col_sz)
-{
-    // Sparse matrix default : column-major order. 
-    for(int j = 0; j < col_sz; ++j)
-    {
-        int col_mat = j+col_start;
-        for(int i = 0; i < row_sz; ++i)
-        {
-            mat.coeffRef(i+row_start,col_mat) += mat_part(i,j);
-        }
-    }
-}
-void MotionEstimator::insertData(SpMat& mat, const Eigen::MatrixXf& mat_part, int row_start, int col_start, int row_sz, int col_sz)
-{
-    // Sparse matrix default : column-major order. 
-    for(int j = 0; j < col_sz; ++j)
-    {
-        int col_mat = j+col_start;
-        for(int i = 0; i < row_sz; ++i)
-        {
-            mat.insert(i+row_start,col_mat) = mat_part(i,j);
-        }
-    }
-}
-
-inline void MotionEstimator::fillTriplet(SpTripletList& Tri, const int& idx_hori0, const int& idx_hori1, 
-    const int& idx_vert0, const int& idx_vert1, const Eigen::MatrixXf& mat)
-{
-    int dim_hori = idx_hori1 - idx_hori0 + 1;
-    int dim_vert = idx_vert1 - idx_vert0 + 1;
-
-    if(mat.cols() != dim_hori) 
-        throw std::runtime_error("BundleAdjustmentSolver::fillJacobian(...), mat.cols() != dim_hori\n");
-    
-    if(mat.rows() != dim_vert) 
-        throw std::runtime_error("BundleAdjustmentSolver::fillJacobian(...), mat.rows() != dim_vert\n");
-
-    for(int u = 0; u < dim_hori; ++u)
-    {
-        for(int v = 0; v < dim_vert; ++v)
-        {
-            Tri.push_back(SpTriplet(v + idx_vert0, u + idx_hori0, mat(v,u)));
-        }
-    }
-};
-
 bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Keyframes>& kfs_window, CameraConstPtr& cam)
 {
 // Variables
@@ -1232,8 +1181,6 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
 
     return true;
 };
-
-
 
 bool MotionEstimator::localBundleAdjustmentSparseSolver_Stereo(const std::shared_ptr<StereoKeyframes>& stkfs_window, CameraConstPtr& cam_left, CameraConstPtr& cam_right, const PoseSE3& T_lr)
 {
@@ -1395,8 +1342,6 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver_Stereo(const std::shared
     return true;
 };
 
-
-
 inline void MotionEstimator::calcJtJ_x(const Eigen::Matrix<float,6,1>& Jt, Eigen::Matrix<float,6,6>& JtJ_tmp)
 {
     JtJ_tmp.setZero();
@@ -1516,8 +1461,6 @@ inline void MotionEstimator::calcJtWJ_x(const float weight, const Eigen::Matrix<
     JtJ_tmp(5,4) = JtJ_tmp(4,5);
 };
 
-
-
 inline void MotionEstimator::calcJtJ_y(const Eigen::Matrix<float,6,1>& Jt, Eigen::Matrix<float,6,6>& JtJ_tmp)
 {
     JtJ_tmp.setZero();
@@ -1572,7 +1515,6 @@ inline void MotionEstimator::calcJtJ_y(const Eigen::Matrix<float,6,1>& Jt, Eigen
     JtJ_tmp(5,3) = JtJ_tmp(3,5);
 
     JtJ_tmp(5,4) = JtJ_tmp(4,5);
-
 };
 
 inline void MotionEstimator::calcJtWJ_y(const float weight, const Eigen::Matrix<float,6,1>& Jt, Eigen::Matrix<float,6,6>& JtJ_tmp)

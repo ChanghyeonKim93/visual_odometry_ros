@@ -1,8 +1,6 @@
 #include "core/util/histogram.h"
 
 namespace histogram {
-  
-
     float medianHistogram(const std::vector<float>& hist_centers, std::vector<int>& hist_counts){
         float res = -1.0f;
 

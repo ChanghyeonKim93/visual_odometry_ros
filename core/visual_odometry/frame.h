@@ -15,10 +15,8 @@
 
 #include "core/util/geometry_library.h"
 
-
 class Frame;
 class StereoFrame;
-
 
 /// @brief Image frame class
 class Frame 

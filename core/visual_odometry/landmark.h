@@ -13,7 +13,6 @@
 #include "core/visual_odometry/frame.h"
 #include "core/visual_odometry/camera.h"
 
-
 class Landmark;
 class LandmarkTracking;
 class StereoLandmarkTracking;

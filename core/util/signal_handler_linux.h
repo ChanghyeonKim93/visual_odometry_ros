@@ -4,7 +4,7 @@
 #include <iostream>
 #include <signal.h>
 
-namespace SignalHandle{
+namespace signal_handler{
     void initSignalHandler();
     void callbackSignal(sig_atomic_t sig);
 };

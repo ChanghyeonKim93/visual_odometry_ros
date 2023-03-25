@@ -2,7 +2,6 @@
 
 using namespace Eigen;
 namespace geometry {
-
     Matrix3d skewMat(const Vector3d& v){
         Matrix3d res_mat;
         res_mat << 0,-v(2),v(1),

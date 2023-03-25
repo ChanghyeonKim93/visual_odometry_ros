@@ -6,18 +6,16 @@
 
 #include <Eigen/Dense>
 
-typedef float _mat_numeric;
+using _mat_numeric = float;
 
-typedef Eigen::Matrix<_mat_numeric,3,1> Position3;
+using Position3 = Eigen::Matrix<_mat_numeric,3,1>;
+using Quaternion4 = Eigen::Matrix<_mat_numeric,4,1>;
 
-typedef Eigen::Matrix<_mat_numeric,4,1> Quaternion4;
+using so3 = Eigen::Matrix<_mat_numeric,3,1>;
+using SO3 = Eigen::Matrix<_mat_numeric,3,3>;
 
-typedef Eigen::Matrix<_mat_numeric,3,1> so3;
-typedef Eigen::Matrix<_mat_numeric,3,3> SO3;
-
-typedef Eigen::Matrix<_mat_numeric,6,1> se3;
-typedef Eigen::Matrix<_mat_numeric,4,4> SE3;
-
+using se3 = Eigen::Matrix<_mat_numeric,6,1>;
+using SE3 = Eigen::Matrix<_mat_numeric,4,4>;
 
 #define FLT_EPSILON 1.1920292896e-07f // smallest such that 1.0+FLT_EPSILON != 1.0
 #define DBL_EPSILON 2.2204460492503131e-016 // smallest such that 1.0 + DBL_EPSILON != 1.0
@@ -39,13 +37,13 @@ private:
     Quaternion4 q_; // w x y z (normalized quaternion, ||q||_2 = 1)
     so3 w_;
 
+// Constructors
 public:
     Rotation3();
     Rotation3(const SO3& R);
     Rotation3(const so3& w);
     Rotation3(const Quaternion4& q);
-    // Copy constructor
-    Rotation3(const Rotation3& rot);
+    Rotation3(const Rotation3& rot); // Copy constructor
 
 // Get methods
 public:
@@ -100,7 +98,6 @@ class Pose3D
 private:
     Rotation3 rot_; // SO3
     Position3 t_; // 3d translation vector
-    
     SE3 T_;
 
 public:
@@ -111,7 +108,6 @@ public:
     Pose3D(const so3& w, const Position3& t);
     Pose3D(const Pose3D& pose);
     
-
 // Get method (const)
 public:
     const Rotation3& rotation() const;
@@ -123,27 +119,22 @@ public:
     
     Pose3D inverse() const;
 
-
-
 // Set methods
 public:
     void setIdentity();
+
 
 private:
     void initByRotationAndTranslation(const SO3& R, const Position3& t);
     void initByQuaternionAndTranslation(const Quaternion4& q, const Position3& t);
     void initByAxisAngleAndTranslation(const so3& w, const Position3& t);
 
-
 // Operator overloading
 public:
-    Pose3D& operator=(const Pose3D& pose);
-    // 곱셈 연산자
-    Pose3D operator*(const Pose3D& pose) const;
-    // 곱셈 대입 연산자
-    Pose3D& operator*=(const Pose3D& pose);
-    // 대입 연산자.
-    void operator<<(const Pose3D& pose);
+    Pose3D& operator=(const Pose3D& pose);      // 대입 연산자
+    Pose3D operator*(const Pose3D& pose) const; // 곱셈 연산자
+    Pose3D& operator*=(const Pose3D& pose);     // 곱셈 대입 연산자
+    void operator<<(const Pose3D& pose);        // 대입 연산자
     friend std::ostream& operator << (std::ostream& os, const Pose3D& pose);
 };
 

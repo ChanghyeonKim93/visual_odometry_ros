@@ -23,83 +23,80 @@ class Frame;
 class Landmark;
 class Camera;
 
-typedef float                     Illumi;
-typedef cv::Point2f               Pixel;
-typedef Eigen::Vector3f           Point;
-typedef bool                      Mask;
-typedef std::shared_ptr<Frame>    FramePtr;
-typedef std::shared_ptr<Landmark> LandmarkPtr;
-typedef std::shared_ptr<Camera>   CameraPtr;
+using Illumi            = float;
+using Pixel             = cv::Point2f;
+using Point             = Eigen::Vector3f;
+using Mask              = bool;
+using FramePtr          = std::shared_ptr<Frame>;
+using LandmarkPtr       = std::shared_ptr<Landmark>;
+using CameraPtr         = std::shared_ptr<Camera>;
 
-typedef const FramePtr    FrameConstPtr;
-typedef const LandmarkPtr LandmarkConstPtr;
-typedef const CameraPtr   CameraConstPtr;
+using FrameConstPtr     = const FramePtr;
+using LandmarkConstPtr  = const LandmarkPtr;
+using CameraConstPtr    = const CameraPtr;
 
+using BoolVec           = std::vector<bool>;
+using IntVec            = std::vector<int>;
+using FloatVec          = std::vector<float>;
+using DoubleVec         = std::vector<double>;
 
-typedef std::vector<bool>         BoolVec;
-typedef std::vector<int>          IntVec;
-typedef std::vector<float>        FloatVec;
-typedef std::vector<double>       DoubleVec;
+using IllumiVec         = std::vector<Illumi>;
+using PixelVec          = std::vector<Pixel>;
+using PointVec          = std::vector<Point>;
+using MaskVec           = std::vector<Mask>;
+using FramePtrVec       = std::vector<FramePtr>;
+using LandmarkPtrVec    = std::vector<LandmarkPtr>;
 
-typedef std::vector<Illumi>       IllumiVec;
-typedef std::vector<Pixel>        PixelVec;
-typedef std::vector<Point>        PointVec;
-typedef std::vector<Mask>         MaskVec;
-typedef std::vector<FramePtr>     FramePtrVec;
-typedef std::vector<LandmarkPtr>  LandmarkPtrVec;
-
-typedef std::vector<cv::Mat>      ImagePyramid;
+using ImagePyramid      = std::vector<cv::Mat>;
 
 
 // For image pyramid
-typedef std::vector<IllumiVec>    IllumiVecPyramid;
-typedef std::vector<MaskVec>      MaskVecPyramid;
+using IllumiVecPyramid  = std::vector<IllumiVec>;
+using MaskVecPyramid    = std::vector<MaskVec>;
 
-typedef Eigen::Vector3f           Pos3;
-typedef Eigen::Matrix3f           Rot3;
-typedef Eigen::Matrix4f           PoseSE3;
-typedef std::vector<PoseSE3>      PoseSE3Vec;
+using Pos3              = Eigen::Vector3f;
+using Rot3              = Eigen::Matrix3f;
+using PoseSE3           = Eigen::Matrix4f;
+using PoseSE3Vec        = std::vector<PoseSE3>;
 
-typedef Eigen::Matrix2f           Mat22;
-typedef Eigen::Matrix3f           Mat33;
-typedef Eigen::Matrix4f           Mat44;
-typedef Eigen::Matrix<float,6,6>  Mat66;
+using Mat22             = Eigen::Matrix2f;
+using Mat33             = Eigen::Matrix3f;
+using Mat44             = Eigen::Matrix4f;
+using Mat66             = Eigen::Matrix<float,6,6>;
 
-typedef Eigen::Matrix<float,1,5>  Mat15;
-typedef Eigen::Matrix<float,5,1>  Mat51;
-typedef Eigen::Matrix<float,2,3>  Mat23;
-typedef Eigen::Matrix<float,3,2>  Mat32;
-typedef Eigen::Matrix<float,2,6>  Mat26;
-typedef Eigen::Matrix<float,6,2>  Mat62;
-typedef Eigen::Matrix<float,6,3>  Mat63;
-typedef Eigen::Matrix<float,3,6>  Mat36;
+using Mat15             = Eigen::Matrix<float,1,5>;
+using Mat51             = Eigen::Matrix<float,5,1>;
+using Mat23             = Eigen::Matrix<float,2,3>;
+using Mat32             = Eigen::Matrix<float,3,2>;
+using Mat26             = Eigen::Matrix<float,2,6>;
+using Mat62             = Eigen::Matrix<float,6,2>;
+using Mat63             = Eigen::Matrix<float,6,3>;
+using Mat36             = Eigen::Matrix<float,3,6>;
 
-typedef Eigen::Vector2f           Vec2;
-typedef Eigen::Vector3f           Vec3;
-typedef Eigen::Vector4f           Vec4;
-typedef Eigen::Matrix<float,6,1>  Vec6;
+using Vec2              = Eigen::Vector2f;
+using Vec3              = Eigen::Vector3f;
+using Vec4              = Eigen::Vector4f;
+using Vec6              = Eigen::Matrix<float,6,1>;
 
-typedef Eigen::Matrix<float,6,1>    PoseSE3Tangent;
-typedef std::vector<PoseSE3Tangent> PoseSE3TangentVec;
+using PoseSE3Tangent    = Eigen::Matrix<float,6,1>;
+using PoseSE3TangentVec = std::vector<PoseSE3Tangent>;
 
 //For stereo
 struct StereoFrame;
 class StereoCamera;
 
-typedef std::shared_ptr<StereoFrame>    StereoFramePtr;
-typedef const StereoFramePtr            StereoFrameConstPtr;
-typedef std::vector<StereoFramePtr>     StereoFramePtrVec;
+using StereoFramePtr       = std::shared_ptr<StereoFrame>;
+using StereoFrameConstPtr  = const StereoFramePtr;
+using StereoFramePtrVec    = std::vector<StereoFramePtr>;
 
-typedef std::shared_ptr<StereoCamera>   StereoCameraPtr;
-typedef const StereoCameraPtr           StereoCameraConstPtr;
-
-
+using StereoCameraPtr      = std::shared_ptr<StereoCamera>;
+using StereoCameraConstPtr = const StereoCameraPtr;
 
 // For large matrix (for SFP, depricated)
-typedef Eigen::SparseMatrix<float> SpMat;
-typedef Eigen::SparseVector<float> SpVec;
-typedef Eigen::SparseMatrix<float>::Scalar SpScalar;
-typedef Eigen::Triplet<float>      SpTriplet; 
-typedef std::vector<SpTriplet>     SpTripletList;
+// using Eigen::SparseMatrix<float> SpMat;
+// using Eigen::SparseVector<float> SpVec;
+// using Eigen::SparseMatrix<float>::Scalar SpScalar;
+// using Eigen::Triplet<float>      SpTriplet; 
+// using std::vector<SpTriplet>     SpTripletList;
 
 #endif

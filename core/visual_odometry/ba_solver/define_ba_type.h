@@ -5,62 +5,61 @@
 #include <vector>
 #include <Eigen/Dense>
 
-typedef double _BA_Numeric; 
+using _BA_Numeric = double; 
 
-typedef Eigen::Matrix<_BA_Numeric,-1,-1>   _BA_MatX;
+using _BA_MatX = Eigen::Matrix<_BA_Numeric,-1,-1>;
 
-typedef _BA_Numeric                        _BA_Mat11;
+using _BA_Mat11 = _BA_Numeric;
 
-typedef Eigen::Matrix<_BA_Numeric,2,2>     _BA_Mat22;
+using _BA_Mat22 = Eigen::Matrix<_BA_Numeric,2,2>;
 
-typedef Eigen::Matrix<_BA_Numeric,1,3>     _BA_Mat13;
-typedef Eigen::Matrix<_BA_Numeric,3,1>     _BA_Mat31;
+using _BA_Mat13 = Eigen::Matrix<_BA_Numeric,1,3>;
+using _BA_Mat31 = Eigen::Matrix<_BA_Numeric,3,1>;
 
-typedef Eigen::Matrix<_BA_Numeric,2,3>     _BA_Mat23;
-typedef Eigen::Matrix<_BA_Numeric,3,2>     _BA_Mat32;
+using _BA_Mat23 = Eigen::Matrix<_BA_Numeric,2,3>;
+using _BA_Mat32 = Eigen::Matrix<_BA_Numeric,3,2>;
 
-typedef Eigen::Matrix<_BA_Numeric,2,6>     _BA_Mat26;
-typedef Eigen::Matrix<_BA_Numeric,6,2>     _BA_Mat62;
+using _BA_Mat26 = Eigen::Matrix<_BA_Numeric,2,6>;
+using _BA_Mat62 = Eigen::Matrix<_BA_Numeric,6,2>;
 
-typedef Eigen::Matrix<_BA_Numeric,3,3>     _BA_Mat33;
+using _BA_Mat33 = Eigen::Matrix<_BA_Numeric,3,3>;
 
-typedef Eigen::Matrix<_BA_Numeric,3,6>     _BA_Mat36;
-typedef Eigen::Matrix<_BA_Numeric,6,3>     _BA_Mat63;
+using _BA_Mat36 = Eigen::Matrix<_BA_Numeric,3,6>;
+using _BA_Mat63 = Eigen::Matrix<_BA_Numeric,6,3>;
 
-typedef Eigen::Matrix<_BA_Numeric,6,6>     _BA_Mat66;
+using _BA_Mat66 = Eigen::Matrix<_BA_Numeric,6,6>;
 
-typedef _BA_Numeric                        _BA_Vec1;
-typedef Eigen::Matrix<_BA_Numeric,2,1>     _BA_Vec2;
-typedef Eigen::Matrix<_BA_Numeric,3,1>     _BA_Vec3;
-typedef Eigen::Matrix<_BA_Numeric,6,1>     _BA_Vec6;
+using _BA_Vec1 = _BA_Numeric;
+using _BA_Vec2 = Eigen::Matrix<_BA_Numeric,2,1>;
+using _BA_Vec3 = Eigen::Matrix<_BA_Numeric,3,1>;
+using _BA_Vec6 = Eigen::Matrix<_BA_Numeric,6,1>;
 
-typedef int                                _BA_Index;
-typedef Eigen::Matrix<_BA_Numeric,2,1>     _BA_Pixel;
-typedef Eigen::Matrix<_BA_Numeric,3,1>     _BA_Point;
-typedef Eigen::Matrix<_BA_Numeric,3,3>     _BA_Rot3;
-typedef Eigen::Matrix<_BA_Numeric,3,1>     _BA_Pos3;
-typedef Eigen::Matrix<_BA_Numeric,4,4>     _BA_PoseSE3;
-typedef Eigen::Matrix<_BA_Numeric,6,1>     _BA_PoseSE3Tangent;
+using _BA_Index = int;
+using _BA_Pixel = Eigen::Matrix<_BA_Numeric,2,1>;
+using _BA_Point = Eigen::Matrix<_BA_Numeric,3,1>;
+using _BA_Rot3 = Eigen::Matrix<_BA_Numeric,3,3>;
+using _BA_Pos3 = Eigen::Matrix<_BA_Numeric,3,1>;
+using _BA_PoseSE3 = Eigen::Matrix<_BA_Numeric,4,4>;
+using _BA_PoseSE3Tangent = Eigen::Matrix<_BA_Numeric,6,1>;
 
-typedef std::vector<_BA_Numeric>           _BA_ErrorVec;
-typedef std::vector<_BA_Index>             _BA_IndexVec;
-typedef std::vector<_BA_Pixel>             _BA_PixelVec;
-typedef std::vector<_BA_Point>             _BA_PointVec;
+using _BA_ErrorVec = std::vector<_BA_Numeric>;
+using _BA_IndexVec = std::vector<_BA_Index>;
+using _BA_PixelVec = std::vector<_BA_Pixel>;
+using _BA_PointVec = std::vector<_BA_Point>;
 
-typedef std::vector<_BA_Mat33>              DiagBlockMat33; 
-typedef std::vector<_BA_Mat66>              DiagBlockMat66; 
+using DiagBlockMat33 = std::vector<_BA_Mat33>; 
+using DiagBlockMat66 = std::vector<_BA_Mat66>; 
 
-typedef std::vector<std::vector<_BA_Mat11>> FullBlockMat11;
-typedef std::vector<std::vector<_BA_Mat13>> FullBlockMat13;
-typedef std::vector<std::vector<_BA_Mat31>> FullBlockMat31;
-typedef std::vector<std::vector<_BA_Mat33>> FullBlockMat33; 
-typedef std::vector<std::vector<_BA_Mat63>> FullBlockMat63; 
-typedef std::vector<std::vector<_BA_Mat36>> FullBlockMat36;
-typedef std::vector<std::vector<_BA_Mat66>> FullBlockMat66;
+using FullBlockMat11 = std::vector<std::vector<_BA_Mat11>>;
+using FullBlockMat13 = std::vector<std::vector<_BA_Mat13>>;
+using FullBlockMat31 = std::vector<std::vector<_BA_Mat31>>;
+using FullBlockMat33 = std::vector<std::vector<_BA_Mat33>>; 
+using FullBlockMat63 = std::vector<std::vector<_BA_Mat63>>; 
+using FullBlockMat36 = std::vector<std::vector<_BA_Mat36>>;
+using FullBlockMat66 = std::vector<std::vector<_BA_Mat66>>;
 
-typedef std::vector<_BA_Vec1>               BlockVec1;
-typedef std::vector<_BA_Vec3>               BlockVec3;
-typedef std::vector<_BA_Vec6>               BlockVec6;
-
+using BlockVec1 = std::vector<_BA_Vec1>;
+using BlockVec3 = std::vector<_BA_Vec3>;
+using BlockVec6 = std::vector<_BA_Vec6>;
 
 #endif

@@ -207,11 +207,6 @@ private:
 private:
 	cv::Mat img_debug_;
 
-
-
-
-
-
 // Constructor, destructor and track function
 public:
 	StereoVO(std::string mode, std::string directory_intrinsic);

@@ -4,8 +4,28 @@
 #include <iostream>
 #include <string>
 
-namespace colorcode
-{
+/* FOREGROUND */
+#define COLORRST  "\x1B[0m"
+#define COLORRED  "\x1B[31m"
+#define COLORGRN  "\x1B[32m"
+#define COLORYEL  "\x1B[33m"
+#define COLORBLU  "\x1B[34m"
+#define COLORMAG  "\x1B[35m"
+#define COLORCYN  "\x1B[36m"
+#define COLORWHT  "\x1B[37m"
+
+#define FONTRED(x)     COLORRED x COLORRST
+#define FONTGREEN(x)   COLORGRN x COLORRST
+#define FONTYELLOW(x)  COLORYEL x COLORRST
+#define FONTBLUE(x)    COLORBLU x COLORRST
+#define FONTMAGENTA(x) COLORMAG x COLORRST
+#define FONTCYAN(x)    COLORCYN x COLORRST
+#define FONTWHITE(x)   COLORWHT x COLORRST
+
+#define BOLD(x)      "\x1B[1m" x COLORRST
+#define UNDERLINE(x) "\x1B[4m" x COLORRST
+
+namespace colorcode{
 	const std::string text_black   = "\033[0;30m";
 	const std::string text_red     = "\033[0;31m";
 	const std::string text_green   = "\033[0;32m";
@@ -34,26 +54,5 @@ namespace colorcode
 	const std::string cout_inverseoff   = "\033[27m";
 
 };
-
-/* FOREGROUND */
-#define COLORRST  "\x1B[0m"
-#define COLORRED  "\x1B[31m"
-#define COLORGRN  "\x1B[32m"
-#define COLORYEL  "\x1B[33m"
-#define COLORBLU  "\x1B[34m"
-#define COLORMAG  "\x1B[35m"
-#define COLORCYN  "\x1B[36m"
-#define COLORWHT  "\x1B[37m"
-
-#define FONTRED(x)     COLORRED x COLORRST
-#define FONTGREEN(x)   COLORGRN x COLORRST
-#define FONTYELLOW(x)  COLORYEL x COLORRST
-#define FONTBLUE(x)    COLORBLU x COLORRST
-#define FONTMAGENTA(x) COLORMAG x COLORRST
-#define FONTCYAN(x)    COLORCYN x COLORRST
-#define FONTWHITE(x)   COLORWHT x COLORRST
-
-#define BOLD(x)      "\x1B[1m" x COLORRST
-#define UNDERLINE(x) "\x1B[4m" x COLORRST
 
 #endif

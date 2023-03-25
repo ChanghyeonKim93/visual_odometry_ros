@@ -18,8 +18,7 @@
 #include "core/util/geometry_library.h"
 
 /// @brief parameter class for Sparse Bundle Adjustment
-class SparseBAParameters 
-{
+class SparseBAParameters {
 // Stereo related.
 private:
     bool is_stereo_mode_;
