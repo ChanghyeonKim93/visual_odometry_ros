@@ -56,7 +56,6 @@ set(SRC_COMMON ${SRC_COMMON}
   core/util/triangulate_3d.cpp
 
   core/util/timer.cpp
-  core/util/stop_watch_timer.cpp
   core/util/signal_handler_linux.cpp
   core/util/geometry_library.cpp
   core/util/histogram.cpp
