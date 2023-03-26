@@ -31,6 +31,62 @@
 #include "core/util/timer.h"
 #include "core/util/triangulate_3d.h"
 
+struct StorageSIMD {
+    // float* SSEData;
+    // float* AVXData;
+    
+    // float* upattern;
+    // float* vpattern;
+
+    // float* buf_up_ref;
+    // float* buf_vp_ref;
+    // float* buf_up_warp;
+    // float* buf_vp_warp;
+
+    // float* buf_Ik;
+    // float* buf_du_k;
+    // float* buf_dv_k;
+
+    // float* buf_Ic_warp;
+    // float* buf_du_c_warp;
+    // float* buf_dv_c_warp;
+
+    // float* buf_residual;
+    // float* buf_weight;
+
+    // Mat66 JtWJ_sse;
+    // Vec6 mJtWr_sse;
+
+    // Mat66 JtWJ_avx;
+    // Vec6 mJtWr_avx;
+
+    // JtWJ = [
+    // 0, *, *, *, *, *;
+    // 1, 6, *, *, *, *;
+    // 2, 7,11, *, *, *;
+    // 3, 8,12,15, *, *;
+    // 4, 9,13,16,18, *;
+    // 5,10,14,17,19,20];
+    // JtWr = [21,22,23,24,25,26]^t
+    // err = [27];
+    // float* errs_ssd_sse;
+    
+    // void generateRefPointsSSE(const chk::Vec2& pt_k_); // Reference pattern 
+    // void warpPointsSSE(const chk::Vec6& params_, const chk::Vec2& pt_k_);
+    // void interpReferenceImageSSE(const cv::Mat& img_k);
+    // void calcResidualAndWeightSSE(const cv::Mat& img_c, const cv::Mat& du_c, const cv::Mat& dv_c);
+    // void calcHessianAndJacobianSSE(float& err_ssd_sse_);
+
+    // void updateSSE(const __m128 &J1, const __m128 &J2, const __m128 &J3, const __m128 &J4, const __m128 &J5, const __m128 &J6,
+    //     const __m128& res, const __m128& weight, float& err_ssd_sse_);
+
+    // void solveGaussNewtonStepSSE(Vec6& delta);
+    // void trackForwardAdditiveSingleSSE(
+    //     const cv::Mat& I_k, const cv::Mat& I_c, const cv::Mat& du_c, const cv::Mat& dv_c, const chk::Vec2& pt_k,
+    //     const chk::Vec2& pt_k_warped, chk::Vec2& pt_c_tracked, chk::Vec6& point_params,
+    //     float& err_ssd_, float& err_ncc_, int& mask_);
+};
+
 /// @brief This class is for estimating camera motion via 2D-2D, 3D-2D feature correspondences. This class supports the 'stereo mode'.
 class MotionEstimator 
 {
@@ -64,6 +120,15 @@ public:
     bool localBundleAdjustmentSparseSolver(const std::shared_ptr<Keyframes>& kfs, CameraConstPtr& cam);
     bool localBundleAdjustmentSparseSolver_Stereo(const std::shared_ptr<StereoKeyframes>& stkfs_window, CameraConstPtr& cam_left, CameraConstPtr& cam_right, const PoseSE3& T_lr);
 
+private:
+    StorageSIMD storage_simd_;
+
+public:
+    // SIMD (Intel / Neon) implementation
+    bool poseOnlyBundleAdjustment_SIMD_INTEL_256(const PointVec& X, const PixelVec& pts1, CameraConstPtr& cam, const int& thres_reproj_outlier,
+        Rot3& R01_true, Pos3& t01_true, MaskVec& mask_inlier);
+    bool poseOnlyBundleAdjustment_Sterep_SIMD_INTEL_256(const PointVec& X, const PixelVec& pts_l1, const PixelVec& pts_r1, CameraConstPtr& cam_left, CameraConstPtr& cam_right, const PoseSE3& T_lr, float thres_reproj_outlier, 
+        PoseSE3& T01, MaskVec& mask_inlier);
     // bool localBundleAdjustmentSparseSolver(const std::shared_ptr<Keyframes>& kfs, CameraConstPtr& cam);
 
 public:

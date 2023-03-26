@@ -93,10 +93,9 @@ target_link_libraries (mono_vo_node ${catkin_LIBRARIES} ${Eigen_LIBRARIES})
 add_executable(stereo_vo_node wrapper/ros1/visual_odometry/stereo_vo.cpp ${SRC_STEREO})
 target_link_libraries (stereo_vo_node ${catkin_LIBRARIES} ${Eigen_LIBRARIES})
 
-# # executable for 'test orb matching' node
-# add_executable(test_orb_matching_node src/ros_wrapper/main_orbmatching_test.cpp ${SRC_MONO})
-# target_link_libraries (test_orb_matching_node ${catkin_LIBRARIES} ${Eigen_LIBRARIES})
 
+# # executable for 'test programs'
+add_executable(test_memory_aligned core/test/test_aligned_memory.cpp core/test/aligned_memory.h)
 
 # executable for the additional modules
 # add_executable(image_cropper 
