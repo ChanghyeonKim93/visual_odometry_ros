@@ -7,16 +7,8 @@
 
 #include <random>
 
-#include <Eigen/Dense>
-
 #include <opencv2/core.hpp>
-#include <opencv2/core/eigen.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/calib3d/calib3d.hpp>
-
 #include <ros/ros.h>
-#include <cv_bridge/cv_bridge.h>
 
 #include "core/util/timer.h"
 
@@ -33,8 +25,8 @@ int main(int argc, char **argv)
 
     try
     {
-        int n_cols = 1280;
-        int n_rows = 960;
+        int n_cols = 1920;
+        int n_rows = 1280;
         cv::Mat img = cv::Mat::zeros(cv::Size(n_cols, n_rows), CV_8UC1);
 
         unsigned char *ptr = img.data;
@@ -44,9 +36,9 @@ int main(int argc, char **argv)
             *ptr = (unsigned char)dist(gen);
         }
 
-        // Summation
-        int max_iter = 10000;
-        // Cache hit!
+        // TEST 1. summation row-major & col-major
+        int max_iter = 1000;
+        // Cache hit case!
         timer::tic();
         std::vector<int> res1;
         for (int iter = 0; iter < max_iter; ++iter)
@@ -57,15 +49,13 @@ int main(int argc, char **argv)
                 unsigned char *ptr = img.data + v * img.cols;
                 const unsigned char *ptr_end = ptr + img.cols;
                 for (; ptr < ptr_end; ++ptr)
-                {
                     sum += *ptr;
-                }
             }
-            res1.push_back(sum);
+            res1.push_back(sum); // This line is necessary for dynamic situation.
         }
         timer::toc(1);
 
-        // Cache miss!
+        // Cache miss case!
         timer::tic();
         std::vector<int> res2;
         for (int iter = 0; iter < max_iter; ++iter)
@@ -76,11 +66,9 @@ int main(int argc, char **argv)
                 unsigned char *ptr = img.data + u;
                 const unsigned char *ptr_end = ptr + u + (img.rows - 1) * img.cols;
                 for (; ptr <= ptr_end; ptr += img.cols)
-                {
                     sum += *ptr;
-                }
             }
-            res2.push_back(sum);
+            res2.push_back(sum); // This line is necessary for dynamic situation.
         }
         timer::toc(1);
 
@@ -88,6 +76,45 @@ int main(int argc, char **argv)
         for (int iter = 0; iter < max_iter; ++iter)
             if (res1[iter] != res2[iter])
                 std::runtime_error("Different result occurs!");
+
+        // TEST 2. branch prediction
+        int n_data = 1e6;
+        std::vector<int> values(n_data, 0);
+        for (auto &it : values)
+            it = dist(gen); /* value range = [0,255] */
+
+        int threshold = 127;
+
+        // Branch prediction: fail
+        timer::tic();
+        res1.resize(0);
+        for (int iter = 0; iter < max_iter; ++iter)
+        {
+            int sum = 0;
+            for (const auto &it : values)
+            {
+                if (it > threshold)
+                    sum += it;
+            }
+            res1.push_back(sum); // This line is necessary for dynamic situation.
+        }
+        timer::toc(1);
+
+        // Branch prediction: success
+        std::sort(values.begin(), values.end());
+        timer::tic();
+        res2.resize(0);
+        for (int iter = 0; iter < max_iter; ++iter)
+        {
+            int sum = 0;
+            for (const auto &it : values)
+            {
+                if (it > threshold)
+                    sum += it;
+            }
+            res2.push_back(sum); // This line is necessary for dynamic situation.
+        }
+        timer::toc(1);
     }
     catch (std::exception &e)
     {
