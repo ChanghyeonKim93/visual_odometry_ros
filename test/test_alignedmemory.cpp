@@ -1,5 +1,5 @@
 #include <iostream>
-#include "core/test/aligned_memory.h"
+#include "test/aligned_memory.h"
 
 int main()
 {

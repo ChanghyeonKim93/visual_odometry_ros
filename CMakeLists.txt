@@ -93,9 +93,11 @@ target_link_libraries (mono_vo_node ${catkin_LIBRARIES} ${Eigen_LIBRARIES})
 add_executable(stereo_vo_node wrapper/ros1/visual_odometry/node_stereo_vo.cpp ${SRC_STEREO})
 target_link_libraries (stereo_vo_node ${catkin_LIBRARIES} ${Eigen_LIBRARIES})
 
-
 # # executable for 'test programs'
-add_executable(test_memory_aligned core/test/test_aligned_memory.cpp core/test/aligned_memory.h)
+add_executable(test_alignedmemory test/test_alignedmemory.cpp test/aligned_memory.h)
+
+add_executable(test_cachemiss test/test_cachemiss.cpp)
+target_link_libraries (test_cachemiss ${catkin_LIBRARIES} ${Eigen_LIBRARIES})
 
 # executable for the additional modules
 # add_executable(image_cropper 
