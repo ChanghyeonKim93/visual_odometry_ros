@@ -8,7 +8,7 @@
 
 #include "core/util/signal_handler_linux.h"
 
-#include "wrapper/ros1/visual_odometry/mono_vo_node.h"
+#include "wrapper/ros1/visual_odometry/mono_vo_ros1.h"
 
 int main(int argc, char **argv) {
     ros::init(argc, argv, "mono_vo_node");

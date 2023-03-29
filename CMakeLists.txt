@@ -66,7 +66,7 @@ set(SRC_MONO ${SRC_MONO} ${SRC_COMMON}
 
   core/visual_odometry/mono_vo/mono_vo.cpp
 
-  wrapper/ros1/visual_odometry/mono_vo_node.cpp
+  wrapper/ros1/visual_odometry/mono_vo_ros1.cpp
   wrapper/ros1/util/ros_print_in_color.cpp
 )
 
@@ -75,7 +75,7 @@ set(SRC_STEREO ${SRC_STEREO} ${SRC_COMMON}
 
   core/visual_odometry/stereo_vo/stereo_vo.cpp
 
-  wrapper/ros1/visual_odometry/stereo_vo_node.cpp
+  wrapper/ros1/visual_odometry/stereo_vo_ros1.cpp
   wrapper/ros1/util/ros_print_in_color.cpp
 )
 
@@ -86,11 +86,11 @@ include_directories( ${catkin_INCLUDE_DIRS} )
 include_directories( ${Eigen_INCLUDE_DIRS} )
 
 # executable for 'mono_vo' node
-add_executable(mono_vo_node wrapper/ros1/visual_odometry/mono_vo.cpp ${SRC_MONO})
+add_executable(mono_vo_node wrapper/ros1/visual_odometry/node_mono_vo.cpp ${SRC_MONO})
 target_link_libraries (mono_vo_node ${catkin_LIBRARIES} ${Eigen_LIBRARIES})
 
 # executable for 'stereo_vo' node
-add_executable(stereo_vo_node wrapper/ros1/visual_odometry/stereo_vo.cpp ${SRC_STEREO})
+add_executable(stereo_vo_node wrapper/ros1/visual_odometry/node_stereo_vo.cpp ${SRC_STEREO})
 target_link_libraries (stereo_vo_node ${catkin_LIBRARIES} ${Eigen_LIBRARIES})
 
 

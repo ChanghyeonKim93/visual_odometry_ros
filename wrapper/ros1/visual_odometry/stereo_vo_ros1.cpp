@@ -1,4 +1,4 @@
-#include "wrapper/ros1/visual_odometry/stereo_vo_node.h"
+#include "wrapper/ros1/visual_odometry/stereo_vo_ros1.h"
 
 
 StereoVONode::StereoVONode(ros::NodeHandle& nh) : nh_(nh)

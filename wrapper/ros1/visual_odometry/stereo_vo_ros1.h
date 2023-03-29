@@ -1,5 +1,5 @@
-#ifndef _STEREO_VO_NODE_H_
-#define _STEREO_VO_NODE_H_
+#ifndef _STEREO_VO_ROS1_H_
+#define _STEREO_VO_ROS1_H_
 
 #include <iostream>
 #include <algorithm>

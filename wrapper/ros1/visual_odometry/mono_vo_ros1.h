@@ -1,5 +1,5 @@
-#ifndef _MONO_VO_NODE_H_
-#define _MONO_VO_NODE_H_
+#ifndef _MONO_VO_ROS_H_
+#define _MONO_VO_ROS_H_
 
 #include <iostream>
 #include <algorithm>
