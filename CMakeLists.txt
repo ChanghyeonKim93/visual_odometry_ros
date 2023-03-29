@@ -96,7 +96,7 @@ target_link_libraries (stereo_vo_node ${catkin_LIBRARIES} ${Eigen_LIBRARIES})
 # # executable for 'test programs'
 add_executable(test_alignedmemory test/test_alignedmemory.cpp test/aligned_memory.h)
 
-add_executable(test_cachemiss test/test_cachemiss.cpp)
+add_executable(test_cachemiss test/test_cachemiss.cpp core/util/timer.cpp)
 target_link_libraries (test_cachemiss ${catkin_LIBRARIES} ${Eigen_LIBRARIES})
 
 # executable for the additional modules
