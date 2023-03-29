@@ -23,7 +23,7 @@
 
 #include <message_filters/sync_policies/approximate_time.h>
 
-// Defines 
+// Defines
 #include "core/define_macro.h"
 #include "core/define_type.h"
 
@@ -39,7 +39,6 @@ private:
     StereoCameraPtr stereo_cam_;
     ros::NodeHandle nh_;
 
-
     std::string directory_intrinsic_;
 
 private:
@@ -47,11 +46,9 @@ private:
     message_filters::Subscriber<sensor_msgs::Image> *left_img_sub_;
     message_filters::Subscriber<sensor_msgs::Image> *right_img_sub_;
     message_filters::Synchronizer<MySyncPolicy> *sync_stereo_;
-    
+
     std::string topicname_image_left_;
     std::string topicname_image_right_;
-
-
 
     ros::Publisher pub_left_rect_;
     ros::Publisher pub_right_rect_;
@@ -65,8 +62,7 @@ private:
     void run();
 
 public:
-    StereoRectifier(ros::NodeHandle& nh);
-    void loadStereoCameraIntrinsics(const std::string& dir);
-
+    StereoRectifier(ros::NodeHandle &nh);
+    void loadStereoCameraIntrinsics(const std::string &dir);
 };
 #endif
