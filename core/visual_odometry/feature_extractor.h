@@ -9,14 +9,14 @@
 #include <algorithm>
 
 // ROS eigen
-#include <Eigen/Dense>
+#include "eigen3/Eigen/Dense"
 
 // ROS cv_bridge
-#include <opencv2/core.hpp>
-#include <opencv2/core/eigen.hpp>
-#include <opencv2/imgproc.hpp>
-#include <opencv2/highgui.hpp>
-#include <opencv2/features2d.hpp>
+#include "opencv4/opencv2/core.hpp"
+#include "opencv4/opencv2/imgproc.hpp"
+#include "opencv4/opencv2/highgui.hpp"
+#include "opencv4/opencv2/core/eigen.hpp"
+#include "opencv4/opencv2/features2d.hpp"
 
 #include "core/visual_odometry/define_type.h"
 

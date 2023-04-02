@@ -9,13 +9,13 @@
 #include <map>
 #include <sstream>
 
-#include <Eigen/Dense>
+#include "eigen3/Eigen/Dense"
 
-#include <opencv2/core.hpp>
-#include <opencv2/core/eigen.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/calib3d/calib3d.hpp>
+#include "opencv4/opencv2/core.hpp"
+#include "opencv4/opencv2/imgproc.hpp"
+#include "opencv4/opencv2/highgui.hpp"
+#include "opencv4/opencv2/core/eigen.hpp"
+#include "opencv4/opencv2/calib3d.hpp"
 
 #include "core/visual_odometry/define_type.h"
 

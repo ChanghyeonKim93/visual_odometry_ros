@@ -57,6 +57,8 @@ StereoVO::~StereoVO()
 	std::cout << "Save all frames trajectory...\n";
 	std::string filedir_frame_poses = "/home/kch/frame_poses.txt";
 	std::ofstream of_frame_poses(filedir_frame_poses, std::ios::trunc);
+    // of_frame_poses.open(filedir_frame_poses, std::ios::trunc);
+
     of_frame_poses.precision(4);
     of_frame_poses.setf(std::ios_base::fixed, std::ios_base::floatfield);
     if(of_frame_poses.is_open())
@@ -868,7 +870,7 @@ std::cout << colorcode::text_green << "Time [RECORD KEYFR STAT]: " << timer::toc
 
         this->system_flags_.flagFirstImageGot = true;
 
-        ROS_INFO_STREAM("============ End initialization. Start to iterate all images... ============");
+        std::cout << "============ End initialization. Start to iterate all images... ============" << std::endl;
         
 
         if(0) 

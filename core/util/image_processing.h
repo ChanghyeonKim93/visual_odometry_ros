@@ -3,7 +3,7 @@
 #include <iostream>
 #include <string>
 
-#include <opencv2/core.hpp>
+#include "opencv4/opencv2/core.hpp"
 
 #include "core/visual_odometry/define_macro.h"
 #include "core/visual_odometry/define_type.h"

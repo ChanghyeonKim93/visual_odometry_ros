@@ -2,7 +2,8 @@
 #define _GEOMETRY_LIBRARY_H_
 
 #include <iostream>
-#include <Eigen/Dense>
+
+#include "eigen3/Eigen/Dense"
 
 using namespace Eigen;
 namespace geometry {

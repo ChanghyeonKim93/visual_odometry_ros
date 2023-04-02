@@ -4,15 +4,18 @@
 #include <iostream>
 #include <exception>
 #include <string>
+#include <fstream>
 
 // Eigen
-#include <Eigen/Dense>
+#include "eigen3/Eigen/Dense"
 
 // OpenCV
-#include <opencv2/core.hpp>
-#include <opencv2/core/eigen.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/highgui/highgui.hpp>
+#include "opencv4/opencv2/core.hpp"
+#include "opencv4/opencv2/imgproc.hpp"
+#include "opencv4/opencv2/highgui.hpp"
+#include "opencv4/opencv2/core/eigen.hpp"
+
+#define CV_GRAY2RGB cv::COLOR_GRAY2BGR
 
 // Defines 
 #include "core/visual_odometry/define_macro.h"
