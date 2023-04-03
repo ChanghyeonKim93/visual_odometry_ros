@@ -11,13 +11,13 @@ This repository includes 'monocular visual odometry' and 'stereo visual odometry
 
 ## Installation
 ```
-cd {CATKIN_WS}/src
-git clone "THIS GITHUB REPO"
+cd ~/{YOUR_ROS_WS}/src
+git clone "https://github.com/ChanghyeonKim93/visual_odometry_ros.git"
 cd visual_odometry_ros
 mkdir build
 cd build
 cmake .. && make -j8
 sudo make install -y
-cd {CATKIN_WS} 
-catkin build visual_odometry_ros1
+cd ~/{YOUR_ROS_WS}
+catkin build visual_odometry_ros1 
 ```
