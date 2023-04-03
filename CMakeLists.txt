@@ -18,5 +18,5 @@ endif()
 include_directories(${CMAKE_SOURCE_DIR})
 
 add_subdirectory(core)
-# add_subdirectory(ros1)
+add_subdirectory(ros1)
 # add_subdirectory(ros2)

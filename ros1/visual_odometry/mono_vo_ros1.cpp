@@ -1,4 +1,4 @@
-#include "wrapper/ros1/visual_odometry/mono_vo_ros1.h"
+#include "ros1/visual_odometry/mono_vo_ros1.h"
 
 /**
  * @brief MonoVONode 생성자. ROS wrapper for scale mono vo.
@@ -34,7 +34,7 @@ MonoVONode::MonoVONode(ros::NodeHandle& nh) : nh_(nh)
     pub_trajectory_gt_ = nh_.advertise<nav_msgs::Path>(topicname_trajectory_gt_,1);
 
     topicname_statistics_ = "/mono_vo/statistics";
-    pub_statistics_ = nh_.advertise<visual_odometry_ros::statisticsStamped>(topicname_statistics_,1);
+    pub_statistics_ = nh_.advertise<visual_odometry_ros1::statisticsStamped>(topicname_statistics_,1);
 
     pub_debug_image_ = nh_.advertise<sensor_msgs::Image>("/mono_vo/debug_image",1);
 
@@ -130,7 +130,7 @@ void MonoVONode::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
 
     const MonoVO::AlgorithmStatistics& stat = mono_vo_->getStatistics();
     
-    visual_odometry_ros::statisticsStamped msg_stats;
+    visual_odometry_ros1::statisticsStamped msg_stats;
     msg_stats.time_total         = stat.stats_execution.back().time_total; 
     msg_stats.time_track         = stat.stats_execution.back().time_track; 
     msg_stats.time_1p            = stat.stats_execution.back().time_1p;    

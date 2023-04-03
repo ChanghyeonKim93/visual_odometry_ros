@@ -7,7 +7,7 @@
 
 #include "core/util/signal_handler_linux.h"
 
-#include "wrapper/ros1/visual_odometry/stereo_vo_ros1.h"
+#include "ros1/visual_odometry/stereo_vo_ros1.h"
 
 int main(int argc, char **argv) {
     ros::init(argc, argv, "stereo_vo_node");

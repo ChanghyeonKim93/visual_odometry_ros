@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <fstream>
 
-#include <Eigen/Dense>
+#include <eigen3/Eigen/Dense>
 
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/core/core.hpp>
@@ -26,7 +26,7 @@
 
 #include <message_filters/sync_policies/approximate_time.h>
 
-#include "visual_odometry_ros/statisticsStamped.h"
+#include "visual_odometry_ros1/statisticsStamped.h"
 
 // My custom code
 #include "core/visual_odometry/mono_vo/mono_vo.h"
@@ -34,7 +34,7 @@
 #include "core/util/timer.h"
 #include "core/util/geometry_library.h"
 
-#include "wrapper/ros1/util/ros_print_in_color.h"
+#include "ros1/util/ros_print_in_color.h"
 
 class MonoVONode{
 public:
