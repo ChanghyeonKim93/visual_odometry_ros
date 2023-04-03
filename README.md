@@ -10,14 +10,21 @@ This repository includes 'monocular visual odometry' and 'stereo visual odometry
    - This module yields the up-to-scale camera motion estimations in real-time.
 
 ## Installation
+### 1. git clone
 ```
 cd ~/{YOUR_ROS_WS}/src
 git clone "https://github.com/ChanghyeonKim93/visual_odometry_ros.git"
-cd visual_odometry_ros
+```
+### 2. build the library & install the library files
+```
+cd ~/{YOUR_ROS_WS}/src/visual_odometry_ros
 mkdir build
 cd build
 cmake .. && make -j8
 sudo make install -y
+```
+### 3. catkin (colcon) build to make ROS1 (or 2) nodes
+```
 cd ~/{YOUR_ROS_WS}
-catkin build visual_odometry_ros1 
+catkin build visual_odometry_ros1 (or colcon build --base-path src/visual_odometry_ros2)
 ```
