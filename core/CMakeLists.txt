@@ -39,13 +39,9 @@ set(SRC ${SRC}
   visual_odometry/stereo_vo/stereo_vo.cpp
 )
 
+# set(CMAKE_INSTALL_PREFIX )
 add_library(${CMAKE_PROJECT_NAME}_core STATIC ${SRC})
-target_link_libraries(${CMAKE_PROJECT_NAME}_core ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
-
-install(TARGETS ${CMAKE_PROJECT_NAME}_core
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
-  CONFIGURATIONS Release)
+target_link_libraries(${CMAKE_PROJECT_NAME}_core ${catkin_LIBRARIES} ${Eigen3_LIBRARIES} ${OpenCV_LIBS})
+install(TARGETS ${CMAKE_PROJECT_NAME}_core CONFIGURATIONS Release)
   
 message("   -- [INFO   ]: DONE")

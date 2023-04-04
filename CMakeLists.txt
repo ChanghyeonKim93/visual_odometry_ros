@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.9)
 SET(CMAKE_PROJECT_NAME visual_odometry)
 project(${CMAKE_PROJECT_NAME})
+
 message("-- [PROJECT]: " ${CMAKE_PROJECT_NAME})
 
 message("-- [INFO   ]: Processing 'visual_odometry' project...")
@@ -17,6 +18,19 @@ endif()
 
 include_directories(${CMAKE_SOURCE_DIR})
 
+find_package(catkin REQUIRED)
+catkin_metapackage()
+
 add_subdirectory(core)
 add_subdirectory(ros1)
+
 # add_subdirectory(ros2)
+# file structure
+# visual_odometry_ros
+#   CMakeLists.txt
+#   core
+#     CMakeLists.txt
+#     
+#   ros1
+#     CMakeLists.txt
+#     package.xml
