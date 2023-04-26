@@ -22,4 +22,8 @@ find_package(catkin REQUIRED)
 catkin_metapackage()
 
 add_subdirectory(core)
+<<<<<<< HEAD
 add_subdirectory(ros2)
+=======
+add_subdirectory(ros1)
+>>>>>>> 6f477e19b8eb4b47f2e12f96145adf124472011e
