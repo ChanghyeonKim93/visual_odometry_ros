@@ -23,16 +23,3 @@ catkin_metapackage()
 
 add_subdirectory(core)
 add_subdirectory(ros1)
-
-
-
-# add_subdirectory(ros2)
-# file structure
-# visual_odometry_ros
-#   CMakeLists.txt
-#   core
-#     CMakeLists.txt
-#     
-#   ros1
-#     CMakeLists.txt
-#     package.xml
