@@ -5,8 +5,6 @@ project(${CMAKE_PROJECT_NAME})
 message("-- [PROJECT]: " ${CMAKE_PROJECT_NAME})
 
 message("-- [INFO   ]: Processing 'visual_odometry' project...")
-message("-- [INFO   ]: Go to ros2/CMakeLists.txt ...")
-message("-- [INFO   ]: Processing ros2/CMakeLists.txt ...")
 
 # add_compile_options( -g -Wall )
 
@@ -18,12 +16,10 @@ endif()
 
 include_directories(${CMAKE_SOURCE_DIR})
 
-find_package(catkin REQUIRED)
-catkin_metapackage()
+# find_package(ament_cmake REQUIRED)
 
 add_subdirectory(core)
-<<<<<<< HEAD
+message("-- [INFO   ]: Go to ros2/CMakeLists.txt ...")
+message("-- [INFO   ]: Processing ros2/CMakeLists.txt ...")
 add_subdirectory(ros2)
-=======
-add_subdirectory(ros1)
->>>>>>> 6f477e19b8eb4b47f2e12f96145adf124472011e
+# ament_package()
