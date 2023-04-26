@@ -4,20 +4,18 @@
 #include <iostream> 
 #include <vector>
 
-#include <Eigen/Dense>
-#include <Eigen/Sparse>
-#include <Eigen/SparseCore>
-#include <Eigen/SparseCholesky>
-#include <Eigen/SparseLU>
-#include <Eigen/SparseQR>
+#include <eigen3/Eigen/Dense>
+#include <eigen3/Eigen/Sparse>
+#include <eigen3/Eigen/SparseCore>
+#include <eigen3/Eigen/SparseCholesky>
+#include <eigen3/Eigen/SparseLU>
+#include <eigen3/Eigen/SparseQR>
 
-#include <opencv2/core.hpp>
-#include <opencv2/core/eigen.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/calib3d/calib3d.hpp>
-
-#include <ros/ros.h>
+#include "opencv4/opencv2/core.hpp"
+#include "opencv4/opencv2/core/eigen.hpp"
+#include "opencv4/opencv2/imgproc.hpp"
+#include "opencv4/opencv2/highgui.hpp"
+#include "opencv4/opencv2/calib3d.hpp"
 
 class Frame;
 class Landmark;

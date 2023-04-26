@@ -4,16 +4,15 @@
 #include <iostream>
 #include <vector>
 
-// ROS eigen
-#include <Eigen/Dense>
+// eigen
+#include "eigen3/Eigen/Dense"
 
-// ROS cv_bridge
-#include <cv_bridge/cv_bridge.h>
-#include <opencv2/opencv.hpp>
-#include <opencv2/core.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/core/eigen.hpp>
+// opencv
+#include "opencv4/opencv2/core.hpp"
+#include "opencv4/opencv2/imgproc.hpp"
+#include "opencv4/opencv2/highgui.hpp"
+#include "opencv4/opencv2/core/eigen.hpp"
+#include "opencv4/opencv2/video/tracking.hpp"
 
 #include "core/visual_odometry/landmark.h"
 #include "core/visual_odometry/define_type.h"

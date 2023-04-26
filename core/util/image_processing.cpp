@@ -28,51 +28,44 @@ namespace image_processing {
 	void interpImage(const cv::Mat& img, const PixelVec& pts,
 		std::vector<float>& interp_values, MaskVec& mask_valid)
 	{
-		const float* img_ptr = img.ptr<float>(0);
-		uint32_t n_pts = pts.size();
+		const size_t n_pts = pts.size();
+		const size_t n_cols = img.cols;
+		const size_t n_rows = img.rows;
 		
-		interp_values.resize(n_pts);
-		mask_valid.resize(n_pts);
-
-		int n_cols = img.cols;
-		int n_rows = img.rows;
+		interp_values.resize(n_pts, -2.0f);
+		mask_valid.resize(n_pts, false);
 
 		// I1 ax / 1-ax I2 
 		// ay   (v,u)
 		//  
 		// 1-ay
 		// I3           I4
-		float ax, ay, axay;
-		for (uint32_t i = 0; i < n_pts; ++i) {
+		float ax = 0.0, ay = 0.0, axay = 0.0;
+		const float* img_ptr = img.ptr<float>(0);
+		for (size_t i = 0; i < n_pts; ++i) {
 			bool is_valid = true;
 
 			const float& uc = pts[i].x;
 			const float& vc = pts[i].y;
 			
-			int u0 = floor(uc);
-			int v0 = floor(vc);
+			int u0 = (int)uc;
+			int v0 = (int)vc;
 
 			if (u0 >= 0 && u0 < n_cols-1) // inside the image
 				ax = uc - (float)u0; // should be 0 <= ax <= 1
-			else {
-				interp_values[i] = -2.0f;
-				mask_valid[i]    = false;
+			else 
 				continue;
-			}
 
 			if (v0 >= 0 && v0 < n_rows - 1)
 				ay = vc - (float)v0;
-			else {
-				interp_values[i] = -2.0f;
-				mask_valid[i]    = false;
+			else 
 				continue;
-			}
 
 			axay   = ax*ay;
 			int idx_I1 = v0*n_cols + u0;
 
 			const float* p = img_ptr + idx_I1;
-			const float& I1 = *p;             // v_0n_colsu_0
+			const float& I1 = *(p);             // v_0n_colsu_0
 			const float& I2 = *(++p);         // v_0n_colsu_0 + 1
 			const float& I4 = *(p += n_cols); // v_0n_colsu_0 + 1 + n_cols
 			const float& I3 = *(--p);      // v_0n_colsu_0 + n_cols
@@ -88,33 +81,28 @@ namespace image_processing {
 		std::vector<float>& interp_values, MaskVec& mask_valid)
 	{
 		const float* img_ptr = img.ptr<float>(0);
-		int n_pts = pts.size();
+		const size_t n_pts = pts.size();
+		const size_t n_cols = img.cols;
+		const size_t n_rows = img.rows;
 
-		interp_values.resize(n_pts);
-		mask_valid.resize(n_pts, true);
-
-		int n_cols = img.cols;
-		int n_rows = img.rows;
+		interp_values.resize(n_pts, -2.0f);
+		mask_valid.resize(n_pts, false);
 
 		// I1 ax / 1-ax I2 
 		// ay   (v,u)
 		//  
 		// 1-ay
 		// I3           I4
-		for (uint32_t i = 0; i < n_pts; ++i) {
+		for (size_t i = 0; i < n_pts; ++i) {
 			const float& uc = pts[i].x;
 			const float& vc = pts[i].y;
 
 			if (uc < 1 || uc >= n_cols-2 
 			 || vc < 1 || vc >= n_rows-2) // invalid if outside of the image
-			{
-				interp_values[i] = -2.0f;
-				mask_valid[i]    = false;
 				continue;
-			}
 			
-			int u0 = (int)floor(uc);
-			int v0 = (int)floor(vc);
+			int u0 = (int)uc;
+			int v0 = (int)vc;
 
 			int idx_I1 = v0*n_cols + u0;
 
@@ -132,57 +120,46 @@ namespace image_processing {
 	void interpImage3(const cv::Mat& img, const cv::Mat& du, const cv::Mat& dv, const PixelVec& pts,
 		std::vector<float>& interp_img, std::vector<float>& interp_du, std::vector<float>& interp_dv, MaskVec& mask_valid)
 	{
-		const float* img_ptr = img.ptr<float>(0);
-		const float* du_ptr  = du.ptr<float>(0);
-		const float* dv_ptr  = dv.ptr<float>(0);
+		
+		const size_t n_pts = pts.size();
+		const size_t n_cols = img.cols;
+		const size_t n_rows = img.rows;
 
-		uint32_t n_pts = pts.size();
-		interp_img.resize(n_pts);
-		interp_du.resize(n_pts);
-		interp_dv.resize(n_pts);
-		mask_valid.resize(n_pts);
-
-		int n_cols = img.cols;
-		int n_rows = img.rows;
-
-		int idx_I1;
-		float I1, I2, I3, I4;
-		float ax, ay, axay;
+		interp_img.resize(n_pts, -2.0f);
+		interp_du.resize(n_pts, -2.0f);
+		interp_dv.resize(n_pts, -2.0f);
+		mask_valid.resize(n_pts, false);
 
 		// I1 ax / 1-ax I2 
 		// ay   (v,u)
 		//  
 		// 1-ay
 		// I3           I4
+		int idx_I1;
+		float I1, I2, I3, I4;
+		float ax, ay, axay;
 
-		for (uint32_t i = 0; i < n_pts; ++i) {
+		const float* img_ptr = img.ptr<float>(0);
+		const float* du_ptr  = du.ptr<float>(0);
+		const float* dv_ptr  = dv.ptr<float>(0);
+		for (size_t i = 0; i < n_pts; ++i) {
 			bool is_valid = true;
 
 			const float& uc = pts[i].x;
 			const float& vc = pts[i].y;
 			
-			int u0 = floor(uc);
-			int v0 = floor(vc);
+			int u0 = (int)uc;
+			int v0 = (int)vc;
 
 			if (u0 >= 0 && u0 < n_cols-1) // inside the image
 				ax = uc - (float)u0; // should be 0 <= ax <= 1
-			else {
-				interp_img[i] = -2.0f;
-				interp_dv[i] = -2.0f;
-				interp_dv[i] = -2.0f;
-				mask_valid[i]    = false;
+			else
 				continue;
-			}
 
 			if (v0 >= 0 && v0 < n_rows - 1)
 				ay = vc - (float)v0;
-			else {
-				interp_img[i] = -2.0f;
-				interp_dv[i] = -2.0f;
-				interp_dv[i] = -2.0f;
-				mask_valid[i]    = false;
+			else
 				continue;
-			}
 
 			axay   = ax*ay;
 			idx_I1 = v0*n_cols + u0;
@@ -292,45 +269,39 @@ namespace image_processing {
 		const float ax, const float ay, const float axay,
 		std::vector<float>& interp_img, std::vector<float>& interp_du, std::vector<float>& interp_dv, MaskVec& mask_valid)
 	{
-		const float* img_ptr = img.ptr<float>(0);
-		const float* du_ptr = du.ptr<float>(0);
-		const float* dv_ptr = dv.ptr<float>(0);
-		uint32_t n_pts = pts.size();
-		interp_img.resize(n_pts);
-		interp_du.resize(n_pts);
-		interp_dv.resize(n_pts);
-		mask_valid.resize(n_pts);
-
+		const size_t n_pts = pts.size();
 		int n_cols = img.cols;
 		int n_rows = img.rows;
 
-		int idx_I1;
+		interp_img.resize(n_pts, -2.0f);
+		interp_du.resize(n_pts, -2.0f);
+		interp_dv.resize(n_pts, -2.0f);
+		mask_valid.resize(n_pts, false);
 
-		float I1, I2, I3, I4;
 		// I1 ax / 1-ax I2 
 		// ay   (v,u)
 		//  
 		// 1-ay
 		// I3           I4
 
-		for (uint32_t i = 0; i < n_pts; ++i) {
+		const float* img_ptr = img.ptr<float>(0);
+		const float* du_ptr = du.ptr<float>(0);
+		const float* dv_ptr = dv.ptr<float>(0);
+		
+		int idx_I1;
+		float I1, I2, I3, I4;
+		for (size_t i = 0; i < n_pts; ++i) {
 			bool is_valid = true;
 
 			const float& uc = pts[i].x;
 			const float& vc = pts[i].y;
 			
-			int u0 = (int)floor(uc);
-			int v0 = (int)floor(vc);
+			int u0 = (int)uc;
+			int v0 = (int)vc;
 
 			if(u0 < 1 || u0 >= n_cols-2
 			|| v0 < 1 || v0 >= n_rows-2) // invalid if outside of the image
-			{
-				interp_img[i] = -2.0f;
-				interp_dv[i]  = -2.0f;
-				interp_dv[i]  = -2.0f;
-				mask_valid[i] = false;
 				continue;
-			}
 
 			idx_I1 = v0*n_cols + u0;
 

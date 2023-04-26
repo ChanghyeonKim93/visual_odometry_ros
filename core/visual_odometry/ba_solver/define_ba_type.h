@@ -3,7 +3,8 @@
 
 #include <iostream>
 #include <vector>
-#include <Eigen/Dense>
+
+#include <eigen3/Eigen/Dense>
 
 using _BA_Numeric = double; 
 

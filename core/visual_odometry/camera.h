@@ -4,11 +4,12 @@
 #include <iostream>
 #include <memory>
 #include <vector>
-#include <Eigen/Dense>
 
-#include <opencv2/core.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/highgui/highgui.hpp>
+#include "eigen3/Eigen/Dense"
+
+#include "opencv4/opencv2/core.hpp"
+#include "opencv4/opencv2/imgproc.hpp"
+#include "opencv4/opencv2/highgui.hpp"
 
 #include "core/visual_odometry/define_type.h"
 

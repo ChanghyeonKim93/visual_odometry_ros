@@ -4,7 +4,8 @@
 #include <iostream>
 #include <vector>
 
-#include <Eigen/Dense>
+// #include <eigen3/dense>
+#include "eigen3/Eigen/Dense"
 
 #include "core/visual_odometry/define_type.h"
 

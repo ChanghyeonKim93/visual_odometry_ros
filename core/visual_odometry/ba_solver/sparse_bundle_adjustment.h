@@ -3,10 +3,8 @@
 
 #include <iostream>
 #include <vector>
-#include <map>
-#include <set>
 
-#include <Eigen/Dense>
+#include "eigen3/Eigen/Dense"
 
 #include "core/visual_odometry/camera.h"
 #include "core/visual_odometry/landmark.h"

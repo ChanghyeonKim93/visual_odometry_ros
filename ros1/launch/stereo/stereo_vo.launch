@@ -1,5 +1,5 @@
 <launch>
-    <node pkg="visual_odometry_ros" name="stereo_vo_node" type="stereo_vo_node" output="screen">
+    <node pkg="visual_odometry_ros1" name="stereo_vo_node" type="stereo_vo_node" output="screen">
         <!-- Image topicname to be subscribed -->
         <param name="topicname_image_left"  type="string" value="/0/image_raw"/>
         <param name="topicname_image_right" type="string" value="/1/image_raw"/>

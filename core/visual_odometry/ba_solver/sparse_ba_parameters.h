@@ -3,9 +3,11 @@
 #include <iostream>
 #include <vector>
 #include <map>
+#include <unordered_map>
 #include <set>
+#include <unordered_set>
 
-#include <Eigen/Dense>
+#include "eigen3/Eigen/Dense"
 
 #include "core/visual_odometry/define_type.h"
 
@@ -33,8 +35,8 @@ private: // Reference Pose and scaling factor for numerical stability
 
 
 private: // all frames and landmarks used for BA.
-    std::set<FramePtr>    frameset_all_;
-    std::set<LandmarkPtr> landmarkset_all_;
+    std::unordered_set<FramePtr>    frameset_all_;
+    std::unordered_set<LandmarkPtr> landmarkset_all_;
 
 private: 
     int N_; // total number of frames
@@ -67,9 +69,9 @@ private:
 private:
     std::vector<LandmarkBA> lmbavec_all_; // All landmarks to be optimized
 
-    std::map<FramePtr,_BA_PoseSE3> posemap_all_; // pose map Tjw
+    std::unordered_map<FramePtr,_BA_PoseSE3> posemap_all_; // pose map Tjw
 
-    std::map<FramePtr,_BA_Index> indexmap_opt_; // optimization pose index map
+    std::unordered_map<FramePtr,_BA_Index> indexmap_opt_; // optimization pose index map
 
     FramePtrVec  framemap_opt_; // j-th optimization frame ptr
 
@@ -114,15 +116,15 @@ public:
         return lmbavec_all_.at(i);
     };
 
-    const std::set<FramePtr>& getAllFrameset(){
+    const std::unordered_set<FramePtr>& getAllFrameset(){
         return frameset_all_;
     };
 
-    const std::set<LandmarkPtr>& getAllLandmarkset(){
+    const std::unordered_set<LandmarkPtr>& getAllLandmarkset(){
         return landmarkset_all_;
     };
 
-    const std::map<FramePtr,_BA_PoseSE3>& getPosemap(){
+    const std::unordered_map<FramePtr,_BA_PoseSE3>& getPosemap(){
         return posemap_all_;
     };
 
@@ -304,8 +306,8 @@ public:
         }
 
         // 1) get all window keyframes 
-        std::set<LandmarkPtr> lmset_window; // 안겹치는 랜드마크들
-        std::set<FramePtr> frameset_window; // 윈도우 내부 키프레임들
+        std::unordered_set<LandmarkPtr> lmset_window; // 안겹치는 랜드마크들
+        std::unordered_set<FramePtr> frameset_window; // 윈도우 내부 키프레임들
         FramePtrVec kfvec_window; // 윈도우 내부의 키프레임들
         for(const auto& f : frames) 
         { 
