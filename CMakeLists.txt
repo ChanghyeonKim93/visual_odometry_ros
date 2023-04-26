@@ -5,8 +5,8 @@ project(${CMAKE_PROJECT_NAME})
 message("-- [PROJECT]: " ${CMAKE_PROJECT_NAME})
 
 message("-- [INFO   ]: Processing 'visual_odometry' project...")
-message("-- [INFO   ]: Go to ros1/CMakeLists.txt ...")
-message("-- [INFO   ]: Processing ros1/CMakeLists.txt ...")
+message("-- [INFO   ]: Go to ros2/CMakeLists.txt ...")
+message("-- [INFO   ]: Processing ros2/CMakeLists.txt ...")
 
 # add_compile_options( -g -Wall )
 
@@ -22,17 +22,4 @@ find_package(catkin REQUIRED)
 catkin_metapackage()
 
 add_subdirectory(core)
-add_subdirectory(ros1)
-
-
-
-# add_subdirectory(ros2)
-# file structure
-# visual_odometry_ros
-#   CMakeLists.txt
-#   core
-#     CMakeLists.txt
-#     
-#   ros1
-#     CMakeLists.txt
-#     package.xml
+add_subdirectory(ros2)
