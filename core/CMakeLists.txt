@@ -1,5 +1,6 @@
-project(${CMAKE_PROJECT_NAME}_core)
-message("   -- [PROJECT]: " ${CMAKE_PROJECT_NAME}_core)
+cmake_minimum_required(VERSION 3.10)
+project(visual_odometry_core)
+message("   -- [PROJECT]: " visual_odometry_core)
 
 # Reference:
 # https://gist.github.com/luncliff/6e2d4eb7ca29a0afd5b592f72b80cb5c#%EC%86%8C%EC%8A%A4%EC%BD%94%EB%93%9C-%EC%A1%B0%EC%A7%81%ED%99%94
@@ -8,11 +9,12 @@ set(CMAKE_BUILD_TYPE Release) # Release, RelWithDebInfo
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -O2 -pthread -pg")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}) 
 
+find_package(ament_cmake REQUIRED)
 find_package(OpenCV 4 REQUIRED)
 find_package(Eigen3 REQUIRED)
 
+include_directories(${CMAKE_SOURCE_DIR}/..)
 include_directories ("/usr/include/opencv4/")
-include_directories( ${catkin_INCLUDE_DIRS} )
 include_directories( ${Eigen3_INCLUDE_DIRS} )
 
 set(SRC ${SRC}
@@ -40,8 +42,13 @@ set(SRC ${SRC}
 )
 
 # set(CMAKE_INSTALL_PREFIX )
-add_library(${CMAKE_PROJECT_NAME}_core STATIC ${SRC})
-target_link_libraries(${CMAKE_PROJECT_NAME}_core ${catkin_LIBRARIES} ${Eigen3_LIBRARIES} ${OpenCV_LIBS})
-install(TARGETS ${CMAKE_PROJECT_NAME}_core CONFIGURATIONS Release)
+add_library(visual_odometry_core STATIC ${SRC})
+target_link_libraries(visual_odometry_core ${Eigen3_LIBRARIES} ${OpenCV_LIBS})
+install(TARGETS visual_odometry_core 
+  DESTINATION lib/${PROJECT_NAME}
+  CONFIGURATIONS Release)
   
-message("   -- [INFO   ]: DONE")
+  message("   -- [INFO   ]: visual_odometry_core is copied to {ROS2_WS}/install/visual_odometry_core/" lib/${PROJECT_NAME})
+  message("   -- [INFO   ]: filename: libvisual_odometry_core.a")
+
+ament_package()
