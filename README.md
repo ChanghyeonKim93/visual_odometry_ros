@@ -26,5 +26,12 @@ sudo make install -y
 ### 3. catkin (colcon) build to make ROS1 (or 2) nodes
 ```
 cd ~/{YOUR_ROS_WS}
-catkin build visual_odometry_ros1 (or colcon build --base-path src/visual_odometry_ros2)
+catkin build visual_odometry_ros (or colcon build --base-path src/visual_odometry_ros)
+(for ROS2 only) source install/local_setup.bash && source install/setup.bash
+```
+
+## Run
+```
+cd ~/{YOUR_ROS_WS}
+ros2 launch visual_odometry stereo_vo.launch.py
 ```
