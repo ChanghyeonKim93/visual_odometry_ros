@@ -1,10 +1,10 @@
 #include "ros2/visual_odometry/stereo_vo_ros2.h"
 
-StereoVONode::StereoVONode()
-    : Node("stereo_vo_node")
+StereoVONode::StereoVONode(const std::string& node_name)
+    : Node(node_name)
 {
   timer_ = this->create_wall_timer(
-      100ms, std::bind(&StereoVONode::callbackTimer, this));
+      10ms, std::bind(&StereoVONode::callbackTimer, this));
   std::cerr << "stereo node is initialized.\n";
 
   rclcpp::QoS image_qos(10);
@@ -25,12 +25,15 @@ StereoVONode::~StereoVONode()
 
 void StereoVONode::callbackTimer()
 {
-  std::cerr << "Node is run" << std::endl;
+  // std::cerr << "Node is run" << std::endl;
 }
 
 void StereoVONode::callbackStereoImages(
     const sensor_msgs::msg::Image::ConstSharedPtr &msg_left,
-    const sensor_msgs::msg::Image::ConstSharedPtr &msg_right) const
+    const sensor_msgs::msg::Image::ConstSharedPtr &msg_right)
 {
+  msg_left;
+  msg_right;
+
   std::cerr << "Stereo Image is got!\n";
 }

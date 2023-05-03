@@ -30,13 +30,13 @@ using namespace std::chrono_literals;
 class StereoVONode : public rclcpp::Node
 {
 public:
-  StereoVONode();
+  StereoVONode(const std::string& node_name);
   ~StereoVONode();
 
 private:
   void callbackStereoImages(
     const sensor_msgs::msg::Image::ConstSharedPtr &msg_left, 
-    const sensor_msgs::msg::Image::ConstSharedPtr &msg_right) const;
+    const sensor_msgs::msg::Image::ConstSharedPtr &msg_right);
   
   void callbackTimer();
     
@@ -46,6 +46,13 @@ private:
   message_filters::Subscriber<sensor_msgs::msg::Image> sub_img_left_;
   message_filters::Subscriber<sensor_msgs::msg::Image> sub_img_right_;
   std::shared_ptr<message_filters::TimeSynchronizer<sensor_msgs::msg::Image, sensor_msgs::msg::Image>> stereo_sync_;
+
+private:
+    std::string directory_intrinsic_;
+
+// stereo VO algorithm
+private:
+    std::unique_ptr<StereoVO> stereo_vo_;
 };
 
 #endif
