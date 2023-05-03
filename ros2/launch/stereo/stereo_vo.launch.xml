@@ -1,0 +1,28 @@
+<launch>
+  <arg name="topicname_image_left" default="/stereo_camera/left/image_raw"/>
+  <arg name="topicname_image_right" default="/stereo_camera/right/image_raw"/>
+  <arg name="topicname_gt" default="/odometry/groundtruth"/>
+  <arg name="topicname_pose" default="/stereo_vo/pose"/>
+  <arg name="topicname_trajectory" default="/stereo_vo/trajectory"/>
+  <arg name="topicname_map_points" default="/stereo_vo/map_points"/>
+  <arg name="topicname_debug_image" default="/stereo_vo/debug/image"/>
+
+  <node pkg="visual_odometry" exec="stereo_vo_node" name="stereo_vo_node">
+     <!-- Image topicname to be subscribed -->
+    <param name="topicname_image_left"  value="$(var topicname_image_left)"/>
+    <param name="topicname_image_right" value="$(var topicname_image_right)"/>
+    
+    <!-- Topicname of the groundtruth -->
+    <param name="topicname_gt" value="$(var topicname_gt)"/>
+
+    <!-- topicname of the VO pose estimation to be published -->
+    <param name="topicname_pose"       value="$(var topicname_pose)"/>
+    <param name="topicname_trajectory" value="$(var topicname_trajectory)"/>
+    <param name="topicname_map_points" value="$(var topicname_map_points)"/>
+
+    <param name="topicname_debug_image" value="$(var topicname_debug_image)"/>
+
+    <!-- intrinsic parameter yaml file directory -->
+    <param name="directory_intrinsic" value="/home/kch/ros2_ws/src/visual_odometry_ros/config/stereo/exp_stereo2.yaml"/>
+  </node>
+</launch>

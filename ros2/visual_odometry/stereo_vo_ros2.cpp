@@ -116,7 +116,7 @@ void StereoVONode::callbackStereoImages(
 
   // update camera pose.
   rclcpp::Time t_track_start = this->get_clock()->now();
-  double time_now = static_cast<double>(msg_left->header.stamp.sec) + static_cast<double>(msg_left->header.stamp.nanosec)*1e-9;
+  double time_now = static_cast<double>(msg_left->header.stamp.sec) + static_cast<double>(msg_left->header.stamp.nanosec) * 1e-9;
   stereo_vo_->trackStereoImages(image_left, image_right, time_now);
   rclcpp::Time t_track_end = this->get_clock()->now();
 
@@ -169,17 +169,19 @@ void StereoVONode::callbackStereoImages(
   // Publish mappoints
   sensor_msgs::msg::PointCloud2 msg_mappoint;
   size_t cnt_total_pts = 0;
-  for(size_t j = 0; j < stat.stats_keyframe.size(); ++j)
+  for (size_t j = 0; j < stat.stats_keyframe.size(); ++j)
   {
-      cnt_total_pts += stat.stats_keyframe[j].mappoints.size();
+    cnt_total_pts += stat.stats_keyframe[j].mappoints.size();
   }
   mappoints_.resize(cnt_total_pts);
   cnt_total_pts = 0;
-  for(size_t j = 0; j < stat.stats_keyframe.size(); ++j){
-      for(const auto& x : stat.stats_keyframe[j].mappoints){
-          mappoints_[cnt_total_pts] = x;
-          ++cnt_total_pts;
-      }
+  for (size_t j = 0; j < stat.stats_keyframe.size(); ++j)
+  {
+    for (const auto &x : stat.stats_keyframe[j].mappoints)
+    {
+      mappoints_[cnt_total_pts] = x;
+      ++cnt_total_pts;
+    }
   }
   convertPointVecToPointCloud2(mappoints_, msg_mappoint, "map");
   pub_map_points_->publish(msg_mappoint);
@@ -196,75 +198,123 @@ void StereoVONode::getParameters()
 
   directory_intrinsic_ = "/home/kch/ros2_ws/src/visual_odometry_ros/config/stereo/exp_stereo2.yaml";
 
-  if (!get_parameter_or<std::string>("/topicname_image_left", topicname_image_left_, topicname_image_left_))
-    std::cerr << "'/topicname_image_left' is not set. Default is " << topicname_image_left_ << "\n";
-  if (!get_parameter_or<std::string>("/topicname_image_right", topicname_image_right_, topicname_image_right_))
-    std::cerr << "'/topicname_image_right' is not set. Default is " << topicname_image_right_ << "\n";
-  if (!get_parameter_or<std::string>("/topicname_pose", topicname_pose_, topicname_pose_))
-    std::cerr << "'/topicname_pose' is not set. Default is " << topicname_pose_ << "\n";
-  if (!get_parameter_or<std::string>("/topicname_map_points", topicname_map_points_, topicname_map_points_))
-    std::cerr << "'/topicname_map_points' is not set. Default is " << topicname_map_points_ << "\n";
-  if (!get_parameter_or<std::string>("/topicname_trajectory", topicname_trajectory_, topicname_trajectory_))
-    std::cerr << "'/topicname_trajectory' is not set. Default is " << topicname_trajectory_ << "\n";
-  if (!get_parameter_or<std::string>("/topicname_debug_image", topicname_debug_image_, "/stereo_vo/debug/image"))
-    std::cerr << "'/topicname_debug_image' is not set. Default is " << topicname_debug_image_ << "\n";
+  this->declare_parameter<std::string>("topicname_image_left", "-");
+  this->declare_parameter<std::string>("topicname_image_right", "-");
+  this->declare_parameter<std::string>("topicname_pose", "-");
+  this->declare_parameter<std::string>("topicname_map_points", "-");
+  this->declare_parameter<std::string>("topicname_trajectory", "-");
+  this->declare_parameter<std::string>("topicname_debug_image", "-");
+  this->declare_parameter<std::string>("directory_intrinsic", "-");
 
-  if (!get_parameter_or<std::string>("/directory_intrinsic", directory_intrinsic_, directory_intrinsic_))
-    std::cerr << "'/directory_intrinsic' is not set. Default is " << directory_intrinsic_ << "\n";
+  if (!this->get_parameter_or<std::string>("topicname_image_left", topicname_image_left_, topicname_image_left_))
+    std::cerr << "'topicname_image_left' is not set. Default is " << topicname_image_left_ << "\n";
+  else
+    std::cerr << "'topicname_image_left' is " << topicname_image_left_ << "\n";
+
+  if (!this->get_parameter_or<std::string>("topicname_image_right", topicname_image_right_, topicname_image_right_))
+    std::cerr << "'topicname_image_right' is not set. Default is " << topicname_image_right_ << "\n";
+  else
+    std::cerr << "'topicname_image_right' is " << topicname_image_right_ << "\n";
+
+  if (!this->get_parameter_or<std::string>("topicname_pose", topicname_pose_, topicname_pose_))
+    std::cerr << "'topicname_pose' is not set. Default is " << topicname_pose_ << "\n";
+  else
+    std::cerr << "'topicname_pose' is " << topicname_pose_<< "\n";
+
+  if (!this->get_parameter_or<std::string>("topicname_map_points", topicname_map_points_, topicname_map_points_))
+    std::cerr << "'topicname_map_points' is not set. Default is " << topicname_map_points_ << "\n";
+  else
+    std::cerr << "'topicname_map_points' is " << topicname_map_points_<< "\n";
+
+  if (!this->get_parameter_or<std::string>("topicname_trajectory", topicname_trajectory_, topicname_trajectory_))
+    std::cerr << "'topicname_trajectory' is not set. Default is " << topicname_trajectory_ << "\n";
+  else
+    std::cerr << "'topicname_trajectory' is " << topicname_trajectory_<< "\n";
+
+  if (!this->get_parameter_or<std::string>("topicname_debug_image", topicname_debug_image_, topicname_debug_image_))
+    std::cerr << "'topicname_debug_image' is not set. Default is " << topicname_debug_image_ << "\n";
+  else
+    std::cerr << "'topicname_debug_image' is " << topicname_debug_image_<< "\n";
+
+  if (!this->get_parameter_or<std::string>("directory_intrinsic", directory_intrinsic_, directory_intrinsic_))
+    std::cerr << "'directory_intrinsic' is not set. Default is " << directory_intrinsic_ << "\n";
+  else
+    std::cerr << "'directory_intrinsic' is " << directory_intrinsic_<< "\n";
 
   std::cerr << "Stereo VO node gets parameters successfully!\n";
 }
 
+void StereoVONode::convertPointVecToPointCloud2(const PointVec &X, sensor_msgs::msg::PointCloud2 &dst, std::string frame_id)
+{
+  size_t n_pts = X.size();
 
-void StereoVONode::convertPointVecToPointCloud2(const PointVec& X, sensor_msgs::msg::PointCloud2& dst, std::string frame_id){
-    size_t n_pts = X.size();
-    
-    // intensity mapping (-3 m ~ 3 m to 0~255)
-    float z_min = -3.0;
-    float z_max = 3.0;
-    float intensity_min = 30;
-    float intensity_max = 255;
-    float slope = (intensity_max-intensity_min)/(z_max-z_min);
+  // intensity mapping (-3 m ~ 3 m to 0~255)
+  float z_min = -3.0;
+  float z_max = 3.0;
+  float intensity_min = 30;
+  float intensity_max = 255;
+  float slope = (intensity_max - intensity_min) / (z_max - z_min);
 
-    dst.header.frame_id = frame_id;
-    dst.header.stamp    = this->get_clock()->now();
-    // ROS_INFO_STREAM(dst.header.stamp << endl);
-    dst.width            = n_pts;
-    dst.height           = 1;
+  dst.header.frame_id = frame_id;
+  dst.header.stamp = this->get_clock()->now();
+  // ROS_INFO_STREAM(dst.header.stamp << endl);
+  dst.width = n_pts;
+  dst.height = 1;
 
-    sensor_msgs::msg::PointField f_tmp;
-    f_tmp.offset = 0;    f_tmp.name="x"; f_tmp.datatype = sensor_msgs::msg::PointField::FLOAT32; dst.fields.push_back(f_tmp);
-    f_tmp.offset = 4;    f_tmp.name="y"; f_tmp.datatype = sensor_msgs::msg::PointField::FLOAT32; dst.fields.push_back(f_tmp);
-    f_tmp.offset = 8;    f_tmp.name="z"; f_tmp.datatype = sensor_msgs::msg::PointField::FLOAT32; dst.fields.push_back(f_tmp);
-    f_tmp.offset = 12;   f_tmp.name="intensity"; f_tmp.datatype = sensor_msgs::msg::PointField::FLOAT32;  dst.fields.push_back(f_tmp);
-    f_tmp.offset = 16;   f_tmp.name="ring"; f_tmp.datatype = sensor_msgs::msg::PointField::UINT16;  dst.fields.push_back(f_tmp);
-    f_tmp.offset = 18;   f_tmp.name="time"; f_tmp.datatype = sensor_msgs::msg::PointField::FLOAT32; dst.fields.push_back(f_tmp);
-    dst.point_step = 22; // x 4 + y 4 + z 4 + i 4 + r 2 + t 4 
+  sensor_msgs::msg::PointField f_tmp;
+  f_tmp.offset = 0;
+  f_tmp.name = "x";
+  f_tmp.datatype = sensor_msgs::msg::PointField::FLOAT32;
+  dst.fields.push_back(f_tmp);
+  f_tmp.offset = 4;
+  f_tmp.name = "y";
+  f_tmp.datatype = sensor_msgs::msg::PointField::FLOAT32;
+  dst.fields.push_back(f_tmp);
+  f_tmp.offset = 8;
+  f_tmp.name = "z";
+  f_tmp.datatype = sensor_msgs::msg::PointField::FLOAT32;
+  dst.fields.push_back(f_tmp);
+  f_tmp.offset = 12;
+  f_tmp.name = "intensity";
+  f_tmp.datatype = sensor_msgs::msg::PointField::FLOAT32;
+  dst.fields.push_back(f_tmp);
+  f_tmp.offset = 16;
+  f_tmp.name = "ring";
+  f_tmp.datatype = sensor_msgs::msg::PointField::UINT16;
+  dst.fields.push_back(f_tmp);
+  f_tmp.offset = 18;
+  f_tmp.name = "time";
+  f_tmp.datatype = sensor_msgs::msg::PointField::FLOAT32;
+  dst.fields.push_back(f_tmp);
+  dst.point_step = 22; // x 4 + y 4 + z 4 + i 4 + r 2 + t 4
 
-    dst.data.resize(dst.point_step * dst.width);
-    for(size_t i = 0; i < dst.width; ++i){
-        size_t i_ptstep = i*dst.point_step;
-        size_t arrayPosX = i_ptstep + dst.fields[0].offset; // X has an offset of 0
-        size_t arrayPosY = i_ptstep + dst.fields[1].offset; // Y has an offset of 4
-        size_t arrayPosZ = i_ptstep + dst.fields[2].offset; // Z has an offset of 8
+  dst.data.resize(dst.point_step * dst.width);
+  for (size_t i = 0; i < dst.width; ++i)
+  {
+    size_t i_ptstep = i * dst.point_step;
+    size_t arrayPosX = i_ptstep + dst.fields[0].offset; // X has an offset of 0
+    size_t arrayPosY = i_ptstep + dst.fields[1].offset; // Y has an offset of 4
+    size_t arrayPosZ = i_ptstep + dst.fields[2].offset; // Z has an offset of 8
 
-        size_t ind_intensity = i_ptstep + dst.fields[3].offset; // 12
-        size_t ind_ring      = i_ptstep + dst.fields[4].offset; // 16
-        size_t ind_time      = i_ptstep + dst.fields[5].offset; // 18
+    size_t ind_intensity = i_ptstep + dst.fields[3].offset; // 12
+    size_t ind_ring = i_ptstep + dst.fields[4].offset;      // 16
+    size_t ind_time = i_ptstep + dst.fields[5].offset;      // 18
 
-        float height_intensity = slope*(X[i](2)-z_min)+intensity_min;
-        if(height_intensity >= intensity_max) height_intensity = intensity_max;
-        if(height_intensity <= intensity_min) height_intensity = intensity_min;
+    float height_intensity = slope * (X[i](2) - z_min) + intensity_min;
+    if (height_intensity >= intensity_max)
+      height_intensity = intensity_max;
+    if (height_intensity <= intensity_min)
+      height_intensity = intensity_min;
 
-        float x = X[i](0);
-        float y = X[i](1);
-        float z = X[i](2);
-        
-        memcpy(&dst.data[arrayPosX],     &(x),          sizeof(float));
-        memcpy(&dst.data[arrayPosY],     &(y),          sizeof(float));
-        memcpy(&dst.data[arrayPosZ],     &(z),          sizeof(float));
-        memcpy(&dst.data[ind_intensity], &(height_intensity),  sizeof(float));
-        memcpy(&dst.data[ind_ring],      &(x),          sizeof(unsigned short));
-        memcpy(&dst.data[ind_time],      &(x),          sizeof(float));
-    }
+    float x = X[i](0);
+    float y = X[i](1);
+    float z = X[i](2);
+
+    memcpy(&dst.data[arrayPosX], &(x), sizeof(float));
+    memcpy(&dst.data[arrayPosY], &(y), sizeof(float));
+    memcpy(&dst.data[arrayPosZ], &(z), sizeof(float));
+    memcpy(&dst.data[ind_intensity], &(height_intensity), sizeof(float));
+    memcpy(&dst.data[ind_ring], &(x), sizeof(unsigned short));
+    memcpy(&dst.data[ind_time], &(x), sizeof(float));
+  }
 }
