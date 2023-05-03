@@ -49,7 +49,7 @@ private:
   void callbackTimer();
 
 private:
-  void convertPointVecToPointCloud2(const std::vector<int>& X, sensor_msgs::msg::PointCloud2& dst, std::string frame_id);
+  void convertPointVecToPointCloud2(const PointVec& X, sensor_msgs::msg::PointCloud2& dst, std::string frame_id);
     
 private:
   rclcpp::TimerBase::SharedPtr timer_;
@@ -61,18 +61,22 @@ private:
   std::string topicname_image_left_;
   std::string topicname_image_right_;
 
-  std::string topicname_pose_;
   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_pose_;
+  std::string topicname_pose_;
 
-  std::string topicname_map_points_;
-  rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pub_map_points_;
-
-  std::string topicname_trajectory_;
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr pub_trajectory_;
+  std::string topicname_trajectory_;
+  nav_msgs::msg::Path msg_trajectory_;
 
-  std::string topicname_debug_image_;
+  rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pub_map_points_;
+  std::string topicname_map_points_;
+  PointVec mappoints_;
+
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr pub_debug_image_;
+  std::string topicname_debug_image_;
+  sensor_msgs::msg::Image msg_debug_image_;
 
+private:
   std::string directory_intrinsic_;
 
 // stereo VO algorithm

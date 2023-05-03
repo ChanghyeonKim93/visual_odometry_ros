@@ -22,6 +22,6 @@ set(SRC ${SRC}
   
 add_executable(stereo_vo_node visual_odometry/node_stereo_vo.cpp ${SRC})
 target_link_libraries(stereo_vo_node visual_odometry_core ${Eigen3_LIBRARIES} ${OpenCV_LIBS})
-ament_target_dependencies(stereo_vo_node rclcpp sensor_msgs nav_msgs message_filters )
+ament_target_dependencies(stereo_vo_node rclcpp sensor_msgs geometry_msgs nav_msgs message_filters )
 install(TARGETS stereo_vo_node
   DESTINATION lib/${PROJECT_NAME})

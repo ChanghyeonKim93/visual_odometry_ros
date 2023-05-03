@@ -233,7 +233,7 @@ void StereoVONode::run(){
 };
 
 void StereoVONode::convertPointVecToPointCloud2(const PointVec& X, sensor_msgs::PointCloud2& dst, std::string frame_id){
-    int n_pts = X.size();
+    size_t n_pts = X.size();
     
     // intensity mapping (-3 m ~ 3 m to 0~255)
     float z_min = -3.0;
@@ -258,15 +258,15 @@ void StereoVONode::convertPointVecToPointCloud2(const PointVec& X, sensor_msgs::
     dst.point_step = 22; // x 4 + y 4 + z 4 + i 4 + r 2 + t 4 
 
     dst.data.resize(dst.point_step * dst.width);
-    for(int i = 0; i < dst.width; ++i){
-        int i_ptstep = i*dst.point_step;
-        int arrayPosX = i_ptstep + dst.fields[0].offset; // X has an offset of 0
-        int arrayPosY = i_ptstep + dst.fields[1].offset; // Y has an offset of 4
-        int arrayPosZ = i_ptstep + dst.fields[2].offset; // Z has an offset of 8
+    for(size_t i = 0; i < dst.width; ++i){
+        size_t i_ptstep = i*dst.point_step;
+        size_t arrayPosX = i_ptstep + dst.fields[0].offset; // X has an offset of 0
+        size_t arrayPosY = i_ptstep + dst.fields[1].offset; // Y has an offset of 4
+        size_t arrayPosZ = i_ptstep + dst.fields[2].offset; // Z has an offset of 8
 
-        int ind_intensity = i_ptstep + dst.fields[3].offset; // 12
-        int ind_ring      = i_ptstep + dst.fields[4].offset; // 16
-        int ind_time      = i_ptstep + dst.fields[5].offset; // 18
+        size_t ind_intensity = i_ptstep + dst.fields[3].offset; // 12
+        size_t ind_ring      = i_ptstep + dst.fields[4].offset; // 16
+        size_t ind_time      = i_ptstep + dst.fields[5].offset; // 18
 
         float height_intensity = slope*(X[i](2)-z_min)+intensity_min;
         if(height_intensity >= intensity_max) height_intensity = intensity_max;
