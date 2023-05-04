@@ -1,4 +1,4 @@
-#include "core/util/geometry_library.h"
+#include "util/geometry_library.h"
 
 using namespace Eigen;
 namespace geometry {

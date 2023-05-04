@@ -6,12 +6,11 @@
 #include <vector>
 
 #include "eigen3/Eigen/Dense"
-#include "define_type.h"
+#include "motion_estimator/define_type.h"
 
-#include "histogram.h"
-#include "geometry_library.h"
-#include "timer.h"
-#include "triangulate_3d.h"
+#include "util/geometry_library.h"
+#include "util/timer.h"
+#include "util/triangulate_3d.h"
 
 class MotionEstimator
 {

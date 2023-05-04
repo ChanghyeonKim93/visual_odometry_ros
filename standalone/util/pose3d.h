@@ -4,7 +4,7 @@
 #include <iostream>
 #include <vector>
 
-#include <Eigen/Dense>
+#include "eigen3/Eigen/Dense"
 
 using _mat_numeric = float;
 

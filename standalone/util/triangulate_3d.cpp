@@ -1,9 +1,10 @@
-#include "core/util/triangulate_3d.h"
+#include "util/triangulate_3d.h"
 
 namespace mapping{
     Eigen::MatrixXf m_matrix_template_;
     void triangulateDLT(const PixelVec& pts0, const PixelVec& pts1, 
-                        const Eigen::Matrix3f& R10, const Eigen::Vector3f& t10, const std::shared_ptr<Camera>& cam, 
+                        const Eigen::Matrix3f& R10, const Eigen::Vector3f& t10, 
+                        const float fx, const float fy, const float cx, const float cy,
                         PointVec& X0, PointVec& X1)
     {
         if(pts0.size() != pts1.size() )
@@ -11,14 +12,13 @@ namespace mapping{
 
         int n_pts = pts0.size(); 
 
-        const float& fx = cam->fx(), fy = cam->fy();
-        const float& cx = cam->cx(), cy = cam->cy();
-
         Eigen::Matrix<float,3,4> P00;
         Eigen::Matrix<float,3,4> P10;
+        Mat33 K;
+        K << fx,0,cx,0,fy,cy,0,0,1;
         
-        P00 << cam->K(),Eigen::Vector3f::Zero();
-        P10 << cam->K()*R10, cam->K()*t10;
+        P00 << K,Eigen::Vector3f::Zero();
+        P10 << K*R10, K*t10;
 
         Eigen::Matrix4f M; M.setZero();
         // Constant elements
@@ -50,17 +50,17 @@ namespace mapping{
    };
 
     void triangulateDLT(const Pixel& pt0, const Pixel& pt1, 
-                        const Eigen::Matrix3f& R10, const Eigen::Vector3f& t10, const std::shared_ptr<Camera>& cam, 
+                        const Eigen::Matrix3f& R10, const Eigen::Vector3f& t10, 
+                        const float fx, const float fy, const float cx, const float cy,
                         Point& X0, Point& X1)
     {
-        const float& fx = cam->fx(), fy = cam->fy();
-        const float& cx = cam->cx(), cy = cam->cy();
-        const Mat33& K = cam->K();
-
+        Mat33 K;
+        K << fx,0,cx,0,fy,cy,0,0,1;
+        
         Eigen::Matrix<float,3,4> P00;
         Eigen::Matrix<float,3,4> P10;
         
-        P00 << K,Eigen::Vector3f::Zero();
+        P00 << K,Vec3::Zero();
         P10 << K*R10, K*t10;
 
         Eigen::Matrix4f M;  M.setZero();
@@ -89,19 +89,23 @@ namespace mapping{
    };
    
     void triangulateDLT(const Pixel& pt0, const Pixel& pt1, 
-                        const Rot3& R10, const Pos3& t10, const std::shared_ptr<Camera>& cam0, const std::shared_ptr<Camera>& cam1, 
+                        const Rot3& R10, const Pos3& t10,
+                        const float fx_l, const float fy_l, const float cx_l, const float cy_l,
+                        const float fx_r, const float fy_r, const float cx_r, const float cy_r,
                         Point& X0, Point& X1)
     {
-        const float& fx0 = cam0->fx(), fy0 = cam0->fy();
-        const float& cx0 = cam0->cx(), cy0 = cam0->cy();
-        const float& fx1 = cam1->fx(), fy1 = cam1->fy();
-        const float& cx1 = cam1->cx(), cy1 = cam1->cy();
+        const float& fx0 = fx_l, fy0 = fy_l;
+        const float& cx0 = cx_l, cy0 = cy_l;
+        const float& fx1 = fx_r, fy1 = fy_r;
+        const float& cx1 = cx_r, cy1 = cy_r;
 
+        Mat33 K1;
+        K1 << fx_r,0,cx_r,0,fy_r,cy_r,0,0,1;
 
         Eigen::Matrix<float,3,4> P10;
         
         // P00 << cam->K(),Eigen::Vector3f::Zero();
-        P10 << cam1->K()*R10, cam1->K()*t10;
+        P10 << K1*R10, K1*t10;
 
         Eigen::Matrix4f M;  M.setZero();
         
