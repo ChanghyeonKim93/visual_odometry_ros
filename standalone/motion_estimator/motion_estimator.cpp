@@ -220,11 +220,11 @@ bool MotionEstimator::poseOnlyBundleAdjustment_Stereo(
 
   float lambda = 0.00001f;
 
-  const float fx_l_inv = 1.0/fx_l;
-  const float fy_l_inv = 1.0/fy_l;
+  const float fx_l_inv = 1.0 / fx_l;
+  const float fy_l_inv = 1.0 / fy_l;
 
-  const float fx_r_inv = 1.0/fx_r;
-  const float fy_r_inv = 1.0/fy_r;
+  const float fx_r_inv = 1.0 / fx_r;
+  const float fy_r_inv = 1.0 / fy_r;
 
   float err_prev = 1e10f;
   PoseSE3 T10_optimized;
@@ -408,4 +408,240 @@ bool MotionEstimator::poseOnlyBundleAdjustment_Stereo(
   }
 
   return is_success;
+};
+
+inline void MotionEstimator::calcJtJ_x(const Vec6 &Jt, Mat66 &JtJ_tmp)
+{
+  JtJ_tmp.setZero();
+
+  // Product
+  // Original : 36 mult
+  // Reduced  : 15 mult + 10 insert
+  JtJ_tmp(0, 0) = Jt(0) * Jt(0);
+  // JtJ_tmp(0,1) = Jt(0)*Jt(1);
+  JtJ_tmp(0, 2) = Jt(0) * Jt(2);
+  JtJ_tmp(0, 3) = Jt(0) * Jt(3);
+  JtJ_tmp(0, 4) = Jt(0) * Jt(4);
+  JtJ_tmp(0, 5) = Jt(0) * Jt(5);
+
+  // JtJ_tmp(1,1) = Jt(1)*Jt(1);
+  // JtJ_tmp(1,2) = Jt(1)*Jt(2);
+  // JtJ_tmp(1,3) = Jt(1)*Jt(3);
+  // JtJ_tmp(1,4) = Jt(1)*Jt(4);
+  // JtJ_tmp(1,5) = Jt(1)*Jt(5);
+
+  JtJ_tmp(2, 2) = Jt(2) * Jt(2);
+  JtJ_tmp(2, 3) = Jt(2) * Jt(3);
+  JtJ_tmp(2, 4) = Jt(2) * Jt(4);
+  JtJ_tmp(2, 5) = Jt(2) * Jt(5);
+
+  JtJ_tmp(3, 3) = Jt(3) * Jt(3);
+  JtJ_tmp(3, 4) = Jt(3) * Jt(4);
+  JtJ_tmp(3, 5) = Jt(3) * Jt(5);
+
+  JtJ_tmp(4, 4) = Jt(4) * Jt(4);
+  JtJ_tmp(4, 5) = Jt(4) * Jt(5);
+
+  JtJ_tmp(5, 5) = Jt(5) * Jt(5);
+
+  // Filling symmetric elements
+  // JtJ_tmp(1,0) = JtJ_tmp(0,1);
+  JtJ_tmp(2, 0) = JtJ_tmp(0, 2);
+  JtJ_tmp(3, 0) = JtJ_tmp(0, 3);
+  JtJ_tmp(4, 0) = JtJ_tmp(0, 4);
+  JtJ_tmp(5, 0) = JtJ_tmp(0, 5);
+
+  // JtJ_tmp(2,1) = JtJ_tmp(1,2);
+  // JtJ_tmp(3,1) = JtJ_tmp(1,3);
+  // JtJ_tmp(4,1) = JtJ_tmp(1,4);
+  // JtJ_tmp(5,1) = JtJ_tmp(1,5);
+
+  JtJ_tmp(3, 2) = JtJ_tmp(2, 3);
+  JtJ_tmp(4, 2) = JtJ_tmp(2, 4);
+  JtJ_tmp(5, 2) = JtJ_tmp(2, 5);
+
+  JtJ_tmp(4, 3) = JtJ_tmp(3, 4);
+  JtJ_tmp(5, 3) = JtJ_tmp(3, 5);
+
+  JtJ_tmp(5, 4) = JtJ_tmp(4, 5);
+};
+
+inline void MotionEstimator::calcJtWJ_x(const float weight, const Vec6 &Jt, Mat66 &JtJ_tmp)
+{
+  JtJ_tmp.setZero();
+
+  Vec6 wJt;
+  wJt.setZero();
+
+  // Product the weight
+  wJt << weight * Jt(0), weight * Jt(1), weight * Jt(2), weight * Jt(3), weight * Jt(4), weight * Jt(5);
+
+  // Product
+  // Original : 36 + 36 mult
+  // Reduced  : 6 + 15 mult + 10 insert
+  JtJ_tmp(0, 0) = wJt(0) * Jt(0);
+  // JtJ_tmp(0,1) = weight*Jt(0)*Jt(1);
+  JtJ_tmp(0, 2) = wJt(0) * Jt(2);
+  JtJ_tmp(0, 3) = wJt(0) * Jt(3);
+  JtJ_tmp(0, 4) = wJt(0) * Jt(4);
+  JtJ_tmp(0, 5) = wJt(0) * Jt(5);
+
+  // JtJ_tmp(1,1) = weight*Jt(1)*Jt(1);
+  // JtJ_tmp(1,2) = weight*Jt(1)*Jt(2);
+  // JtJ_tmp(1,3) = weight*Jt(1)*Jt(3);
+  // JtJ_tmp(1,4) = weight*Jt(1)*Jt(4);
+  // JtJ_tmp(1,5) = weight*Jt(1)*Jt(5);
+
+  JtJ_tmp(2, 2) = wJt(2) * Jt(2);
+  JtJ_tmp(2, 3) = wJt(2) * Jt(3);
+  JtJ_tmp(2, 4) = wJt(2) * Jt(4);
+  JtJ_tmp(2, 5) = wJt(2) * Jt(5);
+
+  JtJ_tmp(3, 3) = wJt(3) * Jt(3);
+  JtJ_tmp(3, 4) = wJt(3) * Jt(4);
+  JtJ_tmp(3, 5) = wJt(3) * Jt(5);
+
+  JtJ_tmp(4, 4) = wJt(4) * Jt(4);
+  JtJ_tmp(4, 5) = wJt(4) * Jt(5);
+
+  JtJ_tmp(5, 5) = wJt(5) * Jt(5);
+
+  // Filling symmetric elements
+  // JtJ_tmp(1,0) = JtJ_tmp(0,1);
+  JtJ_tmp(2, 0) = JtJ_tmp(0, 2);
+  JtJ_tmp(3, 0) = JtJ_tmp(0, 3);
+  JtJ_tmp(4, 0) = JtJ_tmp(0, 4);
+  JtJ_tmp(5, 0) = JtJ_tmp(0, 5);
+
+  // JtJ_tmp(2,1) = JtJ_tmp(1,2);
+  // JtJ_tmp(3,1) = JtJ_tmp(1,3);
+  // JtJ_tmp(4,1) = JtJ_tmp(1,4);
+  // JtJ_tmp(5,1) = JtJ_tmp(1,5);
+
+  JtJ_tmp(3, 2) = JtJ_tmp(2, 3);
+  JtJ_tmp(4, 2) = JtJ_tmp(2, 4);
+  JtJ_tmp(5, 2) = JtJ_tmp(2, 5);
+
+  JtJ_tmp(4, 3) = JtJ_tmp(3, 4);
+  JtJ_tmp(5, 3) = JtJ_tmp(3, 5);
+
+  JtJ_tmp(5, 4) = JtJ_tmp(4, 5);
+};
+
+inline void MotionEstimator::calcJtJ_y(const Vec6 &Jt, Mat66 &JtJ_tmp)
+{
+  JtJ_tmp.setZero();
+
+  // Product
+  // Original : 36 + 36 mult
+  // Reduced  : 6 + 15 mult + 10 insert
+  // JtJ_tmp(0,0) = Jt(0)*Jt(0);
+  // JtJ_tmp(0,1) = Jt(0)*Jt(1);
+  // JtJ_tmp(0,2) = Jt(0)*Jt(2);
+  // JtJ_tmp(0,3) = Jt(0)*Jt(3);
+  // JtJ_tmp(0,4) = Jt(0)*Jt(4);
+  // JtJ_tmp(0,5) = Jt(0)*Jt(5);
+
+  JtJ_tmp(1, 1) = Jt(1) * Jt(1);
+  JtJ_tmp(1, 2) = Jt(1) * Jt(2);
+  JtJ_tmp(1, 3) = Jt(1) * Jt(3);
+  JtJ_tmp(1, 4) = Jt(1) * Jt(4);
+  JtJ_tmp(1, 5) = Jt(1) * Jt(5);
+
+  JtJ_tmp(2, 2) = Jt(2) * Jt(2);
+  JtJ_tmp(2, 3) = Jt(2) * Jt(3);
+  JtJ_tmp(2, 4) = Jt(2) * Jt(4);
+  JtJ_tmp(2, 5) = Jt(2) * Jt(5);
+
+  JtJ_tmp(3, 3) = Jt(3) * Jt(3);
+  JtJ_tmp(3, 4) = Jt(3) * Jt(4);
+  JtJ_tmp(3, 5) = Jt(3) * Jt(5);
+
+  JtJ_tmp(4, 4) = Jt(4) * Jt(4);
+  JtJ_tmp(4, 5) = Jt(4) * Jt(5);
+
+  JtJ_tmp(5, 5) = Jt(5) * Jt(5);
+
+  // Filling symmetric elements
+  // JtJ_tmp(1,0) = JtJ_tmp(0,1);
+  // JtJ_tmp(2,0) = JtJ_tmp(0,2);
+  // JtJ_tmp(3,0) = JtJ_tmp(0,3);
+  // JtJ_tmp(4,0) = JtJ_tmp(0,4);
+  // JtJ_tmp(5,0) = JtJ_tmp(0,5);
+
+  JtJ_tmp(2, 1) = JtJ_tmp(1, 2);
+  JtJ_tmp(3, 1) = JtJ_tmp(1, 3);
+  JtJ_tmp(4, 1) = JtJ_tmp(1, 4);
+  JtJ_tmp(5, 1) = JtJ_tmp(1, 5);
+
+  JtJ_tmp(3, 2) = JtJ_tmp(2, 3);
+  JtJ_tmp(4, 2) = JtJ_tmp(2, 4);
+  JtJ_tmp(5, 2) = JtJ_tmp(2, 5);
+
+  JtJ_tmp(4, 3) = JtJ_tmp(3, 4);
+  JtJ_tmp(5, 3) = JtJ_tmp(3, 5);
+
+  JtJ_tmp(5, 4) = JtJ_tmp(4, 5);
+};
+
+inline void MotionEstimator::calcJtWJ_y(const float weight, const Vec6 &Jt, Mat66 &JtJ_tmp)
+{
+  JtJ_tmp.setZero();
+
+  Vec6 wJt;
+  wJt.setZero();
+
+  // Product the weight
+  wJt << weight * Jt(0), weight * Jt(1), weight * Jt(2), weight * Jt(3), weight * Jt(4), weight * Jt(5);
+
+  // Product
+  // Original : 36 + 36 mult
+  // Reduced  : 6 + 15 mult + 10 insert
+  // JtJ_tmp(0,0) = wJt(0)*Jt(0);
+  // JtJ_tmp(0,1) = wJt(0)*Jt(1);
+  // JtJ_tmp(0,2) = wJt(0)*Jt(2);
+  // JtJ_tmp(0,3) = wJt(0)*Jt(3);
+  // JtJ_tmp(0,4) = wJt(0)*Jt(4);
+  // JtJ_tmp(0,5) = wJt(0)*Jt(5);
+
+  JtJ_tmp(1, 1) = wJt(1) * Jt(1);
+  JtJ_tmp(1, 2) = wJt(1) * Jt(2);
+  JtJ_tmp(1, 3) = wJt(1) * Jt(3);
+  JtJ_tmp(1, 4) = wJt(1) * Jt(4);
+  JtJ_tmp(1, 5) = wJt(1) * Jt(5);
+
+  JtJ_tmp(2, 2) = wJt(2) * Jt(2);
+  JtJ_tmp(2, 3) = wJt(2) * Jt(3);
+  JtJ_tmp(2, 4) = wJt(2) * Jt(4);
+  JtJ_tmp(2, 5) = wJt(2) * Jt(5);
+
+  JtJ_tmp(3, 3) = wJt(3) * Jt(3);
+  JtJ_tmp(3, 4) = wJt(3) * Jt(4);
+  JtJ_tmp(3, 5) = wJt(3) * Jt(5);
+
+  JtJ_tmp(4, 4) = wJt(4) * Jt(4);
+  JtJ_tmp(4, 5) = wJt(4) * Jt(5);
+
+  JtJ_tmp(5, 5) = wJt(5) * Jt(5);
+
+  // Filling symmetric elements
+  // JtJ_tmp(1,0) = JtJ_tmp(0,1);
+  // JtJ_tmp(2,0) = JtJ_tmp(0,2);
+  // JtJ_tmp(3,0) = JtJ_tmp(0,3);
+  // JtJ_tmp(4,0) = JtJ_tmp(0,4);
+  // JtJ_tmp(5,0) = JtJ_tmp(0,5);
+
+  JtJ_tmp(2, 1) = JtJ_tmp(1, 2);
+  JtJ_tmp(3, 1) = JtJ_tmp(1, 3);
+  JtJ_tmp(4, 1) = JtJ_tmp(1, 4);
+  JtJ_tmp(5, 1) = JtJ_tmp(1, 5);
+
+  JtJ_tmp(3, 2) = JtJ_tmp(2, 3);
+  JtJ_tmp(4, 2) = JtJ_tmp(2, 4);
+  JtJ_tmp(5, 2) = JtJ_tmp(2, 5);
+
+  JtJ_tmp(4, 3) = JtJ_tmp(3, 4);
+  JtJ_tmp(5, 3) = JtJ_tmp(3, 5);
+
+  JtJ_tmp(5, 4) = JtJ_tmp(4, 5);
 };
