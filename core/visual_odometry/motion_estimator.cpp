@@ -1332,26 +1332,6 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver_Stereo(const std::shared
     sparse_ba_solver_->reset();
     // double dt_reset = timer::toc(0);
 
-    if (0)
-    {
-        std::cout << "==== Show Translations: \n";
-        for (size_t j = 0; j < ba_params->getNumOfOptimizeFrames(); ++j)
-        {
-            const FramePtr &f = ba_params->getOptFramePtr(j);
-
-            std::cout << "[" << f->getID() << "] frame's trans: "
-                      << f->getPose().block<3, 1>(0, 3).transpose() << "\n";
-        }
-
-        std::cout << "==== Show Points: \n";
-        for (size_t i = 0; i < ba_params->getNumOfOptimizeLandmarks(); ++i)
-        {
-            const LandmarkPtr &lm = ba_params->getOptLandmarkPtr(i);
-
-            std::cout << "[" << lm->getID() << "] point: " << lm->get3DPoint().transpose() << "\n";
-        }
-    }
-
     for (const auto &f : ba_params->getAllFrameset())
     {
         std::cout << f->getID() << "-th frame is " << (f->isPoseOnlySuccess() ? "TRUE" : "FALSE") << std::endl;

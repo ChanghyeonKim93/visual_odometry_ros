@@ -901,6 +901,9 @@ std::cout << colorcode::text_green << "Time [RECORD KEYFR STAT]: " << timer::toc
         
 
     }
+    // Update statistics
+	stat_.stats_frame.push_back(statcurr_frame);
+    stat_.stats_frame.back().Twc = all_stframes_.back()->getLeft()->getPose();
 
 // [6] Update prev
 	this->stframe_prev_ = stframe_curr;	

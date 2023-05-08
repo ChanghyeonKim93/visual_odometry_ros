@@ -190,7 +190,7 @@ private:
 	std::shared_ptr<FeatureExtractor> extractor_;
 	std::shared_ptr<FeatureTracker>   tracker_;
 	std::shared_ptr<MotionEstimator>  motion_estimator_; // Stereo mode
-    std::shared_ptr<SparseBundleAdjustmentSolver> ba_solver_; // Stereo mode
+	std::shared_ptr<SparseBundleAdjustmentSolver> ba_solver_; // Stereo mode
 
 // For tracker
 private:
