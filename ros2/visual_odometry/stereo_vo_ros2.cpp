@@ -3,37 +3,21 @@
 int encoding2mat_type(const std::string &encoding)
 {
   if (encoding == "mono8")
-  {
     return CV_8UC1;
-  }
   else if (encoding == "bgr8")
-  {
     return CV_8UC3;
-  }
   else if (encoding == "mono16")
-  {
     return CV_16SC1;
-  }
   else if (encoding == "rgba8")
-  {
     return CV_8UC4;
-  }
   else if (encoding == "bgra8")
-  {
     return CV_8UC4;
-  }
   else if (encoding == "32FC1")
-  {
     return CV_32FC1;
-  }
   else if (encoding == "rgb8")
-  {
     return CV_8UC3;
-  }
   else
-  {
     throw std::runtime_error("Unsupported encoding type");
-  }
 }
 
 std::string mat_type2encoding(int mat_type)
@@ -219,27 +203,27 @@ void StereoVONode::getParameters()
   if (!this->get_parameter_or<std::string>("topicname_pose", topicname_pose_, topicname_pose_))
     std::cerr << "'topicname_pose' is not set. Default is " << topicname_pose_ << "\n";
   else
-    std::cerr << "'topicname_pose' is " << topicname_pose_<< "\n";
+    std::cerr << "'topicname_pose' is " << topicname_pose_ << "\n";
 
   if (!this->get_parameter_or<std::string>("topicname_map_points", topicname_map_points_, topicname_map_points_))
     std::cerr << "'topicname_map_points' is not set. Default is " << topicname_map_points_ << "\n";
   else
-    std::cerr << "'topicname_map_points' is " << topicname_map_points_<< "\n";
+    std::cerr << "'topicname_map_points' is " << topicname_map_points_ << "\n";
 
   if (!this->get_parameter_or<std::string>("topicname_trajectory", topicname_trajectory_, topicname_trajectory_))
     std::cerr << "'topicname_trajectory' is not set. Default is " << topicname_trajectory_ << "\n";
   else
-    std::cerr << "'topicname_trajectory' is " << topicname_trajectory_<< "\n";
+    std::cerr << "'topicname_trajectory' is " << topicname_trajectory_ << "\n";
 
   if (!this->get_parameter_or<std::string>("topicname_debug_image", topicname_debug_image_, topicname_debug_image_))
     std::cerr << "'topicname_debug_image' is not set. Default is " << topicname_debug_image_ << "\n";
   else
-    std::cerr << "'topicname_debug_image' is " << topicname_debug_image_<< "\n";
+    std::cerr << "'topicname_debug_image' is " << topicname_debug_image_ << "\n";
 
   if (!this->get_parameter_or<std::string>("directory_intrinsic", directory_intrinsic_, directory_intrinsic_))
     std::cerr << "'directory_intrinsic' is not set. Default is " << directory_intrinsic_ << "\n";
   else
-    std::cerr << "'directory_intrinsic' is " << directory_intrinsic_<< "\n";
+    std::cerr << "'directory_intrinsic' is " << directory_intrinsic_ << "\n";
 
   std::cerr << "Stereo VO node gets parameters successfully!\n";
 }
