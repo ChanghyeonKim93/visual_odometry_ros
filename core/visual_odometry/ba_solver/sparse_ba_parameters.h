@@ -39,9 +39,9 @@ private: // all frames and landmarks used for BA.
     std::unordered_set<LandmarkPtr> landmarkset_all_;
 
 private: 
-    int N_; // total number of frames
-    int N_opt_; // # of optimizable frames
-    int N_nonopt_; // # of non-optimizable frames (to prevent gauge freedom)
+    size_t N_; // total number of frames
+    size_t N_opt_; // # of optimizable frames
+    size_t N_nonopt_; // # of non-optimizable frames (to prevent gauge freedom)
 
     /*
         Example 1) monocular mode 
@@ -62,9 +62,9 @@ private:
             N_ != N_opt_ + N_nonopt_ , but N_ == 2*(N_opt_ + N_nonopt_) should hold.
     */
 
-    int M_; // total number of landmarks (all landmarks is to be optimized if they satisty the conditions.) 
+    size_t M_; // total number of landmarks (all landmarks is to be optimized if they satisty the conditions.) 
 
-    int n_obs_; // the number of observations
+    size_t n_obs_; // the number of observations
 
 private:
     std::vector<LandmarkBA> lmbavec_all_; // All landmarks to be optimized
@@ -77,11 +77,11 @@ private:
 
 // Get methods (numbers)
 public:
-    inline int getNumOfAllFrames()         const { return N_; };
-    inline int getNumOfOptimizeFrames()    const { return N_opt_; };
-    inline int getNumOfFixedFrames()       const { return N_nonopt_; };
-    inline int getNumOfOptimizeLandmarks() const { return M_; };
-    inline int getNumOfObservations()      const { return n_obs_; };
+    inline size_t getNumOfAllFrames()         const { return N_; };
+    inline size_t getNumOfOptimizeFrames()    const { return N_opt_; };
+    inline size_t getNumOfFixedFrames()       const { return N_nonopt_; };
+    inline size_t getNumOfOptimizeLandmarks() const { return M_; };
+    inline size_t getNumOfObservations()      const { return n_obs_; };
 
 // Get methods (variables)
 public:
@@ -287,7 +287,7 @@ public:
         }
 
         // Threshold for landmark usage
-        int THRES_MINIMUM_SEEN = 2; // landmark should be seen on at least two stereo frames.
+        size_t THRES_MINIMUM_SEEN = 2; // landmark should be seen on at least two stereo frames.
 
         N_        = frames.size();
         N_nonopt_ = idx_fix.size();
@@ -353,7 +353,7 @@ public:
             lm_ba.err_on_kfs.reserve(300);
 
             // 현재 landmark가 보였던 keyframes을 저장한다.
-            for(int j = 0; j < lm->getRelatedKeyframePtr().size(); ++j) 
+            for(size_t j = 0; j < lm->getRelatedKeyframePtr().size(); ++j) 
             {
                 const FramePtr& kf = lm->getRelatedKeyframePtr()[j]; // left 든 right든 상관 없음.
                 const Pixel&    pt = lm->getObservationsOnKeyframes()[j];
@@ -372,7 +372,7 @@ public:
                 lmbavec_all_.push_back(lm_ba); 
                 landmarkset_all_.insert(lm);
 
-                for(int j = 0; j < lm_ba.kfs_seen.size(); ++j) // all related keyframes.
+                for(size_t j = 0; j < lm_ba.kfs_seen.size(); ++j) // all related keyframes.
                     frameset_all_.insert(lm_ba.kfs_seen[j]);
             }
         }
@@ -413,9 +413,9 @@ public:
         // 5) set optimizable keyframes (posemap, indexmap, framemap)
         _BA_Index cnt_idx = 0;
         idx_optimize;
-        for(int jj = 0; jj < idx_optimize.size(); ++jj)
+        for(size_t jj = 0; jj < idx_optimize.size(); ++jj)
         {
-            int j = idx_optimize.at(jj);
+            size_t j = idx_optimize.at(jj);
             if( !frames[j]->isRightImage() ) // Left image only.
             {
                 indexmap_opt_.insert({frames[j], cnt_idx});
@@ -434,8 +434,8 @@ public:
             n_obs_ += lm_ba.kfs_seen.size(); // residual 크기.
 
         
-        int len_residual  = 2*n_obs_;
-        int len_parameter = 6*N_opt_ + 3*M_;
+        size_t len_residual  = 2*n_obs_;
+        size_t len_parameter = 6*N_opt_ + 3*M_;
         printf("| Bundle Adjustment Statistics:\n");
         printf("|  -        # of total images: %d images \n", N_);
         printf("|  -           -  opt. images: %d images \n", N_opt_);

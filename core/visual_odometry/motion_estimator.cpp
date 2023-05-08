@@ -12,11 +12,11 @@ MotionEstimator::MotionEstimator(bool is_stereo_mode, const PoseSE3 &T_lr)
         std::cout << "Motion Estimator is set to 'stereo' mode.\n";
     else
         std::cout << "Motion Estimator is set to 'monocular' mode.\n";
-};
+}
 
 MotionEstimator::~MotionEstimator(){
 
-};
+}
 
 bool MotionEstimator::calcPose5PointsAlgorithm(
     const PixelVec &pts0, const PixelVec &pts1, CameraConstPtr &cam,
@@ -33,7 +33,7 @@ bool MotionEstimator::calcPose5PointsAlgorithm(
         throw std::runtime_error("calcPose5PointsAlgorithm(): pts0.size() == pts1.size() == 0");
     }
 
-    int n_pts = pts0.size();
+    size_t n_pts = pts0.size();
     mask_inlier.resize(n_pts, true);
 
     // Calculate essential matrix
@@ -42,10 +42,10 @@ bool MotionEstimator::calcPose5PointsAlgorithm(
     // essential = cv::findEssentialMat(pts0, pts1, cam->cvK(), cv::LMEDS, 0.999, 1.0, inlier_mat);
 
     // Check inliers
-    uint32_t cnt_5p = 0;
+    size_t cnt_5p = 0;
     bool *ptr_inlier = inlier_mat.ptr<bool>(0);
     MaskVec maskvec_5p(n_pts, false);
-    for (int i = 0; i < inlier_mat.rows; ++i)
+    for (size_t i = 0; i < inlier_mat.rows; ++i)
     {
         if (ptr_inlier[i])
         {
@@ -109,8 +109,8 @@ bool MotionEstimator::calcPose5PointsAlgorithm(
     R10_true = R10_verify;
     t10_true = t10_verify;
 
-    uint32_t cnt_correctRT = 0;
-    for (int i = 0; i < n_pts; ++i)
+    size_t cnt_correctRT = 0;
+    for (size_t i = 0; i < n_pts; ++i)
     {
         mask_inlier[i] = (maskvec_verify[i] && maskvec_5p[i]);
         if (mask_inlier[i])
@@ -120,7 +120,7 @@ bool MotionEstimator::calcPose5PointsAlgorithm(
     // std::cout << "    5p: " << cnt_5p <<", correctRT: " << cnt_correctRT <<std::endl;
 
     return success;
-};
+}
 
 /**
  * @brief PnP 알고리즘
@@ -141,14 +141,14 @@ bool MotionEstimator::calcPosePnPAlgorithm(const PointVec &Xw, const PixelVec &p
     if (Xw.size() == 0)
         throw std::runtime_error("Error in 'calcPosePnPAlgorithm()': Xw.size() == pts_c.size() == 0");
 
-    int n_pts = Xw.size();
+    size_t n_pts = Xw.size();
     maskvec_inlier.resize(n_pts, false);
 
     // cv::SOLVEPNP_AP3P;
     // cv::SOLVEPNP_EPNP;
 
     std::vector<cv::Point3f> object_pts(n_pts);
-    for (int i = 0; i < n_pts; ++i)
+    for (size_t i = 0; i < n_pts; ++i)
     {
         object_pts[i].x = Xw[i](0);
         object_pts[i].y = Xw[i](1);
@@ -187,8 +187,8 @@ bool MotionEstimator::calcPosePnPAlgorithm(const PointVec &Xw, const PixelVec &p
     cv::cv2eigen(t_vec, twc);
 
     // Set inliers
-    int num_inliers = 0;
-    for (int i = 0; i < idx_inlier.size(); ++i)
+    size_t num_inliers = 0;
+    for (size_t i = 0; i < idx_inlier.size(); ++i)
     {
         maskvec_inlier[idx_inlier[i]] = true;
         ++num_inliers;
@@ -196,11 +196,11 @@ bool MotionEstimator::calcPosePnPAlgorithm(const PointVec &Xw, const PixelVec &p
 
     std::cout << "PnP inliers: " << num_inliers << " / " << n_pts << std::endl;
 
-    if ((float)num_inliers / (float)idx_inlier.size() < 0.6f)
+    if (static_cast<float>(num_inliers) / static_cast<float>(idx_inlier.size()) < 0.6f)
         flag = false;
 
     return flag;
-};
+}
 
 bool MotionEstimator::findCorrectRT(
     const std::vector<Rot3> &R10_vec, const std::vector<Pos3> &t10_vec,
@@ -213,7 +213,7 @@ bool MotionEstimator::findCorrectRT(
     if (pxvec0.size() != pxvec1.size())
         throw std::runtime_error("Error in 'findCorrectRT()': pxvec0.size() != pxvec1.size()");
 
-    int n_pts = pxvec0.size();
+    size_t n_pts = pxvec0.size();
 
     // Extract homogeneous 2D point which is inliered with essential constraint
     // Find reasonable rotation and translational vector
@@ -232,7 +232,7 @@ bool MotionEstimator::findCorrectRT(
 
         // Check chirality
         int num_inlier = 0;
-        for (int i = 0; i < n_pts; ++i)
+        for (size_t i = 0; i < n_pts; ++i)
         {
             if (X0[i](2) > 0 && X1[i](2) > 0)
             {
@@ -260,7 +260,7 @@ bool MotionEstimator::findCorrectRT(
     }
 
     return success;
-};
+}
 
 void MotionEstimator::refineEssentialMat(const PixelVec &pts0, const PixelVec &pts1, const MaskVec &mask, CameraConstPtr &cam,
                                          Mat33 &E)
@@ -269,9 +269,9 @@ void MotionEstimator::refineEssentialMat(const PixelVec &pts0, const PixelVec &p
     if (pts0.size() != pts1.size())
         throw std::runtime_error("Error in 'refineEssentialMat()': pts0.size() != pts1.size()");
 
-    int n_pts = pts0.size();
-    int n_pts_valid = 0;
-    for (int i = 0; i < n_pts; ++i)
+    size_t n_pts = pts0.size();
+    size_t n_pts_valid = 0;
+    for (size_t i = 0; i < n_pts; ++i)
     {
         if (mask[i])
             ++n_pts_valid;
@@ -291,7 +291,7 @@ void MotionEstimator::refineEssentialMat(const PixelVec &pts0, const PixelVec &p
     float cx = cam->cx();
     float cy = cam->cy();
 
-    for (int i = 0; i < n_pts; ++i)
+    for (size_t i = 0; i < n_pts; ++i)
     {
         if (mask[i])
         {
@@ -330,7 +330,7 @@ void MotionEstimator::refineEssentialMat(const PixelVec &pts0, const PixelVec &p
     e_vec(8) = V(8, 8);
 
     float inv_last = 1.0f / e_vec(8);
-    for (int i = 0; i < 9; ++i)
+    for (size_t i = 0; i < 9; ++i)
     {
         e_vec(i) *= inv_last;
     }
@@ -353,7 +353,7 @@ void MotionEstimator::refineEssentialMat(const PixelVec &pts0, const PixelVec &p
     // std::cout << " Essential : \n" << (E /=E(2,2)) << std::endl;
 
     E = E_est;
-};
+}
 
 void MotionEstimator::refineEssentialMatIRLS(const PixelVec &pts0, const PixelVec &pts1, const MaskVec &mask, CameraConstPtr &cam,
                                              Mat33 &E)
@@ -362,9 +362,9 @@ void MotionEstimator::refineEssentialMatIRLS(const PixelVec &pts0, const PixelVe
     if (pts0.size() != pts1.size())
         throw std::runtime_error("Error in 'refineEssentialMat()': pts0.size() != pts1.size()");
 
-    int n_pts = pts0.size();
-    int n_pts_valid = 0;
-    for (int i = 0; i < n_pts; ++i)
+    size_t n_pts = pts0.size();
+    size_t n_pts_valid = 0;
+    for (size_t i = 0; i < n_pts; ++i)
     {
         if (mask[i])
             ++n_pts_valid;
@@ -384,8 +384,8 @@ void MotionEstimator::refineEssentialMatIRLS(const PixelVec &pts0, const PixelVe
     const Mat33 &Kinv = cam->Kinv();
 
     // Precalculation
-    int idx = 0;
-    for (int i = 0; i < n_pts; ++i)
+    size_t idx = 0;
+    for (size_t i = 0; i < n_pts; ++i)
     {
         if (mask[i])
         {
@@ -407,12 +407,12 @@ void MotionEstimator::refineEssentialMatIRLS(const PixelVec &pts0, const PixelVe
     }
 
     // Iterations
-    int MAX_ITER = 30;
-    for (int iter = 0; iter < MAX_ITER; ++iter)
+    size_t MAX_ITER = 30;
+    for (size_t iter = 0; iter < MAX_ITER; ++iter)
     {
         Mat33 F10 = Kinv.transpose() * E * Kinv;
         idx = 0;
-        for (int i = 0; i < n_pts; ++i)
+        for (size_t i = 0; i < n_pts; ++i)
         {
             if (mask[i])
             {
@@ -479,7 +479,7 @@ void MotionEstimator::refineEssentialMatIRLS(const PixelVec &pts0, const PixelVe
 
         E = E_est;
     }
-};
+}
 
 float MotionEstimator::findInliers1PointHistogram(const PixelVec &pts0, const PixelVec &pts1, CameraConstPtr &cam,
                                                   MaskVec &maskvec_inlier)
@@ -491,7 +491,7 @@ float MotionEstimator::findInliers1PointHistogram(const PixelVec &pts0, const Pi
         return false;
     }
 
-    int n_pts = pts0.size();
+    size_t n_pts = pts0.size();
 
     maskvec_inlier.resize(n_pts, false);
 
@@ -501,7 +501,7 @@ float MotionEstimator::findInliers1PointHistogram(const PixelVec &pts0, const Pi
     const float &cy = cam->cy();
 
     std::vector<float> theta(n_pts);
-    for (int i = 0; i < n_pts; ++i)
+    for (size_t i = 0; i < n_pts; ++i)
     {
         float x0 = (pts0[i].x - cx) * invfx;
         float y0 = (pts0[i].y - cy) * invfy;
@@ -538,7 +538,7 @@ float MotionEstimator::findInliers1PointHistogram(const PixelVec &pts0, const Pi
 
     float thres_sampson = thres_1p_; // 15.0 px
     thres_sampson *= thres_sampson;
-    for (int i = 0; i < n_pts; ++i)
+    for (size_t i = 0; i < n_pts; ++i)
     {
         if (sampson_dist[i] <= thres_sampson)
             maskvec_inlier[i] = true;
@@ -548,7 +548,7 @@ float MotionEstimator::findInliers1PointHistogram(const PixelVec &pts0, const Pi
     }
 
     return th_opt;
-};
+}
 
 void MotionEstimator::calcSampsonDistance(const PixelVec &pts0, const PixelVec &pts1, CameraConstPtr &cam,
                                           const Rot3 &R10, const Pos3 &t10, std::vector<float> &sampson_dist)
@@ -556,7 +556,7 @@ void MotionEstimator::calcSampsonDistance(const PixelVec &pts0, const PixelVec &
     if (pts0.size() != pts1.size())
         throw std::runtime_error("Error in 'fineInliers1PointHistogram()': pts0.size() != pts1.size()");
 
-    int n_pts = pts0.size();
+    size_t n_pts = pts0.size();
 
     sampson_dist.resize(n_pts);
 
@@ -566,7 +566,7 @@ void MotionEstimator::calcSampsonDistance(const PixelVec &pts0, const PixelVec &
     F10 = cam->Kinv().transpose() * E10 * cam->Kinv();
     F10t = F10.transpose();
 
-    for (int i = 0; i < n_pts; ++i)
+    for (size_t i = 0; i < n_pts; ++i)
     {
         Point p0, p1;
         p0 << pts0[i].x, pts0[i].y, 1.0f;
@@ -581,7 +581,7 @@ void MotionEstimator::calcSampsonDistance(const PixelVec &pts0, const PixelVec &
         float dist_tmp = numerator / denominator;
         sampson_dist[i] = dist_tmp;
     }
-};
+}
 
 void MotionEstimator::calcSampsonDistance(const PixelVec &pts0, const PixelVec &pts1,
                                           const Mat33 &F10, std::vector<float> &sampson_dist)
@@ -589,14 +589,14 @@ void MotionEstimator::calcSampsonDistance(const PixelVec &pts0, const PixelVec &
     if (pts0.size() != pts1.size())
         throw std::runtime_error("Error in 'fineInliers1PointHistogram()': pts0.size() != pts1.size()");
 
-    int n_pts = pts0.size();
+    size_t n_pts = pts0.size();
 
     sampson_dist.resize(n_pts);
 
     Eigen::Matrix3f F10t;
 
     F10t = F10.transpose();
-    for (int i = 0; i < n_pts; ++i)
+    for (size_t i = 0; i < n_pts; ++i)
     {
         Point p0, p1;
         p0 << pts0[i].x, pts0[i].y, 1.0f;
@@ -611,7 +611,7 @@ void MotionEstimator::calcSampsonDistance(const PixelVec &pts0, const PixelVec &
         float dist_tmp = numerator / denominator;
         sampson_dist[i] = dist_tmp;
     }
-};
+}
 
 float MotionEstimator::calcSampsonDistance(const Pixel &pt0, const Pixel &pt1, const Mat33 &F10)
 {
@@ -630,7 +630,7 @@ float MotionEstimator::calcSampsonDistance(const Pixel &pt0, const Pixel &pt1, c
     float denominator = F10p0(0) * F10p0(0) + F10p0(1) * F10p0(1) + F10tp1(0) * F10tp1(0) + F10tp1(1) * F10tp1(1);
     float dist_tmp = numerator / denominator;
     return dist_tmp;
-};
+}
 
 void MotionEstimator::calcSymmetricEpipolarDistance(
     const PixelVec &pts0, const PixelVec &pts1, CameraConstPtr &cam,
@@ -639,7 +639,7 @@ void MotionEstimator::calcSymmetricEpipolarDistance(
     if (pts0.size() != pts1.size())
         throw std::runtime_error("In 'calcSymmetricEpipolarDistance()', pts0.size() != pts1.size()");
 
-    int n_pts = pts0.size();
+    size_t n_pts = pts0.size();
     sym_epi_dist.resize(n_pts);
 
     // Calculate Fundamental matrix
@@ -649,7 +649,7 @@ void MotionEstimator::calcSymmetricEpipolarDistance(
     F10 = cam->Kinv().transpose() * E10 * cam->Kinv();
     F10t = F10.transpose();
 
-    for (int i = 0; i < n_pts; ++i)
+    for (size_t i = 0; i < n_pts; ++i)
     {
         Point p0, p1;
         p0 << pts0[i].x, pts0[i].y, 1.0f;
@@ -664,17 +664,17 @@ void MotionEstimator::calcSymmetricEpipolarDistance(
         float dist_tmp = numerator * denominator;
         sym_epi_dist[i] = dist_tmp;
     }
-};
+}
 
 void MotionEstimator::setThres1p(float thres_1p)
 {
     thres_1p_ = thres_1p; // pixels
-};
+}
 
 void MotionEstimator::setThres5p(float thres_5p)
 {
     thres_5p_ = thres_5p; // pixels
-};
+}
 
 bool MotionEstimator::poseOnlyBundleAdjustment(const PointVec &X, const PixelVec &pts1, CameraConstPtr &cam, const int &thres_reproj_outlier,
                                                Rot3 &R01_true, Pos3 &t01_true, MaskVec &mask_inlier)
@@ -685,10 +685,10 @@ bool MotionEstimator::poseOnlyBundleAdjustment(const PointVec &X, const PixelVec
 
     bool is_success = true;
 
-    int n_pts = X.size();
+    size_t n_pts = X.size();
     mask_inlier.resize(n_pts);
 
-    int MAX_ITER = 100;
+    size_t MAX_ITER = 100;
     float THRES_HUBER = 0.5f; // pixels
     float THRES_DELTA_XI = 1e-6;
     float THRES_DELTA_ERROR = 1e-7;
@@ -721,10 +721,10 @@ bool MotionEstimator::poseOnlyBundleAdjustment(const PointVec &X, const PixelVec
         const Pos3 &t10 = T10_optimized.block<3, 1>(0, 3);
 
         float err_curr = 0.0f;
-        float inv_npts = 1.0f / (float)n_pts;
-        int cnt_invalid = 0;
+        float inv_npts = 1.0f / static_cast<float>(n_pts);
+        size_t cnt_invalid = 0;
         // Warp and project point & calculate error...
-        for (int i = 0; i < n_pts; ++i)
+        for (size_t i = 0; i < n_pts; ++i)
         {
             const Pixel &pt = pts1[i];
             Point Xw = R10 * X[i] + t10;
@@ -827,7 +827,7 @@ bool MotionEstimator::poseOnlyBundleAdjustment(const PointVec &X, const PixelVec
         float delta_err = abs(err_curr - err_prev);
 
         // Solve H^-1*Jtr;
-        for (int i = 0; i < 6; ++i)
+        for (size_t i = 0; i < 6; ++i)
             JtWJ(i, i) *= (1.0f + lambda); // lambda
 
         PoseSE3Tangent delta_xi = JtWJ.ldlt().solve(mJtWr);
@@ -868,7 +868,7 @@ bool MotionEstimator::poseOnlyBundleAdjustment(const PointVec &X, const PixelVec
     }
 
     return is_success;
-};
+}
 
 bool MotionEstimator::poseOnlyBundleAdjustment_Stereo(const PointVec &X, const PixelVec &pts_l1, const PixelVec &pts_r1, CameraConstPtr &cam_left, CameraConstPtr &cam_right, const PoseSE3 &T_lr, float thres_reproj_outlier,
                                                       PoseSE3 &T01, MaskVec &mask_inlier)
@@ -884,10 +884,10 @@ bool MotionEstimator::poseOnlyBundleAdjustment_Stereo(const PointVec &X, const P
 
     bool is_success = true;
 
-    int n_pts = X.size();
+    size_t n_pts = X.size();
     mask_inlier.assign(n_pts, true);
 
-    int MAX_ITER = 100;
+    size_t MAX_ITER = 100;
     float THRES_HUBER = 0.5f; // pixels
     float THRES_DELTA_XI = 1e-6;
     float THRES_DELTA_ERROR = 1e-7;
@@ -915,7 +915,7 @@ bool MotionEstimator::poseOnlyBundleAdjustment_Stereo(const PointVec &X, const P
 
     Mat66 JtWJ;
     Vec6 mJtWr;
-    for (int iter = 0; iter < MAX_ITER; ++iter)
+    for (size_t iter = 0; iter < MAX_ITER; ++iter)
     {
         JtWJ.setZero();
         mJtWr.setZero();
@@ -924,8 +924,8 @@ bool MotionEstimator::poseOnlyBundleAdjustment_Stereo(const PointVec &X, const P
         const Pos3 &t10 = T10_optimized.block<3, 1>(0, 3);
 
         float err_curr = 0.0f;
-        float inv_npts = 1.0f / (float)n_pts;
-        size_tint cnt_invalid = 0;
+        float inv_npts = 1.0f / static_cast<float>(n_pts);
+        size_t cnt_invalid = 0;
         // Warp and project point & calculate error...
         for (size_t i = 0; i < n_pts; ++i)
         {
@@ -1054,7 +1054,7 @@ bool MotionEstimator::poseOnlyBundleAdjustment_Stereo(const PointVec &X, const P
         float delta_err = abs(err_curr - err_prev);
 
         // Solve H^-1*Jtr;
-        for (int i = 0; i < 6; ++i)
+        for (size_t i = 0; i < 6; ++i)
             JtWJ(i, i) *= (1.0f + lambda); // lambda
 
         PoseSE3Tangent delta_xi = JtWJ.ldlt().solve(mJtWr);
@@ -1091,7 +1091,7 @@ bool MotionEstimator::poseOnlyBundleAdjustment_Stereo(const PointVec &X, const P
     }
 
     return is_success;
-};
+}
 
 bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Keyframes> &kfs_window, CameraConstPtr &cam)
 {
@@ -1108,7 +1108,7 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     std::cout << "===============     Local Bundle adjustment (Sparse Solver)     ===============\n";
 
     // Optimization paraameters
-    int MAX_ITER = 10;
+    size_t MAX_ITER = 10;
 
     float lam = 1e-5;      // for Levenberg-Marquardt algorithm
     float MAX_LAM = 1.0f;  // for Levenberg-Marquardt algorithm
@@ -1129,8 +1129,8 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     float THRES_DELTA_THETA = 1e-7;
     float THRES_ERROR = 1e-7;
 
-    int NUM_MINIMUM_REQUIRED_KEYFRAMES = 3; // 최소 keyframe 갯수.
-    int NUM_FIX_KEYFRAMES_IN_WINDOW = 2;    // optimization에서 제외 할 keyframe 갯수. 과거 순.
+    size_t NUM_MINIMUM_REQUIRED_KEYFRAMES = 3; // 최소 keyframe 갯수.
+    size_t NUM_FIX_KEYFRAMES_IN_WINDOW = 2;    // optimization에서 제외 할 keyframe 갯수. 과거 순.
 
     // Check whether there are enough keyframes
     if (kfs_window->getCurrentNumOfKeyframes() < NUM_MINIMUM_REQUIRED_KEYFRAMES)
@@ -1149,10 +1149,10 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     for (auto kf : kfs_window->getList()) // 모든 keyframe in window 순회
         frames.push_back(kf);             // window keyframes 저장.
 
-    for (int j = 0; j < NUM_FIX_KEYFRAMES_IN_WINDOW; ++j)
+    for (size_t j = 0; j < NUM_FIX_KEYFRAMES_IN_WINDOW; ++j)
         idx_fix.push_back(j);
 
-    for (int j = NUM_FIX_KEYFRAMES_IN_WINDOW; j < frames.size(); ++j)
+    for (size_t j = NUM_FIX_KEYFRAMES_IN_WINDOW; j < frames.size(); ++j)
         idx_opt.push_back(j);
 
     // Make Sparse BA Parameters
@@ -1179,7 +1179,7 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     if (0)
     {
         std::cout << "==== Show Translations: \n";
-        for (int j = 0; j < ba_params->getNumOfOptimizeFrames(); ++j)
+        for (size_t j = 0; j < ba_params->getNumOfOptimizeFrames(); ++j)
         {
             const FramePtr &f = ba_params->getOptFramePtr(j);
 
@@ -1188,7 +1188,7 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
         }
 
         std::cout << "==== Show Points: \n";
-        for (int i = 0; i < ba_params->getNumOfOptimizeLandmarks(); ++i)
+        for (size_t i = 0; i < ba_params->getNumOfOptimizeLandmarks(); ++i)
         {
             const LandmarkPtr &lm = ba_params->getOptLandmarkPtr(i);
 
@@ -1208,7 +1208,7 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     std::cout << colorcode::cout_reset;
 
     return true;
-};
+}
 
 bool MotionEstimator::localBundleAdjustmentSparseSolver_Stereo(const std::shared_ptr<StereoKeyframes> &stkfs_window, CameraConstPtr &cam_left, CameraConstPtr &cam_right, const PoseSE3 &T_lr)
 {
@@ -1229,7 +1229,7 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver_Stereo(const std::shared
     std::cout << "===============     Local Bundle adjustment (Sparse Solver, Stereo version)     ===============\n";
 
     // Optimization paraameters
-    int MAX_ITER = 10;
+    size_t MAX_ITER = 10;
 
     float lam = 1e-5;      // for Levenberg-Marquardt algorithm
     float MAX_LAM = 1.0f;  // for Levenberg-Marquardt algorithm
@@ -1248,8 +1248,8 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver_Stereo(const std::shared
     float THRES_DELTA_THETA = 1e-7;
     float THRES_ERROR = 1e-7;
 
-    int NUM_MINIMUM_REQUIRED_KEYFRAMES = 3; // 최소 stereo keyframe 갯수.
-    int NUM_FIX_KEYFRAMES_IN_WINDOW = 2;    // optimization에서 제외 할 keyframe 갯수. 과거 순.
+    size_t NUM_MINIMUM_REQUIRED_KEYFRAMES = 3; // 최소 stereo keyframe 갯수.
+    size_t NUM_FIX_KEYFRAMES_IN_WINDOW = 2;    // optimization에서 제외 할 keyframe 갯수. 과거 순.
 
     // Check whether there are enough keyframes
     if (stkfs_window->getCurrentNumOfStereoKeyframes() < NUM_MINIMUM_REQUIRED_KEYFRAMES)
@@ -1288,24 +1288,24 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver_Stereo(const std::shared
     for (const auto &stkf : stkfs_window->getList())
         frames_ba.push_back(stkf->getRight());
 
-    int N = frames_ba.size();
+    size_t N = frames_ba.size();
 
-    for (int j = 0; j < NUM_FIX_KEYFRAMES_IN_WINDOW; ++j)
+    for (size_t j = 0; j < NUM_FIX_KEYFRAMES_IN_WINDOW; ++j)
         idx_fix.push_back(j);
 
-    for (int j = NUM_FIX_KEYFRAMES_IN_WINDOW; j < frames_ba.size(); ++j)
+    for (size_t j = NUM_FIX_KEYFRAMES_IN_WINDOW; j < frames_ba.size(); ++j)
     {
         if (!frames_ba[j]->isRightImage())
             idx_opt.push_back(j);
     }
 
     std::cout << "fixed frame indexes: ";
-    for (int j = 0; j < idx_fix.size(); ++j)
+    for (size_t j = 0; j < idx_fix.size(); ++j)
         std::cout << idx_fix[j] << " ";
     std::cout << std::endl;
 
     std::cout << "  Opt frame indexes: ";
-    for (int j = 0; j < idx_opt.size(); ++j)
+    for (size_t j = 0; j < idx_opt.size(); ++j)
         std::cout << idx_opt[j] << " ";
     std::cout << std::endl;
 
@@ -1335,7 +1335,7 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver_Stereo(const std::shared
     if (0)
     {
         std::cout << "==== Show Translations: \n";
-        for (int j = 0; j < ba_params->getNumOfOptimizeFrames(); ++j)
+        for (size_t j = 0; j < ba_params->getNumOfOptimizeFrames(); ++j)
         {
             const FramePtr &f = ba_params->getOptFramePtr(j);
 
@@ -1344,7 +1344,7 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver_Stereo(const std::shared
         }
 
         std::cout << "==== Show Points: \n";
-        for (int i = 0; i < ba_params->getNumOfOptimizeLandmarks(); ++i)
+        for (size_t i = 0; i < ba_params->getNumOfOptimizeLandmarks(); ++i)
         {
             const LandmarkPtr &lm = ba_params->getOptLandmarkPtr(i);
 
@@ -1364,7 +1364,7 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver_Stereo(const std::shared
     std::cout << colorcode::cout_reset;
 
     return true;
-};
+}
 
 inline void MotionEstimator::calcJtJ_x(const Eigen::Matrix<float, 6, 1> &Jt, Eigen::Matrix<float, 6, 6> &JtJ_tmp)
 {
@@ -1420,7 +1420,7 @@ inline void MotionEstimator::calcJtJ_x(const Eigen::Matrix<float, 6, 1> &Jt, Eig
     JtJ_tmp(5, 3) = JtJ_tmp(3, 5);
 
     JtJ_tmp(5, 4) = JtJ_tmp(4, 5);
-};
+}
 
 inline void MotionEstimator::calcJtWJ_x(const float weight, const Eigen::Matrix<float, 6, 1> &Jt, Eigen::Matrix<float, 6, 6> &JtJ_tmp)
 {
@@ -1482,7 +1482,7 @@ inline void MotionEstimator::calcJtWJ_x(const float weight, const Eigen::Matrix<
     JtJ_tmp(5, 3) = JtJ_tmp(3, 5);
 
     JtJ_tmp(5, 4) = JtJ_tmp(4, 5);
-};
+}
 
 inline void MotionEstimator::calcJtJ_y(const Eigen::Matrix<float, 6, 1> &Jt, Eigen::Matrix<float, 6, 6> &JtJ_tmp)
 {
@@ -1538,7 +1538,7 @@ inline void MotionEstimator::calcJtJ_y(const Eigen::Matrix<float, 6, 1> &Jt, Eig
     JtJ_tmp(5, 3) = JtJ_tmp(3, 5);
 
     JtJ_tmp(5, 4) = JtJ_tmp(4, 5);
-};
+}
 
 inline void MotionEstimator::calcJtWJ_y(const float weight, const Eigen::Matrix<float, 6, 1> &Jt, Eigen::Matrix<float, 6, 6> &JtJ_tmp)
 {
@@ -1600,4 +1600,4 @@ inline void MotionEstimator::calcJtWJ_y(const float weight, const Eigen::Matrix<
     JtJ_tmp(5, 3) = JtJ_tmp(3, 5);
 
     JtJ_tmp(5, 4) = JtJ_tmp(4, 5);
-};
+}
