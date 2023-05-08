@@ -102,14 +102,14 @@ public:
     void trackWithScale(const cv::Mat& img0, const cv::Mat& du0, const cv::Mat& dv0, const cv::Mat& img1, const PixelVec& pts0, const std::vector<float>& scale_est,
                 PixelVec& pts_track, MaskVec& mask_valid);
 
-    /// @brief refine a current pixel tracking w.r.t. the very first observation of each landmark.
-    /// @param img1 current image
-    /// @param lms landmarks
-    /// @param scale_est estimated scales from the very first observation of each landmark
-    /// @param pts_track tracking pixels on the current image (prior values)
-    /// @param mask_valid validity masks of the landmarks
-    void refineTrackWithScale(const cv::Mat& img1, const LandmarkPtrVec& lms, const std::vector<float>& scale_est,
-                PixelVec& pts_track, MaskVec& mask_valid);
+    // /// @brief refine a current pixel tracking w.r.t. the very first observation of each landmark.
+    // /// @param img1 current image
+    // /// @param lms landmarks
+    // /// @param scale_est estimated scales from the very first observation of each landmark
+    // /// @param pts_track tracking pixels on the current image (prior values)
+    // /// @param mask_valid validity masks of the landmarks
+    // void refineTrackWithScale(const cv::Mat& img1, const LandmarkPtrVec& lms, const std::vector<float>& scale_est,
+    //             PixelVec& pts_track, MaskVec& mask_valid);
 };
 
 

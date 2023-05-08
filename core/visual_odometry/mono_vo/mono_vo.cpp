@@ -1061,9 +1061,9 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 		}
 
 		// Refine the tracking results
-		timer::tic();
-		tracker_->refineTrackWithScale(I1, lms_final, scale_estimated, pts_refine, mask_final);
-		std::cout << colorcode::text_green << "Time [trackWithScale   ]: " << timer::toc(0) << " [ms]\n" << colorcode::cout_reset;
+		// timer::tic();
+		// tracker_->refineTrackWithScale(I1, lms_final, scale_estimated, pts_refine, mask_final);
+		// std::cout << colorcode::text_green << "Time [trackWithScale   ]: " << timer::toc(0) << " [ms]\n" << colorcode::cout_reset;
 
 		// Update points
 		for(int i = 0; i < lms_final.size(); ++i)

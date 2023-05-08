@@ -522,185 +522,185 @@ void FeatureTracker::trackWithScale(
 };
 
 
-void FeatureTracker::refineTrackWithScale(const cv::Mat& img1, const LandmarkPtrVec& lms, const std::vector<float>& scale_est,
-        PixelVec& pts_track, MaskVec& mask_valid)
-{
-    // std::cout << "RefineTrackWithScale starts.\n";
-    if(pts_track.size() != lms.size() ) throw std::runtime_error("pts_track.size() != lms.size()");
+// void FeatureTracker::refineTrackWithScale(const cv::Mat& img1, const LandmarkPtrVec& lms, const std::vector<float>& scale_est,
+//         PixelVec& pts_track, MaskVec& mask_valid)
+// {
+//     // std::cout << "RefineTrackWithScale starts.\n";
+//     if(pts_track.size() != lms.size() ) throw std::runtime_error("pts_track.size() != lms.size()");
     
-    int n_pts = lms.size(); 
+//     int n_pts = lms.size(); 
     
-    int   MAX_ITER     = 50;
-    float EPS_ERR_RATE = 1e-3;
-    float EPS_UPDATE   = 1e-4;
+//     int   MAX_ITER     = 50;
+//     float EPS_ERR_RATE = 1e-3;
+//     float EPS_UPDATE   = 1e-4;
 
-    float minEigThreshold = 1e-4;
+//     float minEigThreshold = 1e-4;
 
-    // Get images (CV_32FC1)
-    cv::Mat I1;
-    img1.convertTo(I1, CV_32FC1);
+//     // Get images (CV_32FC1)
+//     cv::Mat I1;
+//     img1.convertTo(I1, CV_32FC1);
 
-    int n_cols = I1.cols;
-    int n_rows = I1.rows;
+//     int n_cols = I1.cols;
+//     int n_rows = I1.rows;
 
-    // Get patch pixels from the static member of Landmark class.
-    const PixelVec& patt = Landmark::patt_;
-    int n_elem = patt.size();
+//     // Get patch pixels from the static member of Landmark class.
+//     const PixelVec& patt = Landmark::patt_;
+//     int n_elem = patt.size();
 
-    // containers
-    std::vector<float> I1_patt(n_elem);
+//     // containers
+//     std::vector<float> I1_patt(n_elem);
 
-    // temporal container
-    PixelVec pts_warp(n_elem);
-    MaskVec  mask_I1(n_elem);
-    PixelVec patt_s(n_elem);
-    for(int i = 0; i < n_pts; ++i)
-    {
-        // If invalid point, skip.
-        if(!mask_valid[i]) 
-            continue;
+//     // temporal container
+//     PixelVec pts_warp(n_elem);
+//     MaskVec  mask_I1(n_elem);
+//     PixelVec patt_s(n_elem);
+//     for(int i = 0; i < n_pts; ++i)
+//     {
+//         // If invalid point, skip.
+//         if(!mask_valid[i]) 
+//             continue;
 
-        const LandmarkPtr& lm = lms.at(i);
-        const Pixel& pt1      = pts_track.at(i);
-        const float& scale    = scale_est.at(i);
+//         const LandmarkPtr& lm = lms.at(i);
+//         const Pixel& pt1      = pts_track.at(i);
+//         const float& scale    = scale_est.at(i);
         
-        const FloatVec& I0_patt  = lm->getImagePatchVec();
-        const FloatVec& du0_patt = lm->getDuPatchVec();
-        const FloatVec& dv0_patt = lm->getDvPatchVec();
-        const MaskVec& mask_I0   = lm->getMaskPatchVec();
+//         const FloatVec& I0_patt  = lm->getImagePatchVec();
+//         const FloatVec& du0_patt = lm->getDuPatchVec();
+//         const FloatVec& dv0_patt = lm->getDvPatchVec();
+//         const MaskVec& mask_I0   = lm->getMaskPatchVec();
         
-        // Invalid when scale is too much changed.
-        if(scale >= 3.0)
-        {
-            mask_valid.at(i) = false;
-            continue;
-        }
+//         // Invalid when scale is too much changed.
+//         if(scale >= 3.0)
+//         {
+//             mask_valid.at(i) = false;
+//             continue;
+//         }
 
-        // Make scaled patch , Calculate patch points
-        for(int j = 0; j < n_elem; ++j)
-            patt_s.at(j) = patt.at(j)*scale;
+//         // Make scaled patch , Calculate patch points
+//         for(int j = 0; j < n_elem; ++j)
+//             patt_s.at(j) = patt.at(j)*scale;
 
-        // interpolate data
-        float A11 = 0, A12 = 0, A22 = 0;
-        for(int j = 0; j < n_elem; ++j)
-        {   
-            if(mask_I0.at(j))
-            {   
-                const float& du0 = du0_patt[j];
-                const float& dv0 = dv0_patt[j];
+//         // interpolate data
+//         float A11 = 0, A12 = 0, A22 = 0;
+//         for(int j = 0; j < n_elem; ++j)
+//         {   
+//             if(mask_I0.at(j))
+//             {   
+//                 const float& du0 = du0_patt[j];
+//                 const float& dv0 = dv0_patt[j];
 
-                A11 += du0*du0;
-                A12 += du0*dv0;
-                A22 += dv0*dv0;
-            }
-        }            
-        float D = A11*A22 - A12*A12;
+//                 A11 += du0*du0;
+//                 A12 += du0*dv0;
+//                 A22 += dv0*dv0;
+//             }
+//         }            
+//         float D = A11*A22 - A12*A12;
 
-        if(D < minEigThreshold){
-            mask_valid.at(i) = false; // not update.
-            continue;
-        }
+//         if(D < minEigThreshold){
+//             mask_valid.at(i) = false; // not update.
+//             continue;
+//         }
 
-        float invD = 1.0/D;  
-        float iD_A11 = A11*invD, iD_A12 = A12*invD, iD_A22 = A22*invD;
+//         float invD = 1.0/D;  
+//         float iD_A11 = A11*invD, iD_A12 = A12*invD, iD_A22 = A22*invD;
 
-        // Iterations.
-        float err_curr = 0;
-        float err_prev = 1e12;
-        Pixel t(0.0, 0.0); // initialize dp
-        Pixel pt_update;
-        for(int iter = 0; iter < MAX_ITER; ++iter) 
-        {
-            // updated point
-            pt_update = pt1 + t;
+//         // Iterations.
+//         float err_curr = 0;
+//         float err_prev = 1e12;
+//         Pixel t(0.0, 0.0); // initialize dp
+//         Pixel pt_update;
+//         for(int iter = 0; iter < MAX_ITER; ++iter) 
+//         {
+//             // updated point
+//             pt_update = pt1 + t;
 
-            if(std::isnan(pt_update.x) || std::isnan(pt_update.y)){
-                mask_valid[i] = false;
-                continue;
-            }
-            if(pt_update.x > n_cols-2 || pt_update.x < 1 
-            || pt_update.y > n_rows-2 || pt_update.y < 1 )
-            {
-                mask_valid.at(i) = false;
-                continue;
-            }
+//             if(std::isnan(pt_update.x) || std::isnan(pt_update.y)){
+//                 mask_valid[i] = false;
+//                 continue;
+//             }
+//             if(pt_update.x > n_cols-2 || pt_update.x < 1 
+//             || pt_update.y > n_rows-2 || pt_update.y < 1 )
+//             {
+//                 mask_valid.at(i) = false;
+//                 continue;
+//             }
 
-            // calculate ratios
-            float ax   = pt_update.x - floor(pt_update.x);
-            float ay   = pt_update.y - floor(pt_update.y);
-            float axay = ax*ay;
-            if(ax < 0 || ax > 1 || ay < 0 || ay > 1){
-                mask_valid.at(i) = false;
-                continue;
-            }
+//             // calculate ratios
+//             float ax   = pt_update.x - floor(pt_update.x);
+//             float ay   = pt_update.y - floor(pt_update.y);
+//             float axay = ax*ay;
+//             if(ax < 0 || ax > 1 || ay < 0 || ay > 1){
+//                 mask_valid.at(i) = false;
+//                 continue;
+//             }
 
-            // warp patch points
-            for(int j = 0; j < n_elem; ++j)
-                pts_warp[j] = pt_update + patt_s[j];
+//             // warp patch points
+//             for(int j = 0; j < n_elem; ++j)
+//                 pts_warp[j] = pt_update + patt_s[j];
 
-            // interpolate data
-            image_processing::interpImageSameRatio(I1, pts_warp, 
-                ax, ay, axay, 
-                I1_patt, mask_I1);
+//             // interpolate data
+//             image_processing::interpImageSameRatio(I1, pts_warp, 
+//                 ax, ay, axay, 
+//                 I1_patt, mask_I1);
 
-            // Calculate Hessian, Jacobian and residual .
-            float b1 = 0, b2 = 0;
-            int cnt_valid = 0;       
-            err_curr = 0;
-            for(int j = 0; j < n_elem; ++j)
-            {   
-                if(mask_I0[j] && mask_I1[j])
-                {   
-                    const float& du0 = du0_patt[j];
-                    const float& dv0 = dv0_patt[j];
-                    float r = I1_patt[j] - I0_patt[j];
+//             // Calculate Hessian, Jacobian and residual .
+//             float b1 = 0, b2 = 0;
+//             int cnt_valid = 0;       
+//             err_curr = 0;
+//             for(int j = 0; j < n_elem; ++j)
+//             {   
+//                 if(mask_I0[j] && mask_I1[j])
+//                 {   
+//                     const float& du0 = du0_patt[j];
+//                     const float& dv0 = dv0_patt[j];
+//                     float r = I1_patt[j] - I0_patt[j];
 
-                    b1       += du0*r;
-                    b2       += dv0*r;
-                    err_curr += r*r;
+//                     b1       += du0*r;
+//                     b2       += dv0*r;
+//                     err_curr += r*r;
 
-                    ++cnt_valid;
-                }
-            }
+//                     ++cnt_valid;
+//                 }
+//             }
 
-            // Solve update step
-            float dtu = (-iD_A22*b1 + iD_A12*b2);
-            float dtv = ( iD_A12*b1 - iD_A11*b2);
+//             // Solve update step
+//             float dtu = (-iD_A22*b1 + iD_A12*b2);
+//             float dtv = ( iD_A12*b1 - iD_A11*b2);
             
-            t.x += dtu;
-            t.y += dtv;
+//             t.x += dtu;
+//             t.y += dtv;
 
-            // Evaluate current update. (breaking point)
-            err_curr /= (float)cnt_valid;
-            err_curr = std::sqrt(err_curr);
-            float err_rate = abs(err_prev - err_curr) / err_prev;
+//             // Evaluate current update. (breaking point)
+//             err_curr /= (float)cnt_valid;
+//             err_curr = std::sqrt(err_curr);
+//             float err_rate = abs(err_prev - err_curr) / err_prev;
 
-            float dt_norm = dtu*dtu + dtv*dtv;
+//             float dt_norm = dtu*dtu + dtv*dtv;
             
-            if(iter > 1) {
-                if( err_rate <= EPS_ERR_RATE 
-                 ||  dt_norm <= EPS_UPDATE ) 
-                    break;
-            }
+//             if(iter > 1) {
+//                 if( err_rate <= EPS_ERR_RATE 
+//                  ||  dt_norm <= EPS_UPDATE ) 
+//                     break;
+//             }
 
-            err_prev = err_curr;
-        } // END iter
+//             err_prev = err_curr;
+//         } // END iter
 
-        // push results
-        if(std::isnan(err_curr))
-        {
-            mask_valid.at(i) = false;
-        }
-        else
-        {
-            if(err_curr <= 30) 
-            {
-                pts_track[i]  = pt1 + t;
-                mask_valid[i] = true;
-            }
-            else
-                mask_valid[i] = false; // not update.
-        }
-    } // END i-th pixel
-    // std::cout << "RefineTrackWithScale ends.\n";
-};
+//         // push results
+//         if(std::isnan(err_curr))
+//         {
+//             mask_valid.at(i) = false;
+//         }
+//         else
+//         {
+//             if(err_curr <= 30) 
+//             {
+//                 pts_track[i]  = pt1 + t;
+//                 mask_valid[i] = true;
+//             }
+//             else
+//                 mask_valid[i] = false; // not update.
+//         }
+//     } // END i-th pixel
+//     // std::cout << "RefineTrackWithScale ends.\n";
+// }

@@ -114,10 +114,10 @@ public:
     const FramePtrVec& getRelatedFramePtr() const;
     const FramePtrVec& getRelatedKeyframePtr() const;
 
-    const std::vector<float>& getImagePatchVec() const;
-    const std::vector<float>& getDuPatchVec() const;
-    const std::vector<float>& getDvPatchVec() const;
-    const MaskVec&            getMaskPatchVec() const;
+    // const std::vector<float>& getImagePatchVec() const;
+    // const std::vector<float>& getDuPatchVec() const;
+    // const std::vector<float>& getDvPatchVec() const;
+    // const MaskVec&            getMaskPatchVec() const;
 
     const bool&        isAlive() const;
     const bool&        isTracked() const;

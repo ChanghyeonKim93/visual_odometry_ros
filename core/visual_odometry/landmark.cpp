@@ -105,13 +105,13 @@ void Landmark::addObservationAndRelatedFrame(const Pixel& p, const FramePtr& fra
         if(ax < 0 || ax > 1 || ay < 0 || ay > 1) 
             throw std::runtime_error("ax ay invalid!");
 
-        const cv::Mat& I0  = frame->getImageFloat();
-        const cv::Mat& du0 = frame->getImageDu();
-        const cv::Mat& dv0 = frame->getImageDv();
+        // const cv::Mat& I0  = frame->getImageFloat();
+        // const cv::Mat& du0 = frame->getImageDu();
+        // const cv::Mat& dv0 = frame->getImageDv();
 
-        image_processing::interpImage3SameRatio(I0, du0, dv0, pts_patt, 
-            ax, ay, axay,
-            I0_patt_, du0_patt_, dv0_patt_, mask_patt_);
+        // image_processing::interpImage3SameRatio(I0, du0, dv0, pts_patt, 
+        //     ax, ay, axay,
+        //     I0_patt_, du0_patt_, dv0_patt_, mask_patt_);
 
         return;
     }
@@ -163,10 +163,10 @@ const FramePtrVec& Landmark::getRelatedFramePtr() const         { return related
 const PixelVec&    Landmark::getObservationsOnKeyframes() const { return observations_on_keyframes_; };
 const FramePtrVec& Landmark::getRelatedKeyframePtr() const      { return related_keyframes_; };
 
-const std::vector<float>& Landmark::getImagePatchVec() const { return this->I0_patt_; };
-const std::vector<float>& Landmark::getDuPatchVec() const    { return this->du0_patt_; };
-const std::vector<float>& Landmark::getDvPatchVec() const    { return this->dv0_patt_; };
-const MaskVec&            Landmark::getMaskPatchVec()  const { return this->mask_patt_; };
+// const std::vector<float>& Landmark::getImagePatchVec() const { return this->I0_patt_; };
+// const std::vector<float>& Landmark::getDuPatchVec() const    { return this->du0_patt_; };
+// const std::vector<float>& Landmark::getDvPatchVec() const    { return this->dv0_patt_; };
+// const MaskVec&            Landmark::getMaskPatchVec()  const { return this->mask_patt_; };
 
 const bool&        Landmark::isAlive() const            { return is_alive_; };
 const bool&        Landmark::isTracked() const          { return is_tracked_; };
