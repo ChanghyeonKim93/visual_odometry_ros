@@ -13,12 +13,12 @@ is_bundled_(false)
     cam_ = cam;
 
     // Reserve storages
-    observations_.reserve(200);
-    related_frames_.reserve(200);
+    observations_.reserve(50);
+    related_frames_.reserve(50);
 
-    observations_on_keyframes_.reserve(50);
-    view_sizes_.reserve(50);
-    related_keyframes_.reserve(50);
+    observations_on_keyframes_.reserve(20);
+    view_sizes_.reserve(20);
+    related_keyframes_.reserve(20);
 
     // Initialize parallax and opt flow.
     min_parallax_  = 1000.0f;
@@ -39,12 +39,12 @@ is_bundled_(false)
     this->cam_ = cam;
 
     // Reserve storages
-    observations_.reserve(200);
-    related_frames_.reserve(200);
+    observations_.reserve(50);
+    related_frames_.reserve(50);
 
-    observations_on_keyframes_.reserve(50);
-    view_sizes_.reserve(50);
-    related_keyframes_.reserve(50);
+    observations_on_keyframes_.reserve(20);
+    view_sizes_.reserve(20);
+    related_keyframes_.reserve(20);
     
     // normalized coordinate
     x_front_ = cam_->reprojectToNormalizedPoint(p);
