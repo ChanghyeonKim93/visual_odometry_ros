@@ -46,7 +46,7 @@ private:
     bool is_stereo_mode_;
 
 private:
-    std::vector<std::shared_ptr<Camera>> cams_;
+    std::vector<CameraPtr> cams_;
     int n_cams_;
 
 private:
@@ -112,12 +112,12 @@ public:
 
     /// @brief Set camera pointer
     /// @param cam camera pointer
-    void setCamera(const std::shared_ptr<Camera>& cam);
+    void setCamera(const CameraPtr& cam);
 
     /// @brief Set stereo camera pointers. Before call this function, 'is_stereo' should be set to 'true'.
     /// @param cam0 camera pointer (left)
     /// @param cam1 camera pointer (right)
-    void setStereoCameras(const std::shared_ptr<Camera>& cam0, const std::shared_ptr<Camera>& cam1);
+    void setStereoCameras(const CameraPtr& cam0, const CameraPtr& cam1);
 
     /// @brief Solve the BA for fixed number of iterations
     /// @param MAX_ITER Maximum iterations
