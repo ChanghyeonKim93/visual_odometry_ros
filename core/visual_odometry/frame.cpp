@@ -59,7 +59,6 @@ void Frame::setPoseDiff10(const Eigen::Matrix4f& dT10){
 
 void Frame::setImageAndTimestamp(const cv::Mat& img, const double& timestamp) { 
     img.copyTo(image_); // CV_8UC1
-    img.convertTo(image_float_,CV_32FC1);// CV_32FC1
     timestamp_ = timestamp;
     
     // Calculate diff images

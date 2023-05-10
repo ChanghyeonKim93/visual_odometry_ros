@@ -88,11 +88,4 @@ using StereoFramePtrVec    = std::vector<StereoFramePtr>;
 using StereoCameraPtr      = std::shared_ptr<StereoCamera>;
 using StereoCameraConstPtr = const StereoCameraPtr;
 
-// For large matrix (for SFP, depricated)
-// using Eigen::SparseMatrix<float> SpMat;
-// using Eigen::SparseVector<float> SpVec;
-// using Eigen::SparseMatrix<float>::Scalar SpScalar;
-// using Eigen::Triplet<float>      SpTriplet; 
-// using std::vector<SpTriplet>     SpTripletList;
-
 #endif
