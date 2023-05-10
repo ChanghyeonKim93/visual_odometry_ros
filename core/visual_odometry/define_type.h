@@ -47,11 +47,6 @@ using LandmarkPtrVec    = std::vector<LandmarkPtr>;
 
 using ImagePyramid      = std::vector<cv::Mat>;
 
-
-// For image pyramid
-using IllumiVecPyramid  = std::vector<IllumiVec>;
-using MaskVecPyramid    = std::vector<MaskVec>;
-
 using Pos3              = Eigen::Vector3f;
 using Rot3              = Eigen::Matrix3f;
 using PoseSE3           = Eigen::Matrix4f;
@@ -78,7 +73,7 @@ using Vec5              = Eigen::Matrix<float,5,1>;
 using Vec6              = Eigen::Matrix<float,6,1>;
 
 //For stereo
-struct StereoFrame;
+class StereoFrame;
 class StereoCamera;
 
 using StereoFramePtr       = std::shared_ptr<StereoFrame>;
