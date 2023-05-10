@@ -122,7 +122,7 @@ struct WeightBin {
 	void update(const PixelVec& pts) {
 		int n_pts = pts.size();
 
-		for (auto p : pts) {
+		for (const auto& p : pts) {
 			int u_idx = floor((float)p.x / (float)u_step);
 			int v_idx = floor((float)p.y / (float)v_step);
 			int bin_idx = v_idx * n_bins_u + u_idx;

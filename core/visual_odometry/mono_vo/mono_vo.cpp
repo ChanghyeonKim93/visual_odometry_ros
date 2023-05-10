@@ -322,7 +322,7 @@ void MonoVO::updateKeyframe(const FramePtr& frame){
 };
 
 void MonoVO::saveLandmarks(const LandmarkPtrVec& lms, bool verbose){
-	for(auto lm : lms)	
+	for(const auto& lm : lms)	
 		all_landmarks_.push_back(lm);
 
 	if(verbose)
@@ -337,7 +337,7 @@ void MonoVO::saveLandmark(const LandmarkPtr& lm, bool verbose){
 };
 
 void MonoVO::saveFrames(const FramePtrVec& frames, bool verbose){
-	for(auto f : frames)
+	for(const auto& f : frames)
 		all_frames_.push_back(f);
 	
 	if(verbose)

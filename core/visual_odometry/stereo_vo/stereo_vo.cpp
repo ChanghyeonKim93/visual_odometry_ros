@@ -246,7 +246,7 @@ void StereoVO::loadStereoCameraIntrinsicAndUserParameters(const std::string& dir
 };
 
 void StereoVO::saveLandmarks(const LandmarkPtrVec& lms, bool verbose){
-	for(auto lm : lms)	
+	for(auto& lm : lms)	
 		all_landmarks_.push_back(lm);
 
 	if(verbose)
@@ -261,7 +261,7 @@ void StereoVO::saveLandmark(const LandmarkPtr& lm, bool verbose){
 };
 
 void StereoVO::saveStereoFrames(const StereoFramePtrVec& stframes, bool verbose){
-	for(auto stf : stframes)
+	for(auto& stf : stframes)
 		all_stframes_.push_back(stf);
 	
 	if(verbose)

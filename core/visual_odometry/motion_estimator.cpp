@@ -1146,7 +1146,7 @@ bool MotionEstimator::localBundleAdjustmentSparseSolver(const std::shared_ptr<Ke
     FramePtrVec frames;
     std::vector<int> idx_fix;
     std::vector<int> idx_opt;
-    for (auto kf : kfs_window->getList()) // 모든 keyframe in window 순회
+    for (const auto& kf : kfs_window->getList()) // 모든 keyframe in window 순회
         frames.push_back(kf);             // window keyframes 저장.
 
     for (size_t j = 0; j < NUM_FIX_KEYFRAMES_IN_WINDOW; ++j)

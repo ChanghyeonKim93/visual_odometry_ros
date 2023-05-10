@@ -233,7 +233,7 @@ void FeatureTracker::calcPrior(const PixelVec& pts0, const PointVec& Xw, const P
     Eigen::Matrix4f T1w = Tw1.inverse();
     PointVec X1;
     X1.reserve(n_pts);
-    for(auto Xw_ : Xw) X1.emplace_back((T1w.block(0,0,3,3)*Xw_ + T1w.block(0,3,3,1)));
+    for(const auto& Xw_ : Xw) X1.emplace_back((T1w.block(0,0,3,3)*Xw_ + T1w.block(0,3,3,1)));
 
     for(int i = 0; i < n_pts; ++i)
     {   
