@@ -7,11 +7,11 @@ Camera::Camera()
 	Kinv_ = Eigen::Matrix3f::Identity();
 
 	printf(" - CAMERA is constructed.\n");
-};
+}
 
 Camera::~Camera() {
 	printf(" - CAMERA is deleted.\n");
-};
+}
 
 void Camera::initParams(int n_cols, int n_rows, const cv::Mat& cvK, const cv::Mat& cvD) {
 	n_cols_ = n_cols; n_rows_ = n_rows;
@@ -45,7 +45,7 @@ void Camera::initParams(int n_cols, int n_rows, const cv::Mat& cvK, const cv::Ma
 	this->generatePixelUndistortMaps();
 	
 	printf(" - CAMERA - 'initParams()' - : camera params incomes.\n");
-};
+}
 
 void Camera::generateImageUndistortMaps() {
 	float* map_x_ptr = nullptr;
@@ -74,7 +74,7 @@ void Camera::generateImageUndistortMaps() {
 		}
 	}
 	printf(" - CAMERA - 'generateImageUndistortMaps()' ... \n");
-};
+}
 
 void Camera::generatePixelUndistortMaps()
 {
@@ -144,7 +144,7 @@ void Camera::generatePixelUndistortMaps()
 		}
 	}
 	printf(" - CAMERA - 'generatePixelUndistortMaps()' ... \n");
-};
+}
 
 void Camera::undistortImage(const cv::Mat& raw, cv::Mat& rectified) {
 	if (raw.empty() || raw.cols != n_cols_ || raw.rows != n_rows_)
@@ -162,7 +162,7 @@ void Camera::undistortImage(const cv::Mat& raw, cv::Mat& rectified) {
 	}
 
 	cv::remap(img_float, rectified, this->distorted_map_u_, this->distorted_map_v_, cv::INTER_LINEAR);
-};
+}
 
 void Camera::undistortPixels(const PixelVec& pts_raw, PixelVec& pts_undist){ // 점만 undistort 하는 것. 연산량 매우 줄여줄 수 있다.
 	uint32_t n_pts = pts_raw.size();
@@ -183,17 +183,17 @@ void Camera::undistortPixels(const PixelVec& pts_raw, PixelVec& pts_undist){ // 
 		pts_undist[i].x = cx_ + u_undist[i] * fx_;
 		pts_undist[i].y = cy_ + v_undist[i] * fy_;
 	}
-};
+}
 
 Pixel Camera::projectToPixel(const Point& X){
 	float invz = 1.0f/X(2);
 
 	return Pixel(fx_*X(0)*invz+cx_,fy_*X(1)*invz+cy_);
-};
+}
 
 Point Camera::reprojectToNormalizedPoint(const Pixel& pt){
 	return Point(fxinv_*(pt.x-cx_), fyinv_*(pt.y-cy_), 1.0f);
-};
+}
 
 
 bool Camera::inImage(const Pixel& pt)
@@ -205,7 +205,7 @@ bool Camera::inImage(const Pixel& pt)
 		is_in_image = false;
 
 	return is_in_image;
-};
+}
 
 bool Camera::inImage(Pixel& pt)
 {
@@ -216,7 +216,7 @@ bool Camera::inImage(Pixel& pt)
 		is_in_image = false;
 
 	return is_in_image;
-};
+}
 
 
 /*
@@ -232,34 +232,34 @@ is_initialized_to_stereo_rectify_(false)
 {
 	cam_left_  = std::make_shared<Camera>();
 	cam_right_ = std::make_shared<Camera>();
-};
+}
 
 StereoCamera::~StereoCamera()
 {
 
-};
+}
 
 CameraConstPtr& StereoCamera::getLeftCamera() const
 {
 	return cam_left_;
-};
+}
 
 CameraConstPtr& StereoCamera::getRightCamera() const
 {
 	return cam_right_;
-};
+}
 
 CameraConstPtr& StereoCamera::getRectifiedCamera() const
 {
 	if( !is_initialized_to_stereo_rectify_ ) throw std::runtime_error("In 'getRectifiedCamera()', is_initialized_to_stereo_rectify_ == false");
 	return cam_rect_;
-};
+}
 
 void StereoCamera::setStereoPoseLeft2Right(const PoseSE3& T_lr)
 {
 	T_lr_ = T_lr;
 	T_rl_ = T_lr_.inverse();
-};
+}
 
 void StereoCamera::initStereoCameraToRectify()
 {
@@ -270,12 +270,12 @@ void StereoCamera::initStereoCameraToRectify()
 void StereoCamera::undistortImageByLeftCamera(const cv::Mat& img_left, cv::Mat& img_left_undist)
 {
 	cam_left_->undistortImage(img_left,img_left_undist);
-};
+}
 
 void StereoCamera::undistortImageByRightCamera(const cv::Mat& img_right, cv::Mat& img_right_undist)
 {
 	cam_right_->undistortImage(img_right,img_right_undist);
-};
+}
 
 void StereoCamera::rectifyStereoImages(
 	const cv::Mat& img_left, const cv::Mat& img_right,
@@ -310,17 +310,17 @@ void StereoCamera::rectifyStereoImages(
 		img_right_float.convertTo(img_right_float, CV_32FC1);
 
 	cv::remap(img_right_float, img_right_rect, rectify_map_right_u_, rectify_map_right_v_, cv::INTER_LINEAR);
-};
+}
 
 const PoseSE3& StereoCamera::getStereoPoseLeft2Right() const
 {
 	return T_lr_;
-};
+}
 
 const PoseSE3& StereoCamera::getStereoPoseRight2Left() const
 {
 	return T_rl_;
-};
+}
 
 
 const PoseSE3& StereoCamera::getRectifiedStereoPoseLeft2Right() const
@@ -328,14 +328,14 @@ const PoseSE3& StereoCamera::getRectifiedStereoPoseLeft2Right() const
 	if( !is_initialized_to_stereo_rectify_ ) throw std::runtime_error("In 'getRectifiedStereoPoseLeft2Right()', is_initialized_to_stereo_rectify_ == false");
 
 	return T_lr_rect_;	
-};
+}
 
 const PoseSE3& StereoCamera::getRectifiedStereoPoseRight2Left() const
 {
 	if( !is_initialized_to_stereo_rectify_ ) throw std::runtime_error("In 'getRectifiedStereoPoseRight2Left()', is_initialized_to_stereo_rectify_ == false");
 
 	return T_rl_rect_;	
-};
+}
 
 
 void StereoCamera::generateStereoImagesUndistortAndRectifyMaps()
@@ -516,4 +516,4 @@ void StereoCamera::generateStereoImagesUndistortAndRectifyMaps()
 	
 	is_initialized_to_stereo_rectify_ = true;
     std::cout << "[** INFO **] StereoCamera: stereo rectification maps are generated.\n";
-};
+}
