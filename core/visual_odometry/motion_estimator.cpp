@@ -830,7 +830,7 @@ bool MotionEstimator::poseOnlyBundleAdjustment(const PointVec &X, const PixelVec
         for (size_t i = 0; i < 6; ++i)
             JtWJ(i, i) *= (1.0f + lambda); // lambda
 
-        PoseSE3Tangent delta_xi = JtWJ.ldlt().solve(mJtWr);
+        Vec6 delta_xi = JtWJ.ldlt().solve(mJtWr);
 
         // Update matrix
         PoseSE3 dT;
@@ -1057,7 +1057,7 @@ bool MotionEstimator::poseOnlyBundleAdjustment_Stereo(const PointVec &X, const P
         for (size_t i = 0; i < 6; ++i)
             JtWJ(i, i) *= (1.0f + lambda); // lambda
 
-        PoseSE3Tangent delta_xi = JtWJ.ldlt().solve(mJtWr);
+        Vec6 delta_xi = JtWJ.ldlt().solve(mJtWr);
 
         // Update matrix
         PoseSE3 dT;

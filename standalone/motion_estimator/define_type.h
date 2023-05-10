@@ -74,10 +74,8 @@ using Mat36             = Eigen::Matrix<float,3,6>;
 using Vec2              = Eigen::Vector2f;
 using Vec3              = Eigen::Vector3f;
 using Vec4              = Eigen::Vector4f;
+using Vec5              = Eigen::Matrix<float,5,1>;
 using Vec6              = Eigen::Matrix<float,6,1>;
-
-using PoseSE3Tangent    = Eigen::Matrix<float,6,1>;
-using PoseSE3TangentVec = std::vector<PoseSE3Tangent>;
 
 //For stereo
 struct StereoFrame;
