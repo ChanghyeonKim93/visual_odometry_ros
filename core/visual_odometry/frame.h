@@ -42,14 +42,8 @@ private:
 
     // Images of the frame
     cv::Mat image_; // image (uint8)
-    cv::Mat image_float_; // image (float32)
     cv::Mat image_du_; // derivative image of image along pixel u-axis.
     cv::Mat image_dv_; // derivative image of image along pixel v-axis.
-
-    // Image pyramid for the pixel coordinate refinement
-    ImagePyramid image_float_pyramid_;
-    ImagePyramid image_du_pyramid_;
-    ImagePyramid image_dv_pyramid_;
 
     // Feature related storages
     LandmarkPtrVec related_landmarks_;
@@ -105,7 +99,6 @@ public:
     const PoseSE3& getPoseDiff10() const;
     const PoseSE3& getPoseDiff01() const;
     const cv::Mat& getImage() const ; 
-    const cv::Mat& getImageFloat() const ; 
     const cv::Mat& getImageDu() const ; 
     const cv::Mat& getImageDv() const ; 
     const LandmarkPtrVec& getRelatedLandmarkPtr() const;

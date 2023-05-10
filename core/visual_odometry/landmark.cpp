@@ -105,14 +105,6 @@ void Landmark::addObservationAndRelatedFrame(const Pixel& p, const FramePtr& fra
         if(ax < 0 || ax > 1 || ay < 0 || ay > 1) 
             throw std::runtime_error("ax ay invalid!");
 
-        // const cv::Mat& I0  = frame->getImageFloat();
-        // const cv::Mat& du0 = frame->getImageDu();
-        // const cv::Mat& dv0 = frame->getImageDv();
-
-        // image_processing::interpImage3SameRatio(I0, du0, dv0, pts_patt, 
-        //     ax, ay, axay,
-        //     I0_patt_, du0_patt_, dv0_patt_, mask_patt_);
-
         return;
     }
     
