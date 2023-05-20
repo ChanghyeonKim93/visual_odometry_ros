@@ -4,7 +4,7 @@ PixelVec Landmark::patt_ = PixelVec();
 
 Landmark::Landmark(const std::shared_ptr<Camera>& cam)
 : id_(landmark_counter_++), age_(0), 
-Xw_(0,0,0), x_front_(0,0,0), 
+Xw_(0,0,0),
 is_alive_(true), 
 is_tracked_(true),
 is_triangulated_(false), 
@@ -30,7 +30,7 @@ is_bundled_(false)
 Landmark::Landmark(const Pixel& p, const FramePtr& frame, const std::shared_ptr<Camera>& cam)
 :
 id_(landmark_counter_++), age_(0),
-Xw_(0,0,0), x_front_(0,0,0),
+Xw_(0,0,0),
 is_alive_(true),
 is_tracked_(true),
 is_triangulated_(false),
@@ -46,9 +46,6 @@ is_bundled_(false)
     view_sizes_.reserve(20);
     related_keyframes_.reserve(20);
     
-    // normalized coordinate
-    x_front_ = cam_->reprojectToNormalizedPoint(p);
-
     // Initialize parallax and opt flow.
     min_parallax_  = 1000.0f;
     max_parallax_  = 0.0f;

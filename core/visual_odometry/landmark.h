@@ -28,7 +28,6 @@ class Landmark
 private:
     uint32_t id_; // feature unique id
     Point    Xw_; // 3D point represented in the global frame.
-    Point    x_front_; // normalized 3D point represented in the first seen image.
 
     // scale refinement는 keyframe에서만 할까?
     std::vector<float> I0_patt_; // 최초로 관측 된 위치에서의 patch (image patch)
