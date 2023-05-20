@@ -509,7 +509,7 @@ void MonoVO::trackImage(const cv::Mat& img, const double& timestamp)
 			// 초기 landmark 생성
 			for(const auto& pt : lmtrack_curr.pts1)
 			{
-				LandmarkPtr lm_new = std::make_shared<Landmark>(pt, frame_curr, cam_);
+				LandmarkPtr lm_new = std::make_shared<Landmark>(pt, frame_curr);
 				lmtrack_curr.lms.push_back(lm_new);
 			}
 			
@@ -613,7 +613,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 						const Pixel& p0_new = pts0_new[i];
 						const Pixel& p1_new = pts1_new[i];
 						
-						LandmarkPtr lmptr = std::make_shared<Landmark>(p0_new, frame_prev_, cam_);
+						LandmarkPtr lmptr = std::make_shared<Landmark>(p0_new, frame_prev_);
 						lmptr->addObservationAndRelatedFrame(p1_new, frame_curr);
 
 						lmtrack_final.pts0.push_back(p0_new);
@@ -947,7 +947,7 @@ statcurr_frame.dT_01 = frame_curr->getPoseDiff01();
 					const Pixel& p0_new = pts0_new[i];
 					const Pixel& p1_new = pts1_new[i];
 
-					LandmarkPtr lmptr = std::make_shared<Landmark>(p0_new, frame_prev_, cam_);
+					LandmarkPtr lmptr = std::make_shared<Landmark>(p0_new, frame_prev_);
 					lmptr->addObservationAndRelatedFrame(p1_new, frame_curr);
 
 					lmtrack_final.pts0.push_back(p0_new);

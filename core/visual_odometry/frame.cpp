@@ -118,6 +118,10 @@ const cv::Mat& Frame::getImageDv() const {
     return image_dv_;
 };
 
+const CameraConstPtr& Frame::getCamera() const {
+    return cam_;
+};
+
 const LandmarkPtrVec& Frame::getRelatedLandmarkPtr() const { 
     return related_landmarks_; 
 };

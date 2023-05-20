@@ -2,7 +2,7 @@
 
 PixelVec Landmark::patt_ = PixelVec();
 
-Landmark::Landmark(const std::shared_ptr<Camera>& cam)
+Landmark::Landmark()
 : id_(landmark_counter_++), age_(0), 
 Xw_(0,0,0),
 is_alive_(true), 
@@ -10,8 +10,6 @@ is_tracked_(true),
 is_triangulated_(false), 
 is_bundled_(false)
 {
-    cam_ = cam;
-
     // Reserve storages
     observations_.reserve(50);
     related_frames_.reserve(50);
@@ -27,7 +25,7 @@ is_bundled_(false)
     last_parallax_ = 0.0f;
 };
 
-Landmark::Landmark(const Pixel& p, const FramePtr& frame, const std::shared_ptr<Camera>& cam)
+Landmark::Landmark(const Pixel& p, const FramePtr& frame)
 :
 id_(landmark_counter_++), age_(0),
 Xw_(0,0,0),
@@ -36,8 +34,6 @@ is_tracked_(true),
 is_triangulated_(false),
 is_bundled_(false)
 {
-    this->cam_ = cam;
-
     // Reserve storages
     observations_.reserve(50);
     related_frames_.reserve(50);
@@ -75,8 +71,10 @@ void Landmark::setBundled() {
     is_bundled_      = true; 
 };
 
-void Landmark::addObservationAndRelatedFrame(const Pixel& p, const FramePtr& frame) 
+void Landmark::addObservationAndRelatedFrame(const Pixel& p, FrameConstPtr& frame) 
 {
+    CameraConstPtr& cam = frame->getCamera();
+
     // push observation.
     if( !frame->isRightImage() )
         ++age_;
@@ -112,8 +110,8 @@ void Landmark::addObservationAndRelatedFrame(const Pixel& p, const FramePtr& fra
     PoseSE3 T01 = related_frames_.front()->getPoseInv()*related_frames_.back()->getPose();
 
     Point x0, x1;
-    x0 << (p0.x-cam_->cx())*cam_->fxinv(), (p0.y-cam_->cy())*cam_->fyinv(), 1.0f; 
-    x1 << (p1.x-cam_->cx())*cam_->fxinv(), (p1.y-cam_->cy())*cam_->fyinv(), 1.0f; 
+    x0 << (p0.x-cam->cx())*cam->fxinv(), (p0.y-cam->cy())*cam->fyinv(), 1.0f; 
+    x1 << (p1.x-cam->cx())*cam->fxinv(), (p1.y-cam->cy())*cam->fyinv(), 1.0f; 
     x1 = T01.block<3,3>(0,0)*x1;
 
     float costheta = x0.dot(x1)/(x0.norm()*x1.norm());

@@ -99,6 +99,7 @@ public:
     const cv::Mat& getImage() const ; 
     const cv::Mat& getImageDu() const ; 
     const cv::Mat& getImageDv() const ; 
+    const CameraConstPtr& getCamera() const;
     const LandmarkPtrVec& getRelatedLandmarkPtr() const;
     const PixelVec& getPtsSeen() const;
     const double& getTimestamp() const;
