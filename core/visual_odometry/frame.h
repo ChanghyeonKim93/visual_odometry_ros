@@ -38,8 +38,6 @@ private:
     PoseSE3 dT10_;
     PoseSE3 dT01_;
 
-    PoseSE3 dTkc_; // SE(3) from the related keyframe to the current.
-
     // Images of the frame
     cv::Mat image_; // image (uint8)
     cv::Mat image_du_; // derivative image of image along pixel u-axis.
