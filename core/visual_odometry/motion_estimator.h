@@ -17,7 +17,8 @@
 #include "opencv4/opencv2/core/eigen.hpp"
 #include "opencv4/opencv2/calib3d.hpp"
 
-#include "core/visual_odometry/define_type.h"
+#include "core/defines/define_macro.h"
+#include "core/defines/define_type.h"
 
 #include "core/visual_odometry/camera.h"
 #include "core/visual_odometry/frame.h"

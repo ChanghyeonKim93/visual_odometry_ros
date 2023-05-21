@@ -9,7 +9,8 @@
 
 #include "eigen3/Eigen/Dense"
 
-#include "core/visual_odometry/define_type.h"
+#include "core/defines/define_macro.h"
+#include "core/defines/define_type.h"
 
 #include "core/visual_odometry/landmark.h"
 #include "core/visual_odometry/frame.h"

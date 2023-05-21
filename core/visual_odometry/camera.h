@@ -10,8 +10,9 @@
 #include "opencv4/opencv2/core.hpp"
 #include "opencv4/opencv2/imgproc.hpp"
 #include "opencv4/opencv2/highgui.hpp"
+#include "opencv4/opencv2/core/eigen.hpp"
 
-#include "core/visual_odometry/define_type.h"
+#include "core/defines/define_type.h"
 
 #include "core/util/image_processing.h"
 

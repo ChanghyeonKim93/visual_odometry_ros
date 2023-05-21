@@ -9,7 +9,9 @@
 #include "core/visual_odometry/camera.h"
 #include "core/visual_odometry/landmark.h"
 #include "core/visual_odometry/frame.h"
-#include "core/visual_odometry/define_type.h"
+
+#include "core/defines/define_macro.h"
+#include "core/defines/define_type.h"
 
 // BA related headers
 #include "core/visual_odometry/ba_solver/define_ba_type.h"

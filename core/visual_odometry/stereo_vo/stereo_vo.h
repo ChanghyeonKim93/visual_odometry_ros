@@ -18,8 +18,8 @@
 #define CV_GRAY2RGB cv::COLOR_GRAY2BGR
 
 // Defines 
-#include "core/visual_odometry/define_macro.h"
-#include "core/visual_odometry/define_type.h"
+#include "core/defines/define_macro.h"
+#include "core/defines/define_type.h"
 
 // custom
 #include "core/visual_odometry/camera.h"

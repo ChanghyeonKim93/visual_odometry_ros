@@ -9,7 +9,7 @@
 
 #include "opencv4/opencv2/core.hpp"
 
-#include "core/visual_odometry/define_type.h"
+#include "core/defines/define_type.h"
 
 #include "core/visual_odometry/frame.h"
 #include "core/visual_odometry/camera.h"

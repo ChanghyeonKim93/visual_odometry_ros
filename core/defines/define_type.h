@@ -5,17 +5,8 @@
 #include <vector>
 
 #include <eigen3/Eigen/Dense>
-#include <eigen3/Eigen/Sparse>
-#include <eigen3/Eigen/SparseCore>
-#include <eigen3/Eigen/SparseCholesky>
-#include <eigen3/Eigen/SparseLU>
-#include <eigen3/Eigen/SparseQR>
 
 #include "opencv4/opencv2/core.hpp"
-#include "opencv4/opencv2/core/eigen.hpp"
-#include "opencv4/opencv2/imgproc.hpp"
-#include "opencv4/opencv2/highgui.hpp"
-#include "opencv4/opencv2/calib3d.hpp"
 
 class Frame;
 class Landmark;
@@ -82,12 +73,5 @@ using StereoFramePtrVec    = std::vector<StereoFramePtr>;
 
 using StereoCameraPtr      = std::shared_ptr<StereoCamera>;
 using StereoCameraConstPtr = const StereoCameraPtr;
-
-// For large matrix (for SFP, depricated)
-// using Eigen::SparseMatrix<float> SpMat;
-// using Eigen::SparseVector<float> SpVec;
-// using Eigen::SparseMatrix<float>::Scalar SpScalar;
-// using Eigen::Triplet<float>      SpTriplet; 
-// using std::vector<SpTriplet>     SpTripletList;
 
 #endif

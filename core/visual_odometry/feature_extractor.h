@@ -18,7 +18,7 @@
 #include "opencv4/opencv2/core/eigen.hpp"
 #include "opencv4/opencv2/features2d.hpp"
 
-#include "core/visual_odometry/define_type.h"
+#include "core/defines/define_type.h"
 
 #include "core/util/image_processing.h"
 

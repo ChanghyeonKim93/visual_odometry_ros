@@ -14,8 +14,9 @@
 #include "opencv4/opencv2/core/eigen.hpp"
 #include "opencv4/opencv2/video/tracking.hpp"
 
+#include "core/defines/define_type.h"
+
 #include "core/visual_odometry/landmark.h"
-#include "core/visual_odometry/define_type.h"
 
 #include "core/util/image_processing.h"
 
