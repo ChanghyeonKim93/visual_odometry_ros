@@ -28,7 +28,6 @@ class Landmark
 private:
     uint32_t id_; // feature unique id
     Point    Xw_; // 3D point represented in the global frame.
-    Point    x_front_; // normalized 3D point represented in the first seen image.
 
     // scale refinement는 keyframe에서만 할까?
     std::vector<float> I0_patt_; // 최초로 관측 된 위치에서의 patch (image patch)
@@ -39,8 +38,6 @@ private:
     PixelVec observations_; // 2D pixel observation history of this landmark
     std::vector<float> view_sizes_; // (approx.) 2D patch size compared to the firstly observed image. (s1 = s2*d1/d2)
     FramePtrVec related_frames_; // frame history where this landmark was seen
-  
-    std::shared_ptr<Camera> cam_; // camera object.
 
 // keyframes
 private:
@@ -87,8 +84,8 @@ public: // static counter
 
 
 public:
-    Landmark(const std::shared_ptr<Camera>& cam); // cosntructor
-    Landmark(const Pixel& p, const FramePtr& frame, const std::shared_ptr<Camera>& cam); // constructor with observation.
+    Landmark(); // cosntructor
+    Landmark(const Pixel& p, const FramePtr& frame); // constructor with observation.
     ~Landmark();// destructor
 
 // Set methods

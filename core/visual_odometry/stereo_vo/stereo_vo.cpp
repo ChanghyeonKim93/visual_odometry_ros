@@ -658,7 +658,7 @@ void StereoVO::trackStereoImages(
                     {
                         // Point Xw = T_wc.block<3,3>(0,0) * Xl + T_wc.block<3,1>(0,3);
                     
-                        LandmarkPtr lmptr = std::make_shared<Landmark>(pt_l1_new, stframe_curr->getLeft(), cam_left);
+                        LandmarkPtr lmptr = std::make_shared<Landmark>(pt_l1_new, stframe_curr->getLeft());
                         lmptr->addObservationAndRelatedFrame(pt_r1_new, stframe_curr->getRight());
 
                         lmtrack_final.pts_l1.push_back(pt_l1_new);
@@ -819,7 +819,7 @@ std::cout << colorcode::text_green << "Time [RECORD KEYFR STAT]: " << timer::toc
         {
             const Pixel& pt_left  = lmtrack_staticklt.pts_l1[i];
             const Pixel& pt_right = lmtrack_staticklt.pts_r1[i];
-            LandmarkPtr lmptr = std::make_shared<Landmark>(pt_left, stframe_curr->getLeft(), cam_left);
+            LandmarkPtr lmptr = std::make_shared<Landmark>(pt_left, stframe_curr->getLeft());
             lmptr->addObservationAndRelatedFrame(pt_right, stframe_curr->getRight());
 
             lmtrack_staticklt.lms[i] = lmptr;
