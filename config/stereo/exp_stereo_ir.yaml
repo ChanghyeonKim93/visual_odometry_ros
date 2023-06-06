@@ -1,0 +1,81 @@
+%YAML:1.0
+#--------------------------------------------------------------------------------------------
+# Camera Parameters
+#--------------------------------------------------------------------------------------------
+
+# Flag do undistortion
+flagDoUndistortion: 0 # 0: do not undistort an image (KITTI), 1: undistort an image
+
+# Camera calibration and distortion parameters (OpenCV) 
+# Left camera
+Camera.left.fx: 419.617919921875
+Camera.left.fy: 424.94940185546875
+Camera.left.cx: 424.94940185546875
+Camera.left.cy: 237.3017578125
+# Camera.left.cy: 395.109211833006
+
+Camera.left.k1: 0.0
+Camera.left.k2: 0.0
+Camera.left.k3: 0.0
+Camera.left.p1: 0.0
+Camera.left.p2: 0.0
+
+Camera.left.width: 848
+Camera.left.height: 640
+
+# Right camera
+Camera.right.fx: 419.617919921875
+Camera.right.fy: 424.94940185546875
+Camera.right.cx: 424.94940185546875
+Camera.right.cy: 237.3017578125
+# Camera.right.cy: 410.949049368375
+
+
+Camera.right.k1: 0.0
+Camera.right.k2: 0.0
+Camera.right.k3: 0.0
+Camera.right.p1: 0.0
+Camera.right.p2: 0.0
+
+Camera.right.width: 848
+Camera.right.height: 640
+
+T_lr: !!opencv-matrix # this statement is necessary.
+  rows: 4
+  cols: 4
+  dt: f
+  data: [1, 0, 0, 0.05, 0, 1, 0, 0, 0, 0, 1, 0, 0,0,0,1]
+#--------------------------------------------------------------------------------------------
+# User setting Parameters
+#--------------------------------------------------------------------------------------------
+
+# Parameters of feature tracker
+feature_tracker.thres_error: 20.0
+feature_tracker.thres_bidirection: 0.25
+feature_tracker.thres_sampson: 60.0
+feature_tracker.window_size: 15
+feature_tracker.max_level: 5
+
+# Parameters of map update
+map_update.thres_parallax: 1.0
+
+# Parameters of feature extractor
+feature_extractor.n_features: 2000
+feature_extractor.n_bins_u: 32
+feature_extractor.n_bins_v: 24
+feature_extractor.thres_fastscore: 30.0
+feature_extractor.radius: 5.0
+
+# Parameters of motion estimator
+motion_estimator.thres_1p_error: 120.0   # pixels
+motion_estimator.thres_5p_error: 1.0     # pixels
+motion_estimator.thres_poseba_error: 3.0 # pixels
+
+motion_estimator.lba.max_iter: 7
+
+# Parameters of keyframe update
+keyframe_update.thres_alive_ratio: 0.7
+keyframe_update.thres_mean_parallax: 1.0
+keyframe_update.thres_trans: 0.12 # meters
+keyframe_update.thres_rotation: 2.0 # degrees
+keyframe_update.n_max_keyframes_in_window: 12
