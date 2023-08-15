@@ -61,7 +61,7 @@ MonoVO::MonoVO(std::string mode, std::string directory_intrinsic)
  * @author Changhyeon Kim (hyun91015@gmail.com)
  * @date 10-July-2022
  */
-MonoVO::~MonoVO()
+MonoVO::~MonoVO() noexcept(false)
 {
 	std::cout << "Save all frames trajectory...\n";
 	std::string filedir_frame_poses = "/home/kch/frame_poses.txt";
@@ -451,12 +451,12 @@ void MonoVO::showTracking(const std::string &window_name, const cv::Mat &img, co
 	img.copyTo(img_debug_);
 	cv::cvtColor(img_debug_, img_debug_, CV_GRAY2RGB);
 
-	for (int i = 0; i < lms.size(); ++i)
+	for (int i = 0; i < static_cast<int>(lms.size()); ++i)
 	{
 		const LandmarkPtr &lm = lms[i];
 		const PixelVec &pts = lm->getObservations();
 		// std::cout <<"track size: " << pts.size() <<std::endl;
-		uint32_t n_past = pts.size();
+		int n_past = static_cast<int>(pts.size());
 		if (n_past > 5)
 			n_past = 5;
 		for (int j = pts.size() - 1; j >= pts.size() - n_past + 1; --j)
@@ -658,7 +658,7 @@ void MonoVO::trackImage(const cv::Mat &raw_image, const double &timestamp)
 			}
 
 			// lms1_final 중, depth가 복원되지 않은 경우 복원해준다.
-			uint32_t cnt_recon = 0;
+			int cnt_recon = 0;
 			for (const auto &lm : lmtrack_final.lms)
 			{
 				if (!lm->isTriangulated() && lm->getLastParallax() >= THRES_PARALLAX)
@@ -1030,7 +1030,7 @@ void MonoVO::trackImage(const cv::Mat &raw_image, const double &timestamp)
 		this->keyframe_ref_ = frame_curr;
 
 		// Reconstruct map points. 새로 만들어진 keyframe에서 보인 landmarks 중 reconstruction이 되지 않은 경우, DLT로 초기화 해준다.
-		uint32_t cnt_recon = 0;
+		int cnt_recon = 0;
 		for (const auto &lm : frame_curr->getRelatedLandmarkPtr())
 		{
 			if (lm->isAlive() && !lm->isTriangulated() && lm->getLastParallax() >= THRES_PARALLAX)

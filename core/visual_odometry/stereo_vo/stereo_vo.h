@@ -65,14 +65,14 @@ private:
 			float thres_error = 125.0;		 // KLT error threshold
 			float thres_bidirection = 1.0; // bidirection pixel error threshold
 			float thres_sampson = 10.0;
-			uint32_t window_size = 15; // KLT window size
-			uint32_t max_level = 6;		 // KLT maximum pyramid level
+			int window_size = 15; // KLT window size
+			int max_level = 6;		// KLT maximum pyramid level
 		};
 		struct FeatureExtractorParameters
 		{
-			uint32_t n_features = 100;		// # of features to extract from a bucket
-			uint32_t n_bins_u = 16;				// Bucket grid size u
-			uint32_t n_bins_v = 8;				// Bucket grid size v
+			int n_features = 100;					// # of features to extract from a bucket
+			int n_bins_u = 16;						// Bucket grid size u
+			int n_bins_v = 8;							// Bucket grid size v
 			float thres_fastscore = 25.0; // FAST score threshold
 			float radius = 15.0;					// NONMAX pixel threshold
 		};
@@ -107,18 +107,18 @@ public:
 	{
 		struct LandmarkStatistics
 		{
-			uint32_t n_initial;					 // the number of landmarks tracked on the current frame from the previous frame.
-			uint32_t n_pass_bidirection; // bidirectional KLT tracking
-			uint32_t n_pass_1p;
-			uint32_t n_pass_5p;
-			uint32_t n_new;
-			uint32_t n_final; // remained number of landmarks on the current frame.
+			int n_initial;					// the number of landmarks tracked on the current frame from the previous frame.
+			int n_pass_bidirection; // bidirectional KLT tracking
+			int n_pass_1p;
+			int n_pass_5p;
+			int n_new;
+			int n_final; // remained number of landmarks on the current frame.
 
-			uint32_t max_age; // max. age of landmark observed in current frame
-			uint32_t min_age; // min. age of landmark observed in current frame
-			float avg_age;		// avg. age of landmark observed in current frame
+			int max_age;	 // max. age of landmark observed in current frame
+			int min_age;	 // min. age of landmark observed in current frame
+			float avg_age; // avg. age of landmark observed in current frame
 
-			uint32_t n_ok_parallax;
+			int n_ok_parallax;
 			float min_parallax;
 			float max_parallax;
 			float avg_parallax;

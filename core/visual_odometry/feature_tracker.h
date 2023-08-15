@@ -22,9 +22,9 @@
 
 class FeatureTracker;
 
-class FeatureTracker{
+class FeatureTracker
+{
 private:
-
 public:
     /// @brief FeatureTracker constructor
     FeatureTracker();
@@ -38,11 +38,11 @@ public:
     /// @param pts0 pixels on previous image
     /// @param window_size KLT tracking window size
     /// @param max_pyr_lvl max pyramid level
-    /// @param thres_err threshold of KLT error 
+    /// @param thres_err threshold of KLT error
     /// @param pts_track tracked pixels
     /// @param mask_valid tracking mask
-    void track(const cv::Mat& img0, const cv::Mat& img1, const PixelVec& pts0, uint32_t window_size, uint32_t max_pyr_lvl, float thres_err,
-                PixelVec& pts_track, MaskVec& mask_valid);
+    void track(const cv::Mat &img0, const cv::Mat &img1, const PixelVec &pts0, int window_size, int max_pyr_lvl, float thres_err,
+               PixelVec &pts_track, MaskVec &mask_valid);
 
     /// @brief Feature tracking (Bidirectional tracking)
     /// @param img0 previous image
@@ -51,11 +51,11 @@ public:
     /// @param window_size KLT tracking window size
     /// @param max_pyr_lvl max pyramid level
     /// @param thres_err threshold of KLT error
-    /// @param thres_bidirection threshold of bidirection pixel error 
+    /// @param thres_bidirection threshold of bidirection pixel error
     /// @param pts_track tracked pixels
-    /// @param mask_valid tracking mask            
-    void trackBidirection(const cv::Mat& img0, const cv::Mat& img1, const PixelVec& pts0, uint32_t window_size, uint32_t max_pyr_lvl, float thres_err, float thres_bidirection, 
-                PixelVec& pts_track, MaskVec& mask_valid);
+    /// @param mask_valid tracking mask
+    void trackBidirection(const cv::Mat &img0, const cv::Mat &img1, const PixelVec &pts0, int window_size, int max_pyr_lvl, float thres_err, float thres_bidirection,
+                          PixelVec &pts_track, MaskVec &mask_valid);
 
     /// @brief Feature tracking with prior pixels (Bidirectional tracking)
     /// @param img0 previous image
@@ -64,11 +64,11 @@ public:
     /// @param window_size KLT tracking window size
     /// @param max_pyr_lvl max pyramid level
     /// @param thres_err threshold of KLT error
-    /// @param thres_bidirection threshold of bidirection pixel error 
+    /// @param thres_bidirection threshold of bidirection pixel error
     /// @param pts_track tracked pixels
     /// @param mask_valid tracking mask
-    void trackBidirectionWithPrior(const cv::Mat& img0, const cv::Mat& img1, const PixelVec& pts0, uint32_t window_size, uint32_t max_pyr_lvl, float thres_err, float thres_bidirection, 
-                PixelVec& pts_track, MaskVec& mask_valid);
+    void trackBidirectionWithPrior(const cv::Mat &img0, const cv::Mat &img1, const PixelVec &pts0, int window_size, int max_pyr_lvl, float thres_err, float thres_bidirection,
+                                   PixelVec &pts_track, MaskVec &mask_valid);
 
     /// @brief Feature tracking with prior pixels.
     /// @param img0 previous image
@@ -79,17 +79,17 @@ public:
     /// @param thres_err threshold of KLT error
     /// @param pts_track tracked pixels
     /// @param mask_valid tracking mask
-    void trackWithPrior(const cv::Mat& img0, const cv::Mat& img1, const PixelVec& pts0, uint32_t window_size, uint32_t max_pyr_lvl, float thres_err,
-                PixelVec& pts_track, MaskVec& mask_valid);
+    void trackWithPrior(const cv::Mat &img0, const cv::Mat &img1, const PixelVec &pts0, int window_size, int max_pyr_lvl, float thres_err,
+                        PixelVec &pts_track, MaskVec &mask_valid);
 
     /// @brief Calculate tracking prior from the 3D point
     /// @param pts0 previous pixel on previous image
     /// @param Xw 3D point represented in world frame
     /// @param Tw1 SE3 from world to the current image frame
-    /// @param K intrinsic matrix 
+    /// @param K intrinsic matrix
     /// @param pts1_prior prior pixel on current image
-    void calcPrior(const PixelVec& pts0, const PointVec& Xw, const PoseSE3& Tw1, const Eigen::Matrix3f& K,
-                PixelVec& pts1_prior);
+    void calcPrior(const PixelVec &pts0, const PointVec &Xw, const PoseSE3 &Tw1, const Eigen::Matrix3f &K,
+                   PixelVec &pts1_prior);
 
     /// @brief Re-track the pixel with scale compensation (scale is given and fixed.)
     /// @param img0 img0 (CV_32FC1, automatically converted)
@@ -100,8 +100,8 @@ public:
     /// @param scale_est scale from img0 to img1
     /// @param pts_track initial tracked pixels of pts0 on img1
     /// @param mask_valid mask for pts_track
-    void trackWithScale(const cv::Mat& img0, const cv::Mat& du0, const cv::Mat& dv0, const cv::Mat& img1, const PixelVec& pts0, const std::vector<float>& scale_est,
-                PixelVec& pts_track, MaskVec& mask_valid);
+    void trackWithScale(const cv::Mat &img0, const cv::Mat &du0, const cv::Mat &dv0, const cv::Mat &img1, const PixelVec &pts0, const std::vector<float> &scale_est,
+                        PixelVec &pts_track, MaskVec &mask_valid);
 
     // /// @brief refine a current pixel tracking w.r.t. the very first observation of each landmark.
     // /// @param img1 current image
@@ -112,6 +112,5 @@ public:
     // void refineTrackWithScale(const cv::Mat& img1, const LandmarkPtrVec& lms, const std::vector<float>& scale_est,
     //             PixelVec& pts_track, MaskVec& mask_valid);
 };
-
 
 #endif

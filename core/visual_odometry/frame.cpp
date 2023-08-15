@@ -83,7 +83,7 @@ void Frame::outOfKeyframeWindow()
   is_keyframe_in_window_ = false;
 }
 
-const uint32_t &Frame::getID() const
+const int &Frame::getID() const
 {
   return id_;
 }

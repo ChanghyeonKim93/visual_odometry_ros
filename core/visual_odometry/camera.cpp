@@ -184,7 +184,7 @@ void Camera::undistortImage(const cv::Mat &raw, cv::Mat &rectified)
 
 void Camera::undistortPixels(const PixelVec &pts_raw, PixelVec &pts_undist)
 { // 점만 undistort 하는 것. 연산량 매우 줄여줄 수 있다.
-	uint32_t n_pts = pts_raw.size();
+	const size_t n_pts = pts_raw.size();
 	pts_undist.resize(n_pts);
 
 	MaskVec mask_valid;
@@ -198,7 +198,7 @@ void Camera::undistortPixels(const PixelVec &pts_raw, PixelVec &pts_undist)
 	image_processing::interpImage(undistorted_pixel_map_u_, pts_raw, u_undist, mask_valid);
 	image_processing::interpImage(undistorted_pixel_map_v_, pts_raw, v_undist, mask_valid);
 
-	for (int i = 0; i < n_pts; ++i)
+	for (size_t i = 0; i < n_pts; ++i)
 	{
 		pts_undist[i].x = cx_ + u_undist[i] * fx_;
 		pts_undist[i].y = cy_ + v_undist[i] * fy_;

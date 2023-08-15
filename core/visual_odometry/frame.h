@@ -25,7 +25,7 @@ private:
   std::shared_ptr<Camera> cam_; // camera class pointer
 
 private:
-  uint32_t id_;      // unique ID of this frame.
+  int id_;           // unique ID of this frame.
   double timestamp_; // timestamp of this frame in second.
 
   // Poses of the frame
@@ -49,8 +49,8 @@ private:
   bool is_right_image_; // stereo image.
   FramePtr frame_left_; // Frame pointer to 'left frame' of this right frame. In this project, we consider the 'left image' is the reference image of the stereo frames. All poses of the right frames are represented by their 'left frames'.
 
-public:                                      // static counter.
-  inline static uint32_t frame_counter_ = 0; // Unique frame counter. (static)
+public:                                 // static counter.
+  inline static int frame_counter_ = 0; // Unique frame counter. (static)
   inline static int max_pyr_lvl_ = 5;
 
 public:
@@ -69,7 +69,7 @@ public:
   void outOfKeyframeWindow();
 
   // Get
-  const uint32_t &getID() const;
+  const int &getID() const;
   const PoseSE3 &getPose() const;
   const PoseSE3 &getPoseInv() const;
   const PoseSE3 &getPoseDiff10() const;
