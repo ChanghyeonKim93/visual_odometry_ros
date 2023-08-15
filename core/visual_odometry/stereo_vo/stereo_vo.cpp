@@ -277,36 +277,52 @@ void StereoVO::saveLandmarks(const LandmarkPtrVec &lms)
 	for (auto &lm : lms)
 		all_landmarks_.push_back(lm);
 
+#ifdef VERBOSE_STEREO_VO
+#ifdef VERBOSE_STEREO_VO_MORE_SPECIFIC
 	std::cout << "# of all accumulated landmarks: " << all_landmarks_.size() << std::endl;
+#endif
+#endif
 }
 
 void StereoVO::saveLandmark(const LandmarkPtr &lm)
 {
 	all_landmarks_.push_back(lm);
-
+#ifdef VERBOSE_STEREO_VO
+#ifdef VERBOSE_STEREO_VO_MORE_SPECIFIC
 	std::cout << "# of all accumulated landmarks: " << all_landmarks_.size() << std::endl;
+#endif
+#endif
 }
 
 void StereoVO::saveStereoFrames(const StereoFramePtrVec &stframes)
 {
 	for (auto &stf : stframes)
 		all_stframes_.push_back(stf);
-
+#ifdef VERBOSE_STEREO_VO
+#ifdef VERBOSE_STEREO_VO_MORE_SPECIFIC
 	std::cout << "# of all accumulated stereo frames   : " << all_stframes_.size() << std::endl;
+#endif
+#endif
 }
 
 void StereoVO::saveStereoFrame(const StereoFramePtr &stframe)
 {
 	all_stframes_.push_back(stframe);
-
+#ifdef VERBOSE_STEREO_VO
+#ifdef VERBOSE_STEREO_VO_MORE_SPECIFIC
 	std::cout << "# of all accumulated stereo frames   : " << all_stframes_.size() << std::endl;
+#endif
+#endif
 }
 
 void StereoVO::saveStereoKeyframe(const StereoFramePtr &stframe)
 {
 	all_stkeyframes_.push_back(stframe);
-
+#ifdef VERBOSE_STEREO_VO
+#ifdef VERBOSE_STEREO_VO_MORE_SPECIFIC
 	std::cout << "# of all accumulated stereo keyframes   : " << all_stkeyframes_.size() << std::endl;
+#endif
+#endif
 }
 
 const StereoVO::AlgorithmStatistics &StereoVO::getStatistics() const
@@ -419,8 +435,10 @@ void StereoVO::trackStereoImages(
 		cam_left = stereo_cam_->getLeftCamera();
 		cam_right = stereo_cam_->getRightCamera();
 	}
+#ifdef VERBOSE_STEREO_VO
 	std::cout << colorcode::text_green << "Time [stereo undistort ]: " << timer::toc(0) << " [ms]\n"
 						<< colorcode::cout_reset;
+#endif
 
 	// Algorithm implementation
 	// Make new stereo frame for current images.
@@ -519,10 +537,11 @@ void StereoVO::trackStereoImages(
 				lmtrack_prev.pts_l1, mask_l0l1); // lmtrack_curr.pts_u1 에 prior pixels가 이미 들어있다.
 
 		StereoLandmarkTracking lmtrack_l0l1_notrefine(lmtrack_prev, mask_l0l1);
+#ifdef VERBOSE_STEREO_VO
 		std::cout << "# pts : " << lmtrack_l0l1_notrefine.n_pts << std::endl;
 		std::cout << colorcode::text_green << "Time [track l0l1]: " << timer::toc(0) << " [ms]\n"
 							<< colorcode::cout_reset;
-
+#endif
 		// [4-1] track with scale
 		timer::tic();
 		MaskVec mask_refine(lmtrack_l0l1_notrefine.pts_l0.size(), true);
@@ -538,9 +557,10 @@ void StereoVO::trackStereoImages(
 				mask_refine);
 
 		StereoLandmarkTracking lmtrack_l0l1(lmtrack_l0l1_notrefine, mask_refine);
+#ifdef VERBOSE_STEREO_VO
 		std::cout << colorcode::text_green << "Time [trackWithScale   ]: " << timer::toc(0) << " [ms]\n"
 							<< colorcode::cout_reset;
-
+#endif
 		// [5] Track l1 --> r1 (lmtrack_l1r1)
 		timer::tic();
 		MaskVec mask_l1r1;
@@ -550,10 +570,11 @@ void StereoVO::trackStereoImages(
 				lmtrack_l0l1.pts_r1, mask_l1r1); // lmtrack_curr.pts_u1 에 prior pixels가 이미 들어있다.
 
 		StereoLandmarkTracking lmtrack_kltok(lmtrack_l0l1, mask_l1r1);
+#ifdef VERBOSE_STEREO_VO
 		std::cout << "# pts : " << lmtrack_kltok.n_pts << std::endl;
 		std::cout << colorcode::text_green << "Time [track l1r1]: " << timer::toc(0) << " [ms]\n"
 							<< colorcode::cout_reset;
-
+#endif
 		// [6] Motion Estimation via pose-only BA (stereo version)
 		// Using landmarks with 3D point, stereo pose-only BA.
 		// pts_left_1 , pts_right_1 , Xw , T_cw_prior    : needed.
@@ -592,7 +613,9 @@ void StereoVO::trackStereoImages(
 				++cnt_poBA;
 			}
 		}
+#ifdef VERBOSE_STEREO_VO
 		std::cout << "  # of poseonly BA point: " << cnt_poBA << std::endl;
+#endif
 
 		bool poseonlyBA_success =
 				motion_estimator_->poseOnlyBundleAdjustment_Stereo(
@@ -622,8 +645,10 @@ void StereoVO::trackStereoImages(
 		}
 
 		StereoLandmarkTracking lmtrack_motion_ok(lmtrack_kltok, mask_motion);
+#ifdef VERBOSE_STEREO_VO
 		std::cout << colorcode::text_green << "Time [motion est]: " << timer::toc(0) << " [ms]\n"
 							<< colorcode::cout_reset;
+#endif
 
 		// [7] Check sampson distance 0.01 ms
 		timer::tic();
@@ -644,9 +669,11 @@ void StereoVO::trackStereoImages(
 			mask_sampson[i] = (symm_epi_dist[i] < THRES_SAMPSON);
 
 		StereoLandmarkTracking lmtrack_final(lmtrack_motion_ok, mask_sampson);
+#ifdef VERBOSE_STEREO_VO
 		std::cout << "# pts : " << lmtrack_final.n_pts << std::endl;
 		std::cout << colorcode::text_green << "Time [sampson ]: " << timer::toc(0) << " [ms]\n"
 							<< colorcode::cout_reset;
+#endif
 
 		// [8] Update observations for surviving landmarks
 		for (int i = 0; i < lmtrack_final.pts_l1.size(); ++i)
@@ -667,13 +694,15 @@ void StereoVO::trackStereoImages(
 		extractor_->extractORBwithBinning_fast(I1_left, pts_l1_new, true);
 
 		int n_pts_new = pts_l1_new.size();
+#ifdef VERBOSE_STEREO_VO
 		std::cout << "# of newly extracted pts on empty space: " << n_pts_new << std::endl;
+#endif
 
 		if (n_pts_new > 0)
-		{
-			// If there are new points, add it.
+		{ // If there are new points, add it.
+#ifdef VERBOSE_STEREO_VO
 			std::cout << " --- --- # of NEW points : " << n_pts_new << "\n";
-
+#endif
 			// Track static stereo
 			MaskVec mask_new;
 			PixelVec pts_r1_new;
@@ -711,10 +740,16 @@ void StereoVO::trackStereoImages(
 			}
 		}
 		else
+		{
+#ifdef VERBOSE_STEREO_VO
 			std::cout << " --- --- NO NEW POINTS.\n";
+#endif
+		}
 
-		// [11] Update tracking information (set related pixels and landmarks)
+// [11] Update tracking information (set related pixels and landmarks)
+#ifdef VERBOSE_STEREO_VO
 		std::cout << "# of final landmarks : " << lmtrack_final.pts_l1.size() << std::endl;
+#endif
 		stframe_curr->setStereoPtsSeenAndRelatedLandmarks(lmtrack_final.pts_l1, lmtrack_final.pts_r1, lmtrack_final.lms);
 
 		// [12] Keyframe selection?
@@ -761,8 +796,9 @@ void StereoVO::trackStereoImages(
 					++cnt_recon;
 				}
 			}
+#ifdef VERBOSE_STEREO_VO
 			std::cout << "# of reconstructed points: " << cnt_recon << " / " << lmtrack_final.n_pts << std::endl;
-
+#endif
 			// Local Bundle Adjustment
 			motion_estimator_->localBundleAdjustmentSparseSolver_Stereo(stkeyframes_, cam_left, cam_right, T_lr);
 
@@ -788,9 +824,10 @@ void StereoVO::trackStereoImages(
 					stat_.stats_keyframe[j].mappoints[i] = lmvec_tmp[i]->get3DPoint();
 				}
 			}
+#ifdef VERBOSE_STEREO_VO
 			std::cout << colorcode::text_green << "Time [RECORD KEYFR STAT]: " << timer::toc(0) << " [ms]\n"
 								<< colorcode::cout_reset;
-
+#endif
 		} // KEYFRAME addition done.
 	}
 	else
@@ -820,10 +857,11 @@ void StereoVO::trackStereoImages(
 		extractor_->resetWeightBin();
 		extractor_->extractORBwithBinning_fast(I1_left, lmtrack_curr.pts_l1, true);
 		lmtrack_curr.n_pts = lmtrack_curr.pts_l1.size();
+#ifdef VERBOSE_STEREO_VO
 		std::cout << "# extracted features : " << lmtrack_curr.n_pts << std::endl;
 		std::cout << colorcode::text_green << "Time [extract ]: " << timer::toc(0) << " [ms]\n"
 							<< colorcode::cout_reset;
-
+#endif
 		// make dummy pixels
 		lmtrack_curr.pts_l0.resize(lmtrack_curr.n_pts);
 		lmtrack_curr.pts_r0.resize(lmtrack_curr.n_pts);
@@ -851,10 +889,10 @@ void StereoVO::trackStereoImages(
 		lmtrack_staticklt.pts_l0.resize(lmtrack_staticklt.n_pts);
 		lmtrack_staticklt.pts_r0.resize(lmtrack_staticklt.n_pts);
 		lmtrack_staticklt.lms.resize(lmtrack_staticklt.n_pts);
-
+#ifdef VERBOSE_STEREO_VO
 		std::cout << colorcode::text_green << "Time [track bidirection]: " << timer::toc(0) << " [ms]\n"
 							<< colorcode::cout_reset;
-
+#endif
 		// make landmarks
 		for (int i = 0; i < lmtrack_staticklt.n_pts; ++i)
 		{
@@ -867,8 +905,9 @@ void StereoVO::trackStereoImages(
 
 			this->saveLandmark(lmptr);
 		}
+#ifdef VERBOSE_STEREO_VO
 		std::cout << "# static klt success pts : " << lmtrack_staticklt.n_pts << std::endl;
-
+#endif
 		// 3D reconstruction
 		int cnt_recon = 0;
 		const Rot3 &R_rl = T_rl.block<3, 3>(0, 0);
@@ -904,16 +943,17 @@ void StereoVO::trackStereoImages(
 				++cnt_recon;
 			}
 		}
+#ifdef VERBOSE_STEREO_VO
 		std::cout << "# of reconstructed points: " << cnt_recon << " / " << lmtrack_staticklt.n_pts << std::endl;
-
+#endif
 		// Set related pixels and landmarks
 		stframe_curr->getLeft()->setPtsSeenAndRelatedLandmarks(lmtrack_staticklt.pts_l1, lmtrack_staticklt.lms);
 		stframe_curr->getRight()->setPtsSeenAndRelatedLandmarks(lmtrack_staticklt.pts_r1, lmtrack_staticklt.lms);
 
 		this->system_flags_.flagFirstImageGot = true;
-
+#ifdef VERBOSE_STEREO_VO
 		std::cout << "============ End initialization. Start to iterate all images... ============" << std::endl;
-
+#endif
 		if (0)
 		{
 			cv::Mat img_color;
@@ -947,6 +987,7 @@ void StereoVO::trackStereoImages(
 	this->stframe_prev_ = stframe_curr;
 	previous_left_image_ = current_left_image;
 	previous_right_image_ = current_right_image;
-
+#ifdef VERBOSE_STEREO_VO
 	std::cout << "# of all landmarks: " << all_landmarks_.size() << std::endl;
+#endif
 }

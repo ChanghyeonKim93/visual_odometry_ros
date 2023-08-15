@@ -1,6 +1,10 @@
 #ifndef _STEREO_VO_H_
 #define _STEREO_VO_H_
 
+// Set verbose
+// #define VERBOSE_STEREO_VO
+// #define VERBOSE_STEREO_VO_MORE_SPECIFIC
+
 #include <iostream>
 #include <exception>
 #include <string>
