@@ -222,7 +222,7 @@ void MonoVO::loadCameraIntrinsicAndUserParameters(const std::string &dir)
 	system_flags_.flagDoUndistortion = (int)fs["flagDoUndistortion"];
 
 	std::cout << " - 'loadCameraIntrinsic()' - loaded.\n";
-};
+}
 
 /**
  * @brief Prune out invalid landmarks and their trackings.
@@ -260,7 +260,7 @@ int MonoVO::pruneInvalidLandmarks(const PixelVec &pts0, const PixelVec &pts1, co
 			lms[i]->setUntracked(); // track failed. Dead point.
 	}
 	return cnt_alive;
-};
+}
 /**
  * @brief Prune out invalid landmarks and their trackings.
  * @details Prune out invalid landmarks and their trackings.
@@ -326,7 +326,7 @@ int MonoVO::pruneInvalidLandmarks(const LandmarkTracking &lmtrack, const MaskVec
 	}
 
 	return cnt_alive;
-};
+}
 
 /**
  * @brief Update keyframe with an input frame
@@ -336,49 +336,44 @@ int MonoVO::pruneInvalidLandmarks(const LandmarkTracking &lmtrack, const MaskVec
  * @author Changhyeon Kim (hyun91015@gmail.com)
  * @date 12-July-2022
  */
-void MonoVO::updateKeyframe(const FramePtr &frame){};
+void MonoVO::updateKeyframe(const FramePtr &frame) {}
 
-void MonoVO::saveLandmarks(const LandmarkPtrVec &lms, bool verbose)
+void MonoVO::saveLandmarks(const LandmarkPtrVec &lms)
 {
 	for (const auto &lm : lms)
 		all_landmarks_.push_back(lm);
 
-	if (verbose)
-		std::cout << "# of all accumulated landmarks: " << all_landmarks_.size() << std::endl;
-};
+	std::cout << "# of all accumulated landmarks: " << all_landmarks_.size() << std::endl;
+}
 
-void MonoVO::saveLandmark(const LandmarkPtr &lm, bool verbose)
+void MonoVO::saveLandmark(const LandmarkPtr &lm)
 {
 	all_landmarks_.push_back(lm);
 
-	if (verbose)
-		std::cout << "# of all accumulated landmarks: " << all_landmarks_.size() << std::endl;
-};
+	std::cout << "# of all accumulated landmarks: " << all_landmarks_.size() << std::endl;
+}
 
-void MonoVO::saveFrames(const FramePtrVec &frames, bool verbose)
+void MonoVO::saveFrames(const FramePtrVec &frames)
 {
 	for (const auto &f : frames)
 		all_frames_.push_back(f);
 
-	if (verbose)
-		std::cout << "# of all accumulated frames   : " << all_frames_.size() << std::endl;
-};
+	std::cout << "# of all accumulated frames   : " << all_frames_.size() << std::endl;
+}
 
-void MonoVO::saveFrame(const FramePtr &frame, bool verbose)
+void MonoVO::saveFrame(const FramePtr &frame)
 {
 	all_frames_.push_back(frame);
 
-	if (verbose)
-		std::cout << "# of all accumulated frames   : " << all_frames_.size() << std::endl;
-};
+	std::cout << "# of all accumulated frames   : " << all_frames_.size() << std::endl;
+}
 
-void MonoVO::saveKeyframe(const FramePtr &frame, bool verbose)
+void MonoVO::saveKeyframe(const FramePtr &frame)
 {
 	all_keyframes_.push_back(frame);
 
-	if (verbose)
-		std::cout << "# of all accumulated keyframes   : " << all_keyframes_.size() << std::endl;
-};
+	std::cout << "# of all accumulated keyframes   : " << all_keyframes_.size() << std::endl;
+}
 
 float MonoVO::calcLandmarksMeanAge(const LandmarkPtrVec &lms)
 {
@@ -392,7 +387,7 @@ float MonoVO::calcLandmarksMeanAge(const LandmarkPtrVec &lms)
 	mean_age /= n_lms;
 
 	return mean_age;
-};
+}
 
 void MonoVO::showTracking(const std::string &window_name, const cv::Mat &img, const PixelVec &pts0, const PixelVec &pts1, const PixelVec &pts1_new)
 {
@@ -421,7 +416,7 @@ void MonoVO::showTracking(const std::string &window_name, const cv::Mat &img, co
 
 	cv::imshow(window_name, img_debug_);
 	cv::waitKey(2);
-};
+}
 
 void MonoVO::showTrackingBA(const std::string &window_name, const cv::Mat &img, const PixelVec &pts1, const PixelVec &pts1_project)
 {
@@ -448,7 +443,7 @@ void MonoVO::showTrackingBA(const std::string &window_name, const cv::Mat &img, 
 
 	cv::imshow(window_name, img_debug_);
 	cv::waitKey(2);
-};
+}
 
 void MonoVO::showTracking(const std::string &window_name, const cv::Mat &img, const LandmarkPtrVec &lms)
 {
@@ -477,17 +472,17 @@ void MonoVO::showTracking(const std::string &window_name, const cv::Mat &img, co
 	}
 	cv::imshow(window_name, img_debug_);
 	cv::waitKey(3);
-};
+}
 
 const MonoVO::AlgorithmStatistics &MonoVO::getStatistics() const
 {
 	return stat_;
-};
+}
 
 const cv::Mat &MonoVO::getDebugImage()
 {
 	return img_debug_;
-};
+}
 
 /**
  * @brief function to track a new image (local bundle mode)
@@ -1196,4 +1191,4 @@ void MonoVO::trackImage(const cv::Mat &raw_image, const double &timestamp)
 	// mut_scale_estimator_->lock();
 	// mut_scale_estimator_->unlock();
 	// cond_var_scale_estimator_->notify_all();
-};
+}

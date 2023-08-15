@@ -248,12 +248,12 @@ private:
 	int pruneInvalidLandmarks(const LandmarkTracking &lmtrack, const MaskVec &mask,
 														LandmarkTracking &lmtrack_alive);
 	void updateKeyframe(const FramePtr &frame);
-	void saveLandmark(const LandmarkPtr &lm, bool verbose = false);
-	void saveLandmarks(const LandmarkPtrVec &lms, bool verbose = false);
-	void saveFrame(const FramePtr &frame, bool verbose = false);
-	void saveFrames(const FramePtrVec &frames, bool verbose = false);
+	void saveLandmark(const LandmarkPtr &lm);
+	void saveLandmarks(const LandmarkPtrVec &lms);
+	void saveFrame(const FramePtr &frame);
+	void saveFrames(const FramePtrVec &frames);
 
-	void saveKeyframe(const FramePtr &frame, bool verbose = false);
+	void saveKeyframe(const FramePtr &frame);
 
 private:
 	float calcLandmarksMeanAge(const LandmarkPtrVec &lms);

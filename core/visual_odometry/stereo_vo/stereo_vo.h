@@ -227,7 +227,7 @@ private:
 	// Constructor, destructor and track function
 public:
 	StereoVO(std::string mode, std::string directory_intrinsic);
-	~StereoVO();
+	~StereoVO() noexcept(false);
 
 	// Tracking function.
 public:
@@ -245,11 +245,11 @@ public:
 	const cv::Mat &getDebugImage();
 
 private:
-	void saveLandmark(const LandmarkPtr &lm, bool verbose = false);
-	void saveLandmarks(const LandmarkPtrVec &lms, bool verbose = false);
-	void saveStereoFrame(const StereoFramePtr &stframe, bool verbose = false);
-	void saveStereoFrames(const StereoFramePtrVec &stframes, bool verbose = false);
-	void saveStereoKeyframe(const StereoFramePtr &stframe, bool verbose = false);
+	void saveLandmark(const LandmarkPtr &lm);
+	void saveLandmarks(const LandmarkPtrVec &lms);
+	void saveStereoFrame(const StereoFramePtr &stframe);
+	void saveStereoFrames(const StereoFramePtrVec &stframes);
+	void saveStereoKeyframe(const StereoFramePtr &stframe);
 
 private:
 	void loadStereoCameraIntrinsicAndUserParameters(const std::string &dir);

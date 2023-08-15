@@ -50,9 +50,9 @@ StereoVO::StereoVO(std::string mode, std::string directory_intrinsic)
 	stkeyframes_->setThresOverlapRatio(params_.keyframe_update.thres_alive_ratio);
 	stkeyframes_->setThresRotation(params_.keyframe_update.thres_rotation * D2R);
 	stkeyframes_->setThresTranslation(params_.keyframe_update.thres_trans);
-};
+}
 
-StereoVO::~StereoVO()
+StereoVO::~StereoVO() noexcept(false)
 {
 	std::cout << "Save all frames trajectory...\n";
 	std::string filedir_frame_poses = "/home/kch/frame_poses.txt";
@@ -117,7 +117,7 @@ StereoVO::~StereoVO()
 	std::cout << " DONE!\n";
 
 	std::cout << "Stereo VO is terminated.\n";
-};
+}
 
 void StereoVO::loadStereoCameraIntrinsicAndUserParameters(const std::string &dir)
 {
@@ -270,59 +270,54 @@ void StereoVO::loadStereoCameraIntrinsicAndUserParameters(const std::string &dir
 	params_.keyframe_update.n_max_keyframes_in_window = (int)fs["keyframe_update.n_max_keyframes_in_window"];
 
 	std::cout << " - 'loadStereoCameraIntrinsicAndUserParameters()' - loaded.\n";
-};
+}
 
-void StereoVO::saveLandmarks(const LandmarkPtrVec &lms, bool verbose)
+void StereoVO::saveLandmarks(const LandmarkPtrVec &lms)
 {
 	for (auto &lm : lms)
 		all_landmarks_.push_back(lm);
 
-	if (verbose)
-		std::cout << "# of all accumulated landmarks: " << all_landmarks_.size() << std::endl;
-};
+	std::cout << "# of all accumulated landmarks: " << all_landmarks_.size() << std::endl;
+}
 
-void StereoVO::saveLandmark(const LandmarkPtr &lm, bool verbose)
+void StereoVO::saveLandmark(const LandmarkPtr &lm)
 {
 	all_landmarks_.push_back(lm);
 
-	if (verbose)
-		std::cout << "# of all accumulated landmarks: " << all_landmarks_.size() << std::endl;
-};
+	std::cout << "# of all accumulated landmarks: " << all_landmarks_.size() << std::endl;
+}
 
-void StereoVO::saveStereoFrames(const StereoFramePtrVec &stframes, bool verbose)
+void StereoVO::saveStereoFrames(const StereoFramePtrVec &stframes)
 {
 	for (auto &stf : stframes)
 		all_stframes_.push_back(stf);
 
-	if (verbose)
-		std::cout << "# of all accumulated stereo frames   : " << all_stframes_.size() << std::endl;
-};
+	std::cout << "# of all accumulated stereo frames   : " << all_stframes_.size() << std::endl;
+}
 
-void StereoVO::saveStereoFrame(const StereoFramePtr &stframe, bool verbose)
+void StereoVO::saveStereoFrame(const StereoFramePtr &stframe)
 {
 	all_stframes_.push_back(stframe);
 
-	if (verbose)
-		std::cout << "# of all accumulated stereo frames   : " << all_stframes_.size() << std::endl;
-};
+	std::cout << "# of all accumulated stereo frames   : " << all_stframes_.size() << std::endl;
+}
 
-void StereoVO::saveStereoKeyframe(const StereoFramePtr &stframe, bool verbose)
+void StereoVO::saveStereoKeyframe(const StereoFramePtr &stframe)
 {
 	all_stkeyframes_.push_back(stframe);
 
-	if (verbose)
-		std::cout << "# of all accumulated stereo keyframes   : " << all_stkeyframes_.size() << std::endl;
-};
+	std::cout << "# of all accumulated stereo keyframes   : " << all_stkeyframes_.size() << std::endl;
+}
 
 const StereoVO::AlgorithmStatistics &StereoVO::getStatistics() const
 {
 	return stat_;
-};
+}
 
 const cv::Mat &StereoVO::getDebugImage()
 {
 	return img_debug_;
-};
+}
 
 void StereoVO::showTracking(const std::string &window_name, const cv::Mat &img, const PixelVec &pts0, const PixelVec &pts1, const PixelVec &pts1_new)
 {
@@ -351,7 +346,7 @@ void StereoVO::showTracking(const std::string &window_name, const cv::Mat &img, 
 
 	cv::imshow(window_name, img_debug_);
 	cv::waitKey(2);
-};
+}
 
 void StereoVO::showTrackingBA(const std::string &window_name, const cv::Mat &img, const PixelVec &pts1, const PixelVec &pts1_project)
 {
@@ -376,7 +371,7 @@ void StereoVO::showTrackingBA(const std::string &window_name, const cv::Mat &img
 
 	cv::imshow(window_name, img_debug_);
 	cv::waitKey(2);
-};
+}
 
 void StereoVO::trackStereoImages(
 		const cv::Mat &img_left, const cv::Mat &img_right, const double &timestamp)
@@ -954,4 +949,4 @@ void StereoVO::trackStereoImages(
 	previous_right_image_ = current_right_image;
 
 	std::cout << "# of all landmarks: " << all_landmarks_.size() << std::endl;
-};
+}
