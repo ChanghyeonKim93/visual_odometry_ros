@@ -34,7 +34,7 @@ Frame::Frame(CameraConstPtr &cam, const double &timestamp,
   timestamp_ = 0.0;
   id_ = frame_counter_++;
 
-  this->setTimestamp(timestamp);
+  setTimestamp(timestamp);
 
   // Stereo right image only.
   is_right_image_ = is_right_image;

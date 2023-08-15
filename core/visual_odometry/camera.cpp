@@ -47,8 +47,8 @@ void Camera::initParams(int n_cols, int n_rows, const cv::Mat &cvK, const cv::Ma
 	undistorted_pixel_map_u_ = cv::Mat::zeros(n_rows_, n_cols_, CV_32FC1);
 	undistorted_pixel_map_v_ = cv::Mat::zeros(n_rows_, n_cols_, CV_32FC1);
 
-	this->generateImageUndistortMaps();
-	this->generatePixelUndistortMaps();
+	generateImageUndistortMaps();
+	generatePixelUndistortMaps();
 
 	printf(" - CAMERA - 'initParams()' - : camera params incomes.\n");
 }
@@ -179,7 +179,7 @@ void Camera::undistortImage(const cv::Mat &raw, cv::Mat &rectified)
 		img_float.convertTo(img_float, CV_32FC1);
 	}
 
-	cv::remap(img_float, rectified, this->distorted_map_u_, this->distorted_map_v_, cv::INTER_LINEAR);
+	cv::remap(img_float, rectified, distorted_map_u_, distorted_map_v_, cv::INTER_LINEAR);
 }
 
 void Camera::undistortPixels(const PixelVec &pts_raw, PixelVec &pts_undist)
@@ -220,7 +220,7 @@ Point Camera::reprojectToNormalizedPoint(const Pixel &pt)
 bool Camera::inImage(const Pixel &pt)
 {
 	bool is_in_image = true;
-	float offset = 3.0f;
+	constexpr float offset = 3.0f;
 
 	if (pt.x < offset || pt.y < offset || pt.x >= n_cols_ - offset || pt.y >= n_rows_ - offset)
 		is_in_image = false;
@@ -231,7 +231,7 @@ bool Camera::inImage(const Pixel &pt)
 bool Camera::inImage(Pixel &pt)
 {
 	bool is_in_image = true;
-	float offset = 3.0f;
+	constexpr float offset = 3.0f;
 
 	if (pt.x < offset || pt.y < offset || pt.x >= n_cols_ - offset || pt.y >= n_rows_ - offset)
 		is_in_image = false;
@@ -283,7 +283,7 @@ void StereoCamera::setStereoPoseLeft2Right(const PoseSE3 &T_lr)
 
 void StereoCamera::initStereoCameraToRectify()
 {
-	this->generateStereoImagesUndistortAndRectifyMaps();
+	generateStereoImagesUndistortAndRectifyMaps();
 	is_initialized_to_stereo_rectify_ = true;
 }
 
@@ -402,7 +402,7 @@ void StereoCamera::generateStereoImagesUndistortAndRectifyMaps()
 	R_0n << i_n, j_n, k_n;
 
 	// New intrinsic parameter
-	float f_n =
+	const float f_n =
 			(cam_left_->fx() + cam_right_->fx()) * invscale;
 
 	const float centu = static_cast<float>(n_cols) * 0.5f;
@@ -457,11 +457,11 @@ void StereoCamera::generateStereoImagesUndistortAndRectifyMaps()
 	float *ptr_map_right_v = nullptr;
 	for (int v = 0; v < n_rows; ++v)
 	{
-		ptr_map_left_u = this->rectify_map_left_u_.ptr<float>(v);
-		ptr_map_left_v = this->rectify_map_left_v_.ptr<float>(v);
+		ptr_map_left_u = rectify_map_left_u_.ptr<float>(v);
+		ptr_map_left_v = rectify_map_left_v_.ptr<float>(v);
 
-		ptr_map_right_u = this->rectify_map_right_u_.ptr<float>(v);
-		ptr_map_right_v = this->rectify_map_right_v_.ptr<float>(v);
+		ptr_map_right_u = rectify_map_right_u_.ptr<float>(v);
+		ptr_map_right_v = rectify_map_right_v_.ptr<float>(v);
 
 		for (int u = 0; u < n_cols; ++u)
 		{
@@ -532,8 +532,8 @@ void StereoCamera::generateStereoImagesUndistortAndRectifyMaps()
 	Rot3 R_ln = R_l0 * R_0n;
 	Rot3 R_rn = R_r0 * R_0n;
 	Pos3 t_clcr = T_lr_.block<3, 1>(0, 3);
-	this->T_lr_rect_ << Rot3::Identity(), R_ln.transpose() * t_clcr, 0, 0, 0, 1;
-	this->T_rl_rect_ << Rot3::Identity(), -R_ln.transpose() * t_clcr, 0, 0, 0, 1;
+	T_lr_rect_ << Rot3::Identity(), R_ln.transpose() * t_clcr, 0, 0, 0, 1;
+	T_rl_rect_ << Rot3::Identity(), -R_ln.transpose() * t_clcr, 0, 0, 0, 1;
 
 	std::cout << "K_rect_:\n"
 						<< K_rect << std::endl;

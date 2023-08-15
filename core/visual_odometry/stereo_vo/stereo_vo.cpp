@@ -18,7 +18,7 @@ StereoVO::StereoVO(std::string mode, std::string directory_intrinsic)
 	else if (mode == "rosbag")
 	{
 		std::cout << "StereoVO - 'rosbag' mode.\n";
-		this->loadStereoCameraIntrinsicAndUserParameters(directory_intrinsic);
+		loadStereoCameraIntrinsicAndUserParameters(directory_intrinsic);
 	}
 	else
 		throw std::runtime_error("StereoVO - unknown mode...");
@@ -63,7 +63,7 @@ StereoVO::~StereoVO() noexcept(false)
 	of_frame_poses.setf(std::ios_base::fixed, std::ios_base::floatfield);
 	if (of_frame_poses.is_open())
 	{
-		for (int j = 0; j < this->all_stframes_.size(); ++j)
+		for (size_t j = 0; j < all_stframes_.size(); ++j)
 		{
 			of_frame_poses << all_stframes_[j]->getLeft()->getID() << " "
 										 << all_stframes_[j]->getLeft()->getPose()(0, 0) << " "
@@ -93,7 +93,7 @@ StereoVO::~StereoVO() noexcept(false)
 	of_keyframe_poses.setf(std::ios_base::fixed, std::ios_base::floatfield);
 	if (of_keyframe_poses.is_open())
 	{
-		for (int j = 0; j < this->all_stkeyframes_.size(); ++j)
+		for (size_t j = 0; j < all_stkeyframes_.size(); ++j)
 		{
 			of_keyframe_poses << all_stkeyframes_[j]->getLeft()->getID() << " "
 												<< all_stkeyframes_[j]->getLeft()->getPose()(0, 0) << " "
@@ -340,21 +340,21 @@ void StereoVO::showTracking(const std::string &window_name, const cv::Mat &img, 
 	cv::namedWindow(window_name);
 	img.copyTo(img_debug_);
 	cv::cvtColor(img_debug_, img_debug_, CV_GRAY2RGB);
-	for (int i = 0; i < pts1.size(); ++i)
+	for (size_t i = 0; i < pts1.size(); ++i)
 	{
 		cv::line(img_debug_, pts0[i], pts1[i], cv::Scalar(0, 255, 255), 1);
 	}
-	for (int i = 0; i < pts0.size(); ++i)
+	for (size_t i = 0; i < pts0.size(); ++i)
 	{
 		cv::circle(img_debug_, pts0[i], 3.0, cv::Scalar(0, 0, 0), 2);			// alived magenta
 		cv::circle(img_debug_, pts0[i], 2.0, cv::Scalar(255, 0, 255), 1); // alived magenta
 	}
-	for (int i = 0; i < pts1.size(); ++i)
+	for (size_t i = 0; i < pts1.size(); ++i)
 	{
 		cv::circle(img_debug_, pts1[i], 3.0, cv::Scalar(0, 0, 0), 2);		// green tracked points
 		cv::circle(img_debug_, pts1[i], 2.0, cv::Scalar(0, 255, 0), 1); // green tracked points
 	}
-	for (int i = 0; i < pts1_new.size(); ++i)
+	for (size_t i = 0; i < pts1_new.size(); ++i)
 	{
 		cv::circle(img_debug_, pts1_new[i], 3.0, cv::Scalar(0, 0, 0), 2);		// blue new points
 		cv::circle(img_debug_, pts1_new[i], 2.0, cv::Scalar(255, 0, 0), 1); // blue new points
@@ -375,11 +375,11 @@ void StereoVO::showTrackingBA(const std::string &window_name, const cv::Mat &img
 	cv::namedWindow(window_name);
 	img.copyTo(img_debug_);
 	cv::cvtColor(img_debug_, img_debug_, CV_GRAY2RGB);
-	for (int i = 0; i < pts1.size(); ++i)
+	for (size_t i = 0; i < pts1.size(); ++i)
 	{
 		cv::circle(img_debug_, pts1[i], 1.0, color_red, circle_radius); // alived magenta
 	}
-	for (int i = 0; i < pts1_project.size(); ++i)
+	for (size_t i = 0; i < pts1_project.size(); ++i)
 	{
 		cv::rectangle(img_debug_, cv::Point2f(pts1_project[i].x - rect_half, pts1_project[i].y - rect_half), cv::Point2f(pts1_project[i].x + rect_half, pts1_project[i].y + rect_half),
 									color_green, 2);
@@ -447,10 +447,10 @@ void StereoVO::trackStereoImages(
 	const auto &current_left_image = img_left_undist;
 	const auto &current_right_image = img_right_undist;
 
-	this->saveStereoFrame(stframe_curr);
+	saveStereoFrame(stframe_curr);
 
 	// Algorithm
-	if (this->system_flags_.flagFirstImageGot)
+	if (system_flags_.flagFirstImageGot)
 	{
 		// 초기화가 된 상태에서 반복적 구동.
 		// 이전 이미지 가져오기
@@ -465,12 +465,10 @@ void StereoVO::trackStereoImages(
 		StereoLandmarkTracking lmtrack_prev;
 		lmtrack_prev.pts_l0 = stframe_prev_->getLeft()->getPtsSeen();
 		lmtrack_prev.pts_r0 = stframe_prev_->getRight()->getPtsSeen();
-		lmtrack_prev.n_pts = lmtrack_prev.pts_l0.size();
+		lmtrack_prev.n_pts = static_cast<int>(lmtrack_prev.pts_l0.size());
 		lmtrack_prev.pts_l1 = PixelVec(lmtrack_prev.n_pts); // tracking result
 		lmtrack_prev.pts_r1 = PixelVec(lmtrack_prev.n_pts);
 		lmtrack_prev.lms = stframe_prev_->getLeft()->getRelatedLandmarkPtr();
-
-		int n_pts_exist = lmtrack_prev.n_pts;
 
 		// [2] 현재 stereo frame의 자세를 업데이트한다.
 		// 이전 자세와 이전 업데이트 값을 가져온다. (constant velocity assumption)
@@ -482,6 +480,7 @@ void StereoVO::trackStereoImages(
 		PoseSE3 T_cw_prior = geometry::inverseSE3_f(T_wc_prior);
 
 		// [3] tracking을 위해, 'pts_l1' 'pts_r1' 에 대한 prior 계산.
+		const int n_pts_exist = lmtrack_prev.n_pts;
 		std::vector<float> patch_scale_prior(n_pts_exist);
 		for (int i = 0; i < n_pts_exist; ++i)
 		{
@@ -531,7 +530,7 @@ void StereoVO::trackStereoImages(
 		// [4] Track l0 --> l1 (lmtrack_l0l1)
 		timer::tic();
 		MaskVec mask_l0l1;
-		this->tracker_->trackWithPrior(
+		tracker_->trackWithPrior(
 				I0_left, I1_left,
 				lmtrack_prev.pts_l0, params_.feature_tracker.window_size, params_.feature_tracker.max_level, params_.feature_tracker.thres_error,
 				lmtrack_prev.pts_l1, mask_l0l1); // lmtrack_curr.pts_u1 에 prior pixels가 이미 들어있다.
@@ -564,7 +563,7 @@ void StereoVO::trackStereoImages(
 		// [5] Track l1 --> r1 (lmtrack_l1r1)
 		timer::tic();
 		MaskVec mask_l1r1;
-		this->tracker_->trackWithPrior(
+		tracker_->trackWithPrior(
 				I1_left, I1_right,
 				lmtrack_l0l1.pts_l1, params_.feature_tracker.window_size, params_.feature_tracker.max_level, params_.feature_tracker.thres_error,
 				lmtrack_l0l1.pts_r1, mask_l1r1); // lmtrack_curr.pts_u1 에 prior pixels가 이미 들어있다.
@@ -593,7 +592,7 @@ void StereoVO::trackStereoImages(
 		PixelVec pts_r1_poBA;
 		MaskVec mask_poBA;
 		std::vector<int> index_poBA;
-		for (int i = 0; i < lmtrack_kltok.pts_l1.size(); ++i)
+		for (size_t i = 0; i < lmtrack_kltok.pts_l1.size(); ++i)
 		{
 			LandmarkConstPtr &lm = lmtrack_kltok.lms[i];
 
@@ -629,7 +628,7 @@ void StereoVO::trackStereoImages(
 		else
 		{
 			// Success. Update pose.
-			for (int i = 0; i < mask_poBA.size(); ++i)
+			for (size_t i = 0; i < mask_poBA.size(); ++i)
 			{
 				const int &idx = index_poBA[i];
 				if (mask_poBA[i])
@@ -655,7 +654,7 @@ void StereoVO::trackStereoImages(
 		std::vector<float> symm_epi_dist;
 		symm_epi_dist.resize(lmtrack_motion_ok.pts_l1.size(), 0);
 		// motion_estimator_->calcSymmetricEpipolarDistance(lmtrack_motion_ok.pts_l0, lmtrack_motion_ok.pts_l1, cam_rect, dT_pc_poBA.block<3,3>(0,0), dT_pc_poBA.block<3,1>(0,3), symm_epi_dist);
-		for (int i = 0; i < lmtrack_motion_ok.pts_l1.size(); ++i)
+		for (size_t i = 0; i < lmtrack_motion_ok.pts_l1.size(); ++i)
 		{
 			// std::cout << i << "-th point epi dist: " << symm_epi_dist[i] << std::endl;
 			if (lmtrack_motion_ok.pts_l1[i].y > 660)
@@ -665,7 +664,7 @@ void StereoVO::trackStereoImages(
 		}
 
 		MaskVec mask_sampson(lmtrack_motion_ok.pts_l1.size(), true);
-		for (int i = 0; i < mask_sampson.size(); ++i)
+		for (size_t i = 0; i < mask_sampson.size(); ++i)
 			mask_sampson[i] = (symm_epi_dist[i] < THRES_SAMPSON);
 
 		StereoLandmarkTracking lmtrack_final(lmtrack_motion_ok, mask_sampson);
@@ -676,7 +675,7 @@ void StereoVO::trackStereoImages(
 #endif
 
 		// [8] Update observations for surviving landmarks
-		for (int i = 0; i < lmtrack_final.pts_l1.size(); ++i)
+		for (size_t i = 0; i < lmtrack_final.pts_l1.size(); ++i)
 		{
 			const LandmarkPtr &lm = lmtrack_final.lms[i];
 			lm->addObservationAndRelatedFrame(lmtrack_final.pts_l1[i], stframe_curr->getLeft());
@@ -685,7 +684,7 @@ void StereoVO::trackStereoImages(
 
 		if (1)
 		{
-			this->showTrackingBA("stereo_tracking", I1_left, PixelVec(), lmtrack_final.pts_l1);
+			showTrackingBA("stereo_tracking", I1_left, PixelVec(), lmtrack_final.pts_l1);
 		}
 
 		// [10] Extract new points from empty bins.
@@ -693,7 +692,7 @@ void StereoVO::trackStereoImages(
 		extractor_->updateWeightBin(lmtrack_final.pts_l1);
 		extractor_->extractORBwithBinning_fast(I1_left, pts_l1_new, true);
 
-		int n_pts_new = pts_l1_new.size();
+		const auto n_pts_new = pts_l1_new.size();
 #ifdef VERBOSE_STEREO_VO
 		std::cout << "# of newly extracted pts on empty space: " << n_pts_new << std::endl;
 #endif
@@ -706,13 +705,13 @@ void StereoVO::trackStereoImages(
 			// Track static stereo
 			MaskVec mask_new;
 			PixelVec pts_r1_new;
-			this->tracker_->trackBidirection(
+			tracker_->trackBidirection(
 					I1_left, I1_right, pts_l1_new,
 					params_.feature_tracker.window_size, params_.feature_tracker.max_level, params_.feature_tracker.thres_error, params_.feature_tracker.thres_bidirection,
 					pts_r1_new, mask_new); // lmtrack_curr.pts_u1 에 prior pixels가 이미 들어있다.
 
 			// 새로운 특징점은 새로운 landmark가 된다.
-			for (int i = 0; i < pts_r1_new.size(); ++i)
+			for (size_t i = 0; i < pts_r1_new.size(); ++i)
 			{
 				if (mask_new[i])
 				{
@@ -753,13 +752,13 @@ void StereoVO::trackStereoImages(
 		stframe_curr->setStereoPtsSeenAndRelatedLandmarks(lmtrack_final.pts_l1, lmtrack_final.pts_r1, lmtrack_final.lms);
 
 		// [12] Keyframe selection?
-		bool flag_add_new_keyframe = this->stkeyframes_->checkUpdateRule(stframe_curr);
+		const bool flag_add_new_keyframe = stkeyframes_->checkUpdateRule(stframe_curr);
 
 		if (flag_add_new_keyframe)
 		{
 			// Add keyframe
-			this->saveStereoKeyframe(stframe_curr);
-			this->stkeyframes_->addNewStereoKeyframe(stframe_curr);
+			saveStereoKeyframe(stframe_curr);
+			stkeyframes_->addNewStereoKeyframe(stframe_curr);
 
 			// Reconstruction new features.
 			int cnt_recon = 0;
@@ -805,24 +804,21 @@ void StereoVO::trackStereoImages(
 			timer::tic();
 			PointVec X_tmp;
 			const LandmarkPtrVec &lmvec_tmp = stframe_curr->getLeft()->getRelatedLandmarkPtr();
-			for (int i = 0; i < lmvec_tmp.size(); ++i)
-			{
+			for (size_t i = 0; i < lmvec_tmp.size(); ++i)
 				X_tmp.push_back(lmvec_tmp[i]->get3DPoint());
-			}
+
 			statcurr_keyframe.Twc = stframe_curr->getLeft()->getPose();
 			statcurr_keyframe.mappoints = X_tmp;
 			stat_.stats_keyframe.push_back(statcurr_keyframe);
 
-			for (int j = 0; j < stat_.stats_keyframe.size(); ++j)
+			for (size_t j = 0; j < stat_.stats_keyframe.size(); ++j)
 			{
 				stat_.stats_keyframe[j].Twc = all_stkeyframes_[j]->getLeft()->getPose();
 
 				const LandmarkPtrVec &lmvec_tmp = all_stkeyframes_[j]->getLeft()->getRelatedLandmarkPtr();
 				stat_.stats_keyframe[j].mappoints.resize(lmvec_tmp.size());
-				for (int i = 0; i < lmvec_tmp.size(); ++i)
-				{
+				for (size_t i = 0; i < lmvec_tmp.size(); ++i)
 					stat_.stats_keyframe[j].mappoints[i] = lmvec_tmp[i]->get3DPoint();
-				}
 			}
 #ifdef VERBOSE_STEREO_VO
 			std::cout << colorcode::text_green << "Time [RECORD KEYFR STAT]: " << timer::toc(0) << " [ms]\n"
@@ -856,7 +852,7 @@ void StereoVO::trackStereoImages(
 		StereoLandmarkTracking lmtrack_curr;
 		extractor_->resetWeightBin();
 		extractor_->extractORBwithBinning_fast(I1_left, lmtrack_curr.pts_l1, true);
-		lmtrack_curr.n_pts = lmtrack_curr.pts_l1.size();
+		lmtrack_curr.n_pts = static_cast<int>(lmtrack_curr.pts_l1.size());
 #ifdef VERBOSE_STEREO_VO
 		std::cout << "# extracted features : " << lmtrack_curr.n_pts << std::endl;
 		std::cout << colorcode::text_green << "Time [extract ]: " << timer::toc(0) << " [ms]\n"
@@ -872,12 +868,12 @@ void StereoVO::trackStereoImages(
 		// 1) Track 'static stereo' (I1_left --> I1_right)
 		timer::tic();
 		MaskVec mask_track(lmtrack_curr.n_pts, true);
-		this->tracker_->trackBidirection(I1_left, I1_right,
-																		 lmtrack_curr.pts_l1, params_.feature_tracker.window_size, params_.feature_tracker.max_level, params_.feature_tracker.thres_error, params_.feature_tracker.thres_bidirection,
-																		 lmtrack_curr.pts_r1, mask_track); // lmtrack_curr.pts_u1 에 prior pixels가 이미 들어있다.
+		tracker_->trackBidirection(I1_left, I1_right,
+															 lmtrack_curr.pts_l1, params_.feature_tracker.window_size, params_.feature_tracker.max_level, params_.feature_tracker.thres_error, params_.feature_tracker.thres_bidirection,
+															 lmtrack_curr.pts_r1, mask_track); // lmtrack_curr.pts_u1 에 prior pixels가 이미 들어있다.
 
 		StereoLandmarkTracking lmtrack_staticklt;
-		for (int i = 0; i < lmtrack_curr.pts_l1.size(); ++i)
+		for (size_t i = 0; i < lmtrack_curr.pts_l1.size(); ++i)
 		{
 			if (mask_track[i])
 			{
@@ -885,7 +881,7 @@ void StereoVO::trackStereoImages(
 				lmtrack_staticklt.pts_r1.push_back(lmtrack_curr.pts_r1[i]);
 			}
 		}
-		lmtrack_staticklt.n_pts = lmtrack_staticklt.pts_l1.size();
+		lmtrack_staticklt.n_pts = static_cast<int>(lmtrack_staticklt.pts_l1.size());
 		lmtrack_staticklt.pts_l0.resize(lmtrack_staticklt.n_pts);
 		lmtrack_staticklt.pts_r0.resize(lmtrack_staticklt.n_pts);
 		lmtrack_staticklt.lms.resize(lmtrack_staticklt.n_pts);
@@ -903,7 +899,7 @@ void StereoVO::trackStereoImages(
 
 			lmtrack_staticklt.lms[i] = lmptr;
 
-			this->saveLandmark(lmptr);
+			saveLandmark(lmptr);
 		}
 #ifdef VERBOSE_STEREO_VO
 		std::cout << "# static klt success pts : " << lmtrack_staticklt.n_pts << std::endl;
@@ -950,7 +946,7 @@ void StereoVO::trackStereoImages(
 		stframe_curr->getLeft()->setPtsSeenAndRelatedLandmarks(lmtrack_staticklt.pts_l1, lmtrack_staticklt.lms);
 		stframe_curr->getRight()->setPtsSeenAndRelatedLandmarks(lmtrack_staticklt.pts_r1, lmtrack_staticklt.lms);
 
-		this->system_flags_.flagFirstImageGot = true;
+		system_flags_.flagFirstImageGot = true;
 #ifdef VERBOSE_STEREO_VO
 		std::cout << "============ End initialization. Start to iterate all images... ============" << std::endl;
 #endif
@@ -984,7 +980,7 @@ void StereoVO::trackStereoImages(
 	stat_.stats_frame.back().Twc = all_stframes_.back()->getLeft()->getPose();
 
 	// [6] Update prev
-	this->stframe_prev_ = stframe_curr;
+	stframe_prev_ = stframe_curr;
 	previous_left_image_ = current_left_image;
 	previous_right_image_ = current_right_image;
 #ifdef VERBOSE_STEREO_VO
